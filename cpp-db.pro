@@ -48,5 +48,8 @@ linux*|mac*{
 	Debug:DEFINES += _DEBUG
 }
 
+INCLUDEPATH += \
+	../cpputils
+
 HEADERS += \
 	src/cpp-db.hpp

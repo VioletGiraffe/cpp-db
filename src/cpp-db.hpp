@@ -1,10 +1,13 @@
 #pragma once
 
+#include "assert/advanced_assert.h"
+
+#include <QFile>
+
 #include <optional>
+#include <string>
 #include <tuple>
 #include <vector>
-
-#define DEFINE_FIELD(Type, name)
 
 enum class TestCollectionFields {
 	Id,
@@ -13,21 +16,32 @@ enum class TestCollectionFields {
 
 template <typename T, auto fieldIdValue>
 struct Field {
-	T value;
+	using ValueType = T;
 	static constexpr auto id = fieldIdValue;
+
+	T value;
 };
 
 template <class... Fields>
 class Collection
 {
 public:
+	Collection(const std::string& collectionName, const std::string& databaseFilePath) {
+		_dbFile.setFileName(QString::fromStdString(databaseFilePath + '/' + collectionName));
+		assert_r(_dbFile.open(QFile::ReadWrite));
+	}
+
 	using Record = std::tuple<Fields...>;
 
 	template <auto N>
-	using FieldTypeById = typename std::tuple_element<static_cast<size_t>(N), Record>::type;
+	using FieldTypeById = typename std::tuple_element<static_cast<size_t>(N), Record>::type::ValueType;
 
-	template <auto fieldTypeEnumValue>
-	void write(const FieldTypeById<fieldTypeEnumValue>& value) {
+	void insert(const Record& value) {
+
+	}
+
+	template <auto... queryFields>
+	void insert(const Record& value) {
 
 	}
 
@@ -35,4 +49,8 @@ public:
 	std::vector<Record> find(const FieldTypeById<fieldTypeEnumValue>& queryValue) {
 		return {};
 	}
+
+private:
+	QFile _dbFile;
 };
+
