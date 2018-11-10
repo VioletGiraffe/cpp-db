@@ -49,7 +49,11 @@ linux*|mac*{
 }
 
 INCLUDEPATH += \
-	../cpputils
+	../cpputils \
+	../cpp-template-utils \
+	../qtutils
 
 HEADERS += \
-	src/cpp-db.hpp
+	src/cpp-db.hpp \
+    src/dbfilegaps.hpp \
+    src/dbindex.hpp

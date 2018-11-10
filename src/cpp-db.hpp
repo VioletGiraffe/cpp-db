@@ -4,7 +4,6 @@
 
 #include <QFile>
 
-#include <optional>
 #include <string>
 #include <tuple>
 #include <vector>
@@ -14,10 +13,10 @@ enum class TestCollectionFields {
 	Text
 };
 
-template <typename T, auto fieldIdValue>
+template <typename T, auto fieldId>
 struct Field {
 	using ValueType = T;
-	static constexpr auto id = fieldIdValue;
+	static constexpr auto id = fieldId;
 
 	T value;
 };
