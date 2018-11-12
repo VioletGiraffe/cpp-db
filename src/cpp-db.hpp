@@ -1,4 +1,6 @@
 #pragma once
+#include "dbfilegaps.hpp"
+#include "dbindex.hpp"
 
 #include "assert/advanced_assert.h"
 
@@ -13,10 +15,11 @@ enum class TestCollectionFields {
 	Text
 };
 
-template <typename T, auto fieldId>
+template <typename T, auto fieldId, size_t fieldSize = 0>
 struct Field {
 	using ValueType = T;
 	static constexpr auto id = fieldId;
+	static constexpr auto size = fieldSize;
 
 	T value;
 };

@@ -2,10 +2,20 @@
 
 #include <map>
 #include <stdint.h>
+#include <tuple>
 
 template <class IndexedField>
-struct DbIndex
+using DbIndex = std::multimap<typename IndexedField::ValueType /* field value */, uint64_t /* record location */>;
+
+template <class... IndexedFields>
+class Indices
 {
+public:
+	template <class Field>
+	static constexpr bool hasIndex() {
+		return ((IndexedFields::id == Field::id) || ...);
+	}
+
 private:
-	std::multimap<typename IndexedField::ValueType /* field value */, uint64_t /* record location */> _index;
+	std::tuple<DbIndex<IndexedFields>...> _indices;
 };
