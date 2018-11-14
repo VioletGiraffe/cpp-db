@@ -56,4 +56,5 @@ INCLUDEPATH += \
 HEADERS += \
 	src/cpp-db.hpp \
     src/dbfilegaps.hpp \
-    src/dbindex.hpp
+    src/dbindex.hpp \
+    src/index_helpers.hpp
