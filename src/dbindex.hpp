@@ -35,8 +35,8 @@ public:
 	{
 		const auto range = index<id>().equal_range(value);
 		std::vector<uint64_t> result;
-// 		for (auto it = range.first; it != range.second; ++it)
-// 			result.push_back(it->second);
+		for (auto it = range.first; it != range.second; ++it)
+			result.push_back(it->second);
 
 		return result;
 	}
@@ -100,7 +100,7 @@ bool Indices<IndexedFields...>::store(const std::string& indexStorageFolder)
 			return;
 		}
 
-		const auto filePath = qStrFromStdStrU8(indexStorageFolder) + "/" + QString(typeid(item).name()).remove(':').remove('.') + QStringLiteral(".index");
+		const auto filePath = qStrFromStdStrU8(indexStorageFolder) + "/" + QString(typeid(item).name()).remove(':').remove('.') + ".index";
 		QFile file(filePath);
 		success = file.open(QFile::WriteOnly);
 		assert_and_return_r(success, );
@@ -130,7 +130,7 @@ bool Indices<IndexedFields...>::load(const std::string& indexStorageFolder)
 			return;
 		}
 
-		const auto filePath = qStrFromStdStrU8(indexStorageFolder) + "/" + QString(typeid(item).name()).remove(':').remove('.') + QStringLiteral(".index");
+		const auto filePath = qStrFromStdStrU8(indexStorageFolder) + "/" + QString(typeid(item).name()).remove(':').remove('.') + ".index";
 		QFile file(filePath);
 		success = file.open(QFile::ReadOnly);
 		assert_and_return_r(success, );
