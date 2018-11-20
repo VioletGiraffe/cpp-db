@@ -1,10 +1,8 @@
 #pragma once
+#include "dbfield.hpp"
 #include "dbfilegaps.hpp"
 #include "dbindex.hpp"
-
-#include "assert/advanced_assert.h"
-
-#include <QFile>
+#include "dbstorage.hpp"
 
 #include <string>
 #include <tuple>
@@ -15,22 +13,14 @@ enum class TestCollectionFields {
 	Text
 };
 
-template <typename T, auto fieldId, size_t fieldSize = 0>
-struct Field {
-	using ValueType = T;
-	static constexpr auto id = fieldId;
-	static constexpr auto size = fieldSize;
-
-	T value;
-};
-
 template <class... Fields>
 class Collection
 {
 public:
-	Collection(const std::string& collectionName, const std::string& databaseFilePath) {
-		_dbFile.setFileName(QString::fromStdString(databaseFilePath + '/' + collectionName));
-		assert_r(_dbFile.open(QFile::ReadWrite));
+	Collection(const std::string& collectionName, const std::string& databaseFolderPath)
+	{
+		_storageFile.setFileName(qStrFromStdStrU8(databaseFolderPath + '/' + collectionName));
+		assert_r(_storageFile.open(QFile::ReadWrite));
 	}
 
 	using Record = std::tuple<Fields...>;
@@ -53,6 +43,5 @@ public:
 	}
 
 private:
-	QFile _dbFile;
+	QFile _storageFile;
 };
-
