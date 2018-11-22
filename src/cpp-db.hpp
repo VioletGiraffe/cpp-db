@@ -13,14 +13,22 @@ enum class TestCollectionFields {
 	Text
 };
 
-template <class... Fields>
+template <class Index, class... Fields>
 class Collection
 {
 public:
-	Collection(const std::string& collectionName, const std::string& databaseFolderPath)
+	Collection(const std::string& collectionName, const std::string& databaseFolderPath) :
+		_dbStoragePath{databaseFolderPath}
 	{
 		_storageFile.setFileName(qStrFromStdStrU8(databaseFolderPath + '/' + collectionName));
 		assert_r(_storageFile.open(QFile::ReadWrite));
+
+		_index.load(databaseFolderPath);
+	}
+
+	~Collection()
+	{
+		_index.store(_dbStoragePath);
 	}
 
 	using Record = std::tuple<Fields...>;
@@ -43,5 +51,8 @@ public:
 	}
 
 private:
+	const std::string _dbStoragePath;
+
+	Index _index;
 	QFile _storageFile;
 };
