@@ -21,9 +21,15 @@ using DbIndex = std::multimap<IndexedField/* field value */, uint64_t /* record 
 template <class... IndexedFields>
 class Indices
 {
-	template <auto id, typename FirstField, typename... OtherFields>
+	template <auto id, typename FirstField = void, typename... OtherFields>
 	struct FieldTypeById {
 		using Type = std::conditional_t<FirstField::id == id, FirstField, FieldTypeById<id, OtherFields...>>;
+	};
+
+	// This specialization, combined with defaulting 'FirstField' to 'void' when only 'id' argument is supplied, allows for instantiating 'Indices<>' - an empty index.
+	template <auto id>
+	struct FieldTypeById<id, void> {
+		using Type = void;
 	};
 
 	template <auto id, typename... Fields>
