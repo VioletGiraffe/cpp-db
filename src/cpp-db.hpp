@@ -18,40 +18,40 @@ class Collection
 {
 public:
 	Collection(const std::string& collectionName, const std::string& databaseFolderPath) :
-		_dbStoragePath{databaseFolderPath}
+		_dbStoragePath{databaseFolderPath},
+		_collectionName{collectionName}
 	{
 		_storageFile.setFileName(qStrFromStdStrU8(databaseFolderPath + '/' + collectionName));
 		assert_r(_storageFile.open(QFile::ReadWrite));
 
-		_index.load(databaseFolderPath);
+		_index.load(indexStorageFolderPath());
 	}
 
 	~Collection()
 	{
-		_index.store(_dbStoragePath);
+		_index.store(indexStorageFolderPath());
+	}
+
+	std::string indexStorageFolderPath() const
+	{
+		return _dbStoragePath + "/" + _collectionName + "_index/";
 	}
 
 	using Record = std::tuple<Fields...>;
 
-	template <auto N>
-	using FieldTypeById = typename std::tuple_element<static_cast<size_t>(N), Record>::type::ValueType;
-
-	void insert(const Record& value) {
+	template <typename Functor, auto... queryFieldIds>
+	void insert(Functor&& predicate, bool updateIfExists = false) {
 
 	}
 
-	template <auto... queryFields>
-	void insert(const Record& value) {
-
-	}
-
-	template <auto fieldTypeEnumValue>
-	std::vector<Record> find(const FieldTypeById<fieldTypeEnumValue>& queryValue) {
+	template <auto fieldId>
+	std::vector<Record> find(const FieldTypeById_t<fieldId, Fields...>& queryValue) {
 		return {};
 	}
 
 private:
 	const std::string _dbStoragePath;
+	const std::string _collectionName;
 
 	Index _index;
 	QFile _storageFile;
