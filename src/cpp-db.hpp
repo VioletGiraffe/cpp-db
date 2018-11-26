@@ -4,6 +4,8 @@
 #include "dbindex.hpp"
 #include "dbstorage.hpp"
 
+#include "parameter_pack/parameter_pack_helpers.hpp"
+
 #include <string>
 #include <tuple>
 #include <vector>
@@ -44,9 +46,19 @@ public:
 
 	}
 
-	template <auto fieldId>
-	std::vector<Record> find(const FieldTypeById_t<fieldId, Fields...>& queryValue) {
-		return {};
+	// TODO: add default functor for one value (no filter)
+	template <auto... queryFieldIds, typename Functor, typename... ValueTypes>
+	std::vector<Record> find(Functor&& predicate, ValueTypes... values) {
+		static_assert(((Index::template hasIndex<queryFieldIds>()) && ...), "Attempting to query on an un-indexed field!");
+		static_assert(sizeof...(queryFieldIds) == sizeof...(ValueTypes));
+
+		std::vector<Record> results;
+
+		static_for<0, sizeof...(ValueTypes)>([](int i) {
+			//auto v = pack::value_by_index<i>(values);
+		});
+
+		return results;
 	}
 
 private:
