@@ -56,7 +56,7 @@ public:
 
 		static_for<0, sizeof...(ValueTypes)>([&](auto i) {
 			constexpr auto id = pack::value_by_index<decltype(i)::value>(queryFieldIds...);
-			const auto value = pack::value_by_index<decltype(i)::value>(values...);
+			const Index::FieldValueTypeById_t<id> value = pack::value_by_index<decltype(i)::value>(values...);
 
 			//const auto& index = _index.indexForField<id>();
 			const auto locations = _index.test<id>(value);

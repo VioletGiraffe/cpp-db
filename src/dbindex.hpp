@@ -38,7 +38,7 @@ public:
 	}
 
 	template <auto id>
-	void test(const typename FieldTypeById_t<id, IndexedFields...>::ValueType& value) const
+	void test(const FieldValueTypeById_t<id>& value) const
 	{
 
 	}
