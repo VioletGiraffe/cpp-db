@@ -24,9 +24,12 @@ class Indices
 {
 public:
 	template <auto id>
-	std::vector<uint64_t> find(const typename FieldTypeById_t<id, IndexedFields...>::ValueType& value)
+	using FieldValueTypeById_t = typename FieldTypeById_t<id, IndexedFields...>::ValueType;
+
+	template <auto id, typename U>
+	std::vector<uint64_t> find(U&& value) const
 	{
-		const auto range = index<id>().equal_range(value);
+		const auto range = indexForField<id>().equal_range(std::forward<U>(value));
 		std::vector<uint64_t> result;
 		for (auto it = range.first; it != range.second; ++it)
 			result.push_back(it->second);
@@ -35,24 +38,30 @@ public:
 	}
 
 	template <auto id>
+	void test(const typename FieldTypeById_t<id, IndexedFields...>::ValueType& value) const
+	{
+
+	}
+
+	template <auto id>
 	void removeAllEntriesByValue(const typename FieldTypeById<id, IndexedFields...>::Type::ValueType& value)
 	{
-		const auto range = index<id>().equal_range(value);
-		index<id>().erase(range.first, range.last);
+		const auto range = indexForField<id>().equal_range(value);
+		indexForField<id>().erase(range.first, range.last);
 	}
 
 	template <auto id>
 	void registerValueLocation(const typename FieldTypeById<id, IndexedFields...>::Type::ValueType& value, const uint64_t location) const
 	{
 		// Disallow duplicate value-location pairs; only let the same value be registered at different locations.
-		const auto range = index<id>().equal_range(value);
+		const auto range = indexForField<id>().equal_range(value);
 		for (auto it = range.first; it != range.second; ++it)
 		{
 			if (it->second == location)
 				return;
 		}
 
-		index<id>().emplace(value, location);
+		indexForField<id>().emplace(value, location);
 	}
 
 	template <auto id>
@@ -62,14 +71,14 @@ public:
 	}
 
 	template <auto id>
-	constexpr auto& index()
+	constexpr auto& indexForField()
 	{
 		constexpr auto fieldTupleIndex = detail::indexByFieldId<id, IndexedFields...>();
 		return std::get<fieldTupleIndex>(_indices);
 	}
 
 	template <auto id>
-	constexpr const auto& index() const
+	constexpr const auto& indexForField() const
 	{
 		constexpr auto fieldTupleIndex = detail::indexByFieldId<id, IndexedFields...>();
 		return std::get<fieldTupleIndex>(_indices);

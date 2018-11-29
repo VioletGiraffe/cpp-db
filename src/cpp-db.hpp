@@ -48,15 +48,19 @@ public:
 
 	// TODO: add default functor for one value (no filter)
 	template <auto... queryFieldIds, typename Functor, typename... ValueTypes>
-	std::vector<Record> find(Functor&& predicate, ValueTypes&&... values) {
+	std::vector<Record> find(Functor&& /*predicate*/, ValueTypes&&... values) {
 		static_assert(((Index::template hasIndex<queryFieldIds>()) && ...), "Attempting to query on an un-indexed field!");
 		static_assert(sizeof...(queryFieldIds) == sizeof...(ValueTypes));
 
 		std::vector<Record> results;
 
-		pack::apply([&](auto value) {
-			
-		}, std::forward<ValueTypes>(values)...);
+		static_for<0, sizeof...(ValueTypes)>([&](auto i) {
+			constexpr auto id = pack::value_by_index<decltype(i)::value>(queryFieldIds...);
+			const auto value = pack::value_by_index<decltype(i)::value>(values...);
+
+			//const auto& index = _index.indexForField<id>();
+			const auto locations = _index.test<id>(value);
+		});
 
 		return results;
 	}
