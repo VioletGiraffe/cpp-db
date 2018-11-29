@@ -38,20 +38,14 @@ public:
 	}
 
 	template <auto id>
-	void test(const FieldValueTypeById_t<id>& value) const
-	{
-
-	}
-
-	template <auto id>
-	void removeAllEntriesByValue(const typename FieldTypeById<id, IndexedFields...>::Type::ValueType& value)
+	void removeAllEntriesByValue(const typename FieldTypeById_t<id, IndexedFields...>::ValueType& value)
 	{
 		const auto range = indexForField<id>().equal_range(value);
 		indexForField<id>().erase(range.first, range.last);
 	}
 
 	template <auto id>
-	void registerValueLocation(const typename FieldTypeById<id, IndexedFields...>::Type::ValueType& value, const uint64_t location) const
+	void registerValueLocation(const typename FieldTypeById_t<id, IndexedFields...>::ValueType& value, const uint64_t location) const
 	{
 		// Disallow duplicate value-location pairs; only let the same value be registered at different locations.
 		const auto range = indexForField<id>().equal_range(value);
