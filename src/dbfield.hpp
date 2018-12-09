@@ -45,7 +45,7 @@ public:
 
 template <auto id, typename FirstField = void, typename... OtherFields>
 struct FieldTypeById {
-	using Type = std::conditional_t<FirstField::id == id, FirstField, FieldTypeById<id, OtherFields...>>;
+	using Type = std::conditional_t<FirstField::id == id, typename FirstField::ValueType, typename FieldTypeById<id, OtherFields...>::Type>;
 };
 
 // This specialization, combined with defaulting 'FirstField' to 'void' when only 'id' argument is supplied, allows for instantiating 'Indices<>' - an empty index.
