@@ -1,14 +1,17 @@
 #pragma once
 
+#include "utility/template_magic.hpp"
+
 #include <string>
 #include <type_traits>
 
 template<typename T, class = std::enable_if_t<!std::is_rvalue_reference_v<T>>>
 size_t valueSize(T&& /*value*/) {
-	static_assert(!std::is_pointer_v<T>, "value may not have pointer type.");
-	static_assert(std::is_trivial_v<T> && std::is_standard_layout_v<T>, "Only POD types may be trivially serialized.");
+	using BasicT = remove_cv_and_reference_t<T>;
+	static_assert(!std::is_pointer_v<BasicT>, "value may not have pointer type.");
+	static_assert(std::is_trivial_v<BasicT> && std::is_standard_layout_v<BasicT>, "Only POD types may be trivially serialized.");
 
-	return sizeof(T);
+	return sizeof(BasicT);
 }
 
 template<>
