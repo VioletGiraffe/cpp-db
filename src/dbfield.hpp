@@ -5,14 +5,8 @@
 #include <string>
 #include <type_traits>
 
-template<typename T, class = std::enable_if_t<!std::is_rvalue_reference_v<T>>>
-size_t valueSize(T&& /*value*/) {
-	using BasicT = remove_cv_and_reference_t<T>;
-	static_assert(!std::is_pointer_v<BasicT>, "value may not have pointer type.");
-	static_assert(std::is_trivial_v<BasicT> && std::is_standard_layout_v<BasicT>, "Only POD types may be trivially serialized.");
-
-	return sizeof(BasicT);
-}
+template<typename T>
+size_t valueSize(T&& /*value*/);
 
 template<>
 inline size_t valueSize(const std::string& value) {
@@ -32,9 +26,23 @@ struct Field {
 	Field(T val) : value{ std::move(val) }
 	{}
 
+	static constexpr bool hasStaticSize()
+	{
+		return std::is_trivial_v<ValueType> && std::is_standard_layout_v<ValueType>;
+	}
+
+	static constexpr size_t staticSize()
+	{
+		static_assert(hasStaticSize(), "This field type does not have compile-time-static size.");
+		return sizeof(ValueType);
+	}
+
 	size_t fieldSize() const
 	{
-		return ::valueSize(value);
+		if constexpr (hasStaticSize())
+			return staticSize();
+		else
+			return ::valueSize(value);
 	}
 
 	bool operator<(const Field<T, fieldId>& other) const

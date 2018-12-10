@@ -18,6 +18,24 @@ enum class TestCollectionFields {
 template <class Index, class... Fields>
 class Collection
 {
+	static constexpr bool checkFieldOrder()
+	{
+		if constexpr (sizeof...(Fields) == 1)
+			return true;
+
+		bool success = true;
+		static_for<1, sizeof...(Fields)>([&success](auto i) {
+			using type0 = pack::type_by_index<decltype(i)::value - 1, Fields...>;
+			using type1 = pack::type_by_index<decltype(i)::value, Fields...>;
+
+			success = success && !(type0::hasStaticSize() == false && type1::hasStaticSize() == true);
+		});
+
+		return success;
+	}
+
+	static_assert(checkFieldOrder(), "All the fields with static size must be listed before all the fields with runtime size!");
+
 public:
 	Collection(const std::string& collectionName, const std::string& databaseFolderPath) :
 		_dbStoragePath{databaseFolderPath},
