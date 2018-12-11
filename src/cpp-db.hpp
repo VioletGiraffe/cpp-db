@@ -71,7 +71,7 @@ public:
 
 		std::vector<Record> results;
 
-		const auto locations = _index.find<queryFieldId>(value);
+		const auto locations = _index.template find<queryFieldId>(value);
 
 		return results;
 	}
