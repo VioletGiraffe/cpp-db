@@ -31,8 +31,9 @@ bool DBStorage::write(const Field<T, id>& field, QFile& storageFile, const std::
 	if (offset)
 		assert_and_return_r(storageFile.seek(static_cast<qint64>(*offset)), false);
 
-	assert(field.fieldSize() == sizeof(T));
-	assert_and_return_r(storageFile.write(reinterpret_cast<const char*>(&field.value), sizeof(T)) == sizeof(T), false);
+	static_assert(field.hasStaticSize(), "The field must have static size for this instantiation!");
+	constexpr auto size = field.staticSize();
+	assert_and_return_r(storageFile.write(reinterpret_cast<const char*>(&field.value), size) == size, false);
 
 	return true;
 }
@@ -54,8 +55,10 @@ bool DBStorage::read(Field<T, id>& field, QFile& storageFile, const std::optiona
 {
 	if (offset)
 		assert_and_return_r(storageFile.seek(static_cast<qint64>(*offset)), false);
-	assert(field.fieldSize() == sizeof(T));
-	assert_and_return_r(storageFile.read(reinterpret_cast<char*>(&field.value), sizeof(T)) == sizeof(T), false);
+
+	static_assert(field.hasStaticSize(), "The field must have static size for this instantiation!");
+	constexpr auto size = field.staticSize();
+	assert_and_return_r(storageFile.read(reinterpret_cast<char*>(&field.value), size) == size, false);
 
 	return true;
 }

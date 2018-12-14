@@ -108,6 +108,7 @@ public:
 private:
 	Record readRecord(uint64_t recordStartLocation)
 	{
+		// TODO: move this code to DBStorage without splitting it into multiple file reads
 		assert_r(_storageFile.seek(recordStartLocation));
 
 		// No dynamic fields - can read in a single block.
