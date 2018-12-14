@@ -44,10 +44,21 @@ class Collection
 				++dynamicFieldCount;
 		});
 
-		return dynamicFieldCount <= 1;
+		return dynamicFieldCount;
 	}
 
-	static_assert(checkFieldOrder(), "All the fields with static size must be listed before all the fields with runtime size!");
+	static constexpr size_t staticFieldsTotalSize()
+	{
+		size_t totalSize = 0;
+		static_for<0, sizeof...(Fields)>([&totalSize](auto i) {
+			using FieldType = pack::type_by_index<decltype(i)::value, Fields...>;
+			if constexpr (FieldType::hasStaticSize() == true)
+				totalSize += FieldType::staticSize();
+		});
+
+		return totalSize;
+	}
+
 	static_assert(dynamicFieldCount() <= 1, "No more than one dynamic field is allowed!");
 
 public:
@@ -88,6 +99,8 @@ public:
 		std::vector<Record> results;
 
 		const auto locations = _index.template find<queryFieldId>(value);
+		for (const uint64_t location : locations)
+			results.emplace_back(readRecord(location));
 
 		return results;
 	}
@@ -96,14 +109,32 @@ private:
 	Record readRecord(uint64_t recordStartLocation)
 	{
 		assert_r(_storageFile.seek(recordStartLocation));
-		if constexpr (dynamicFieldCount() == 0)
-		{
 
-		}
-		else
-		{
+		// No dynamic fields - can read in a single block.
+		static constexpr auto staticFieldsSize = staticFieldsTotalSize();
+		char buffer[staticFieldsSize];
 
-		}
+		static_assert(checkFieldOrder(), "All the fields with static size must be listed before all the fields with runtime size!");
+		// The above limitations enables reading all the static fields in a single block.
+		assert_r(_storageFile.read(buffer, staticFieldsSize) == staticFieldsSize);
+
+		Record record;
+		size_t bufferOffset = 0;
+		static_for<0, sizeof...(Fields)>([&](auto i) {
+			constexpr auto index = decltype(i)::value;
+			using FieldType = pack::type_by_index<index, Fields...>;
+			if constexpr (FieldType::hasStaticSize())
+			{
+				memcpy(&std::get<index>(record), buffer + bufferOffset, FieldType::staticSize());
+				bufferOffset += FieldType::staticSize();
+			}
+			else
+			{
+				DBStorage::read(std::get<index>(record), _storageFile);
+			}
+		});
+
+		return record;
 	}
 
 private:

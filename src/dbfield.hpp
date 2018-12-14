@@ -34,6 +34,7 @@ struct Field {
 	static constexpr size_t staticSize()
 	{
 		static_assert(hasStaticSize(), "This field type does not have compile-time-static size.");
+		static_assert(std::is_integral_v<ValueType> || std::is_floating_point_v<ValueType> || std::is_enum_v<ValueType>);
 		return sizeof(ValueType);
 	}
 
