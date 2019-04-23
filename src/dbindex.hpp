@@ -96,14 +96,14 @@ bool Indices<IndexedFields...>::store(const std::string& indexStorageFolder)
 			return;
 		}
 
-		const auto filePath = qStrFromStdStrU8(indexStorageFolder) + "/" + QString(typeid(item).name()).remove(':').remove('.') + ".index";
+		const auto filePath = QString::fromStdString(indexStorageFolder) + "/" + QString(typeid(item).name()).remove(':').remove('.') + ".index";
 		QFile file(filePath);
 		success = file.open(QFile::WriteOnly);
 		assert_and_return_r(success, );
 
 		for (const auto& indexEntry : item)
 		{
-			if (!DBStorage::write(indexEntry.first, file) || file.write(reinterpret_cast<const char*>(&indexEntry.second), sizeof(indexEntry.second)) != sizeof(indexEntry.second))
+			if (!StorageIO::write(indexEntry.first, file) || file.write(reinterpret_cast<const char*>(&indexEntry.second), sizeof(indexEntry.second)) != sizeof(indexEntry.second))
 			{
 				success = false;
 				return;
@@ -126,7 +126,7 @@ bool Indices<IndexedFields...>::load(const std::string& indexStorageFolder)
 			return;
 		}
 
-		const auto filePath = qStrFromStdStrU8(indexStorageFolder) + "/" + QString(typeid(item).name()).remove(':').remove('.') + ".index";
+		const auto filePath = QString::fromStdString(indexStorageFolder) + "/" + QString(typeid(item).name()).remove(':').remove('.') + ".index";
 		QFile file(filePath);
 		success = file.open(QFile::ReadOnly);
 		assert_and_return_r(success, );
@@ -136,7 +136,7 @@ bool Indices<IndexedFields...>::load(const std::string& indexStorageFolder)
 			using IndexMultiMapType = std::decay_t<decltype(item)>;
 			auto field = typename IndexMultiMapType::key_type{};
 			auto offset = typename IndexMultiMapType::mapped_type{0};
-			if (!DBStorage::read(field, file) || file.read(reinterpret_cast<char*>(&offset), sizeof(offset)) != sizeof(offset))
+			if (!StorageIO::read(field, file) || file.read(reinterpret_cast<char*>(&offset), sizeof(offset)) != sizeof(offset))
 			{
 				success = false;
 				return;
