@@ -2,51 +2,62 @@
 
 #include "utility/template_magic.hpp"
 
-#include <string>
 #include <type_traits>
+
+////////////////////////////////////////////////////////////////////
+//              VALUE SIZE                                        //
+// Specialize this function for a custom dynamically-sized type
+// to use this type in a Field
 
 template<typename T>
 size_t valueSize(T&& /*value*/);
 
-template<>
-inline size_t valueSize(const std::string& value) {
-	return sizeof(uint32_t) + value.size();
-}
+// A sample implementation for std::string
+/*
+	template<>
+	inline size_t valueSize(const std::string& value) {
+		return sizeof(uint32_t) + value.size();
+	}
+*/
+////////////////////////////////////////////////////////////////////
 
 template <typename T, auto fieldId>
 struct Field {
 	using ValueType = T;
 	static constexpr auto id = fieldId;
 
-	inline Field() = default;
+	Field() = default;
 
-	Field(const Field<T, fieldId>&) = default;
-	Field(Field<T, fieldId>&&) = default;
+	Field(const Field&) = default;
+	Field(Field&&) = default;
 
-	Field(T val) : value{ std::move(val) }
+	Field(T val) noexcept : value{ std::move(val) }
 	{}
 
-	static constexpr bool hasStaticSize()
+	static constexpr bool hasStaticSize() noexcept
 	{
 		return std::is_trivial_v<ValueType> && std::is_standard_layout_v<ValueType>;
 	}
 
-	static constexpr size_t staticSize()
+	static constexpr size_t staticSize() noexcept
 	{
 		static_assert(hasStaticSize(), "This field type does not have compile-time-static size.");
-		static_assert(std::is_integral_v<ValueType> || std::is_floating_point_v<ValueType> || std::is_enum_v<ValueType>);
 		return sizeof(ValueType);
 	}
 
-	size_t fieldSize() const
+	template <bool staticSizeAvailable = hasStaticSize()>
+	std::enable_if_t<staticSizeAvailable, size_t> fieldSize() const noexcept
 	{
-		if constexpr (hasStaticSize())
-			return staticSize();
-		else
-			return ::valueSize(value);
+		return staticSize();
 	}
 
-	bool operator<(const Field<T, fieldId>& other) const
+	template <bool staticSizeAvailable = hasStaticSize()>
+	std::enable_if_t<!staticSizeAvailable, size_t> fieldSize() const noexcept
+	{
+		return ::valueSize(value);
+	}
+
+	bool operator<(const Field& other) const
 	{
 		return value < other.value;
 	}

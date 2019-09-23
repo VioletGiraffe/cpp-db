@@ -59,6 +59,7 @@ HEADERS += \
 	src/cpp-db.hpp \
 	src/dbfilegaps.hpp \
 	src/dbindex.hpp \
+	src/dbrecord.hpp \
 	src/index_helpers.hpp \
 	src/dbfield.hpp \
 	src/dbstorage.hpp

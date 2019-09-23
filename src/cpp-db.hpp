@@ -1,5 +1,6 @@
 #pragma once
 #include "dbfield.hpp"
+#include "dbrecord.hpp"
 #include "dbfilegaps.hpp"
 #include "dbindex.hpp"
 #include "dbstorage.hpp"
