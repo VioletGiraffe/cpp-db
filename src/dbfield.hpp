@@ -21,7 +21,7 @@ size_t valueSize(T&& /*value*/);
 */
 ////////////////////////////////////////////////////////////////////
 
-template <typename T, auto fieldId>
+template <typename T, auto fieldId, bool isKeyField = false>
 struct Field {
 	using ValueType = T;
 	static constexpr auto id = fieldId;
@@ -45,6 +45,11 @@ struct Field {
 		return sizeof(ValueType);
 	}
 
+	static constexpr bool isKey() noexcept
+	{
+		return isKeyField;
+	}
+
 	template <bool staticSizeAvailable = hasStaticSize()>
 	std::enable_if_t<staticSizeAvailable, size_t> fieldSize() const noexcept
 	{
@@ -57,7 +62,7 @@ struct Field {
 		return ::valueSize(value);
 	}
 
-	bool operator<(const Field& other) const
+	bool operator<(const Field& other) const noexcept
 	{
 		return value < other.value;
 	}
