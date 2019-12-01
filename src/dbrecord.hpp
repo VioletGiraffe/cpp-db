@@ -9,18 +9,26 @@ template <class... FieldsSequence>
 struct DbRecord
 {
 private:
+	std::tuple<FieldsSequence...> _fields;
+
+//
+// All the junk below is for compile-time correctness validation only.
+//
+private:
 	static constexpr bool checkAssertions() noexcept
 	{
 		static_assert(sizeof...(FieldsSequence) > 0);
 		// Checks that each input type is a Field<T>
 		static_assert(((FieldsSequence::id != 0xDEADBEEF) && ...), "All template parameter types must be Fields!");
 
-		static_for<1, sizeof...(FieldsSequence)>([](auto index) {
+		constexpr_for<1, sizeof...(FieldsSequence)>([](auto index) {
 			constexpr int i = index;
 			using Field1 = typename pack::type_by_index<i - 1, FieldsSequence...>;
 			using Field2 = typename pack::type_by_index<i, FieldsSequence...>;
 			static_assert(!(Field1::hasStaticSize() == false && Field2::hasStaticSize() == true), "All the fields with compile-time size must be grouped before fields with dynamic size.");
 		});
+
+		//static_assert(sizeof(_fields) == ((sizeof(FieldsSequence) + ...)));
 
 		return true;
 	}
@@ -52,8 +60,6 @@ private:
 	}
 	
 private:
-	std::tuple<FieldsSequence...> _fields;
-
 	static_assert(checkAssertions());
 	static_assert(checkIdUniqueness(), "IDs of all fields in a DbRecord must be unique!");
 

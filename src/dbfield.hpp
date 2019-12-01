@@ -21,17 +21,17 @@ size_t valueSize(T&& /*value*/);
 */
 ////////////////////////////////////////////////////////////////////
 
-template <typename T, auto fieldId, bool isKeyField = false>
+template <typename T, auto fieldId>
 struct Field {
 	using ValueType = T;
 	static constexpr auto id = fieldId;
 
-	Field() = default;
+	constexpr Field() noexcept = default;
 
-	Field(const Field&) = default;
-	Field(Field&&) = default;
+	constexpr Field(const Field&) noexcept = default;
+	constexpr Field(Field&&) noexcept = default;
 
-	Field(T val) noexcept : value{ std::move(val) }
+	constexpr Field(T val) noexcept : value{ std::move(val) }
 	{}
 
 	static constexpr bool hasStaticSize() noexcept
@@ -43,11 +43,6 @@ struct Field {
 	{
 		static_assert(hasStaticSize(), "This field type does not have compile-time-static size.");
 		return sizeof(ValueType);
-	}
-
-	static constexpr bool isKey() noexcept
-	{
-		return isKeyField;
 	}
 
 	template <bool staticSizeAvailable = hasStaticSize()>
@@ -69,7 +64,21 @@ struct Field {
 
 public:
 	T value {};
+
+private:
+	static constexpr void checkSanity() noexcept;
 };
+
+template<typename T, auto fieldId>
+constexpr void Field<T, fieldId>::checkSanity() noexcept
+{
+	static_assert(std::is_trivially_destructible_v<Field<T, fieldId>>);
+	static_assert(!hasStaticSize() || std::is_trivial_v<T>);
+}
+
+//
+// Helper templates
+//
 
 template <auto id, typename FirstField = void, typename... OtherFields>
 struct FieldTypeById {
@@ -84,3 +93,4 @@ struct FieldTypeById<id, void> {
 
 template <auto id, typename... Fields>
 using FieldTypeById_t = typename FieldTypeById<id, Fields...>::Type;
+
