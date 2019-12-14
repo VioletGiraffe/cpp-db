@@ -1,11 +1,9 @@
 #pragma once
 
 #include "dbindex.hpp"
-
-#pragma once
-#include "index_helpers.hpp"
 #include "dbfield.hpp"
 #include "dbstorage.hpp"
+#include "index_helpers.hpp"
 #include "utility/constexpr_algorithms.hpp"
 #include "assert/advanced_assert.h"
 #include "tuple/tuple_helpers.hpp"
