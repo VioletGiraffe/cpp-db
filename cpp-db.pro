@@ -63,4 +63,5 @@ HEADERS += \
 	src/dbrecord.hpp \
 	src/index_helpers.hpp \
 	src/dbfield.hpp \
-	src/dbstorage.hpp
+	src/dbstorage.hpp \
+	src/storage_io.hpp
