@@ -62,6 +62,8 @@ struct Field {
 		return value < other.value;
 	}
 
+	static constexpr bool is_field_v = true;
+
 public:
 	T value {};
 
@@ -93,4 +95,3 @@ struct FieldTypeById<id, void> {
 
 template <auto id, typename... Fields>
 using FieldTypeById_t = typename FieldTypeById<id, Fields...>::Type;
-
