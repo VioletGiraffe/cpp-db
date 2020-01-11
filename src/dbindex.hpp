@@ -1,5 +1,6 @@
 #pragma once
 #include "dbfield.hpp"
+#include "dbstorage.hpp"
 #include "utility/template_magic.hpp"
 
 #include <map>
@@ -10,17 +11,17 @@
 template <class IndexedField>
 class DbIndex
 {
-	using ValueType = typename IndexedField::ValueType;
+	using FieldValueType = typename IndexedField::ValueType;
 
 	static_assert(IndexedField::is_field_v);
 
 public:
-	std::vector<uint64_t> findValue(ValueType value)
+	std::vector<DBStorage::StorageLocation> findRecordsByFieldValue(FieldValueType value)
 	{
+		const auto range = _index.equal_range(std::move(value));
 		return {};
 	}
 
 private:
-	std::multimap<ValueType /* field value */, uint64_t /* record location */> _index;
+	std::multimap<FieldValueType /* field value */, DBStorage::StorageLocation /* record location */> _index;
 };
-

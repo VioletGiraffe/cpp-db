@@ -12,6 +12,10 @@
 #include <string>
 #include <tuple>
 
+struct StorageLocation {
+	uint64_t location;
+};
+
 template <typename... Fields>
 class DBStorage
 {
