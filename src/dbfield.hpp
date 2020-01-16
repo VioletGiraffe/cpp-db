@@ -62,7 +62,7 @@ struct Field {
 		return value < other.value;
 	}
 
-	static constexpr bool is_field_v = true;
+	static constexpr bool is_field() noexcept {return true;}
 
 public:
 	T value {};
