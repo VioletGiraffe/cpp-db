@@ -4,6 +4,8 @@
 #include "parameter_pack/parameter_pack_helpers.hpp"
 #include "tuple/tuple_helpers.hpp"
 
+#include <array>
+#include <limits>
 #include <tuple>
 
 template <class... FieldsSequence>
@@ -36,6 +38,7 @@ private:
 			constexpr int i = index;
 			using Field1 = typename pack::type_by_index<i - 1, FieldsSequence...>;
 			using Field2 = typename pack::type_by_index<i, FieldsSequence...>;
+			static_assert(Field1::is_field() && Field2::is_field(), "One of the types in FieldsSequence is not a field!");
 			static_assert(!(Field1::hasStaticSize() == false && Field2::hasStaticSize() == true), "All the fields with compile-time size must be grouped before fields with dynamic size.");
 			static_assert(pack::type_count<Field1, FieldsSequence...>() == 1 && pack::type_count<Field2, FieldsSequence...>() == 1, "Each unique field shall only be specified once within a record!");
 		});
@@ -51,8 +54,7 @@ private:
 
 		using FirstField = pack::first_type<FieldsSequence...>;
 		using IdType = std::remove_const_t<decltype(FirstField::id)>;
-		IdType fieldIds[nFields]{ 0 };
-
+		std::array<IdType, nFields> fieldIds{};
 		static_for<0, nFields>([&fieldIds](auto index) {
 			constexpr int i = static_cast<int>(index);
 			fieldIds[i] = pack::type_by_index<i, FieldsSequence...>::id;
@@ -73,7 +75,5 @@ private:
 	static_assert(checkAssertions());
 	static_assert(checkIdUniqueness(), "IDs of all fields in a DbRecord must be unique!");
 
-	static_assert(CHAR_BIT == 8, "No funny business!");
-	// TODO: uncomment this when MSVC fixes the bug (or implement with concepts)
-	//static_assert((FieldsSequence::id != 0xDEADBEEF && ...));
+	static_assert(std::numeric_limits<unsigned char>::digits == 8, "No funny business!");
 };
