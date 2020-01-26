@@ -2,8 +2,8 @@
 
 #include "container/std_container_helpers.hpp"
 #include "container/multi_index.hpp"
-#include "assert/advanced_assert.h"
 
+#include <assert.h>
 #include <limits>
 #include <stdint.h>
 #include <vector>
@@ -13,7 +13,7 @@ class DbFileGaps
 	struct Gap {
 		uint64_t location;
 		uint64_t length;
-		
+
 		constexpr uint64_t endOffset() const {
 			return location + length;
 		}
@@ -22,12 +22,14 @@ class DbFileGaps
 public:
 	static constexpr auto noGap = std::numeric_limits<uint64_t>::max();
 
-	inline void registerGap(const uint64_t gapOffset, const uint64_t gapLength) {
+	inline void registerGap(const uint64_t gapOffset, const uint64_t gapLength) noexcept {
 		_gapLocations.emplace(Gap{ gapOffset, gapLength });
 		++_insertionsSinceLastConsolidation;
 	}
 
-	inline uint64_t takeSuitableGap(const uint64_t gapLength) {
+	inline uint64_t takeSuitableGap(const uint64_t gapLength) noexcept {
+		assert(gapLength > 0);
+
 		const auto [begin, end] = _gapLocations.findSecondaryInRange(gapLength, std::numeric_limits<decltype(Gap::length)>::max());
 		/* TODO: experiment with smart heuristics, e. g.:
 			- taking the shortest suitable gap;
@@ -49,7 +51,7 @@ public:
 	}
 
 private:
-	void consolidateGaps()
+	void consolidateGaps() noexcept
 	{
 		std::vector<Gap> mergedGaps;
 		mergedGaps.reserve(1000);
@@ -58,7 +60,7 @@ private:
 		{
 			if (current->endOffset() >= next->location)
 			{
-				assert_debug_only(current->endOffset() == next->location);
+				assert(current->endOffset() == next->location);
 				// Merge current and next into a new gap item.
 				// Can't do in-place because std::set's items are const.
 				mergedGaps.emplace_back(Gap{ current->location, next->endOffset() - current->location });
