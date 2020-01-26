@@ -6,6 +6,7 @@
 
 #include <limits>
 #include <stdint.h>
+#include <vector>
 
 class DbFileGaps
 {
@@ -23,6 +24,7 @@ public:
 
 	inline void registerGap(const uint64_t gapOffset, const uint64_t gapLength) {
 		_gapLocations.emplace(Gap{ gapOffset, gapLength });
+		++_insertionsSinceLastConsolidation;
 	}
 
 	inline uint64_t takeSuitableGap(const uint64_t gapLength) {
@@ -37,6 +39,8 @@ public:
 
 		if (begin != end)
 			return (*begin)->location;
+		else if (_insertionsSinceLastConsolidation < 1000)
+			return noGap;
 
 		// If no gap is found, consolidate gaps and try again
 		consolidateGaps();
@@ -47,19 +51,40 @@ public:
 private:
 	void consolidateGaps()
 	{
-		for (auto current = _gapLocations.begin(), next = ++_gapLocations.begin(), end = _gapLocations.end(); next != end; (current = next), ++next)
+		std::vector<Gap> mergedGaps;
+		mergedGaps.reserve(1000);
+
+		for (auto current = _gapLocations.begin(), next = ++_gapLocations.begin(), end = _gapLocations.end(); next != end;)
 		{
 			if (current->endOffset() >= next->location)
 			{
 				assert_debug_only(current->endOffset() == next->location);
-				// Merge current into next
-				// Can't do in-place because std::set's items are const
-				Gap newItem{ current->location, next->endOffset() - current->location };
-				
+				// Merge current and next into a new gap item.
+				// Can't do in-place because std::set's items are const.
+				mergedGaps.emplace_back(Gap{ current->location, next->endOffset() - current->location });
+
+				// So have to erase both
+				const auto toBeErased_1 = current, toBeErased_2 = next;
+				current = next;
+				++next;
+				_gapLocations.erase(toBeErased_1);
+				_gapLocations.erase(toBeErased_2);
+			}
+			else
+			{
+				current = next;
+				++next;
 			}
 		}
+
+		// Put the merged items back in
+		for (auto&& gap : mergedGaps)
+			_gapLocations.emplace(std::move(gap));
+
+		_insertionsSinceLastConsolidation = 0;
 	}
 
 private:
 	MultiIndexSet<Gap, &Gap::location, &Gap::length> _gapLocations;
+	uint64_t _insertionsSinceLastConsolidation = 0;
 };
