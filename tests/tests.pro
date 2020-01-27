@@ -31,3 +31,14 @@ INCLUDEPATH += \
 	$${PWD}/../../cpp-template-utils/
 
 SOURCES += tests_main.cpp
+
+HEADERS += \
+	../src/cpp-db.hpp \
+	../src/dbfield.hpp \
+	../src/dbfilegaps.hpp \
+	../src/dbindex.hpp \
+	../src/dbindices.hpp \
+	../src/dbrecord.hpp \
+	../src/dbstorage.hpp \
+	../src/index_helpers.hpp \
+	../src/storage_io.hpp

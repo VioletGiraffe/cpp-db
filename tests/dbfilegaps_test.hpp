@@ -27,3 +27,23 @@ TEST_CASE("Operation - simple", "[dbfilegaps]") {
 		FAIL();
 	}
 }
+
+TEST_CASE("Gap consolidation", "[dbfilegaps]") {
+	try {
+		DbFileGaps gaps;
+
+		gaps.registerGap(1, 1);
+		gaps.registerGap(2, 1);
+		gaps.registerGap(10, 16);
+		gaps.registerGap(26, 10);
+
+		REQUIRE_NOTHROW(gaps.takeSuitableGap(26) == DbFileGaps::noGap);
+		gaps.consolidateGaps();
+
+		REQUIRE_NOTHROW(gaps.takeSuitableGap(26) == 10);
+		REQUIRE_NOTHROW(gaps.takeSuitableGap(2) == 1);
+		REQUIRE_NOTHROW(gaps.takeSuitableGap(1) == DbFileGaps::noGap);
+	} catch(...) {
+		FAIL();
+	}
+}

@@ -50,7 +50,6 @@ public:
 		return newBegin != newEnd ? (*newBegin)->location : noGap;
 	}
 
-private:
 	void consolidateGaps() noexcept
 	{
 		std::vector<Gap> mergedGaps;
@@ -67,8 +66,10 @@ private:
 
 				// So have to erase both
 				const auto toBeErased_1 = current, toBeErased_2 = next;
-				current = next;
-				++next;
+				current = ++next;
+				if (next != end)
+					++next;
+
 				_gapLocations.erase(toBeErased_1);
 				_gapLocations.erase(toBeErased_2);
 			}
