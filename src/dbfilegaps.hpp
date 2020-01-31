@@ -6,6 +6,7 @@
 #include <assert.h>
 #include <limits>
 #include <stdint.h>
+#include <string>
 #include <vector>
 
 class DbFileGaps
@@ -85,6 +86,11 @@ public:
 			_gapLocations.emplace(std::move(gap));
 
 		_insertionsSinceLastConsolidation = 0;
+	}
+
+	bool saveToFile(std::string filePath) const
+	{
+
 	}
 
 private:
