@@ -2,6 +2,11 @@
 
 #include "container/std_container_helpers.hpp"
 #include "container/multi_index.hpp"
+#include "storage/storage_helpers.hpp"
+#include "assert/advanced_assert.h"
+#include "hash/fnv_1a.h"
+
+#include <QFile>
 
 #include <assert.h>
 #include <limits>
@@ -88,9 +93,63 @@ public:
 		_insertionsSinceLastConsolidation = 0;
 	}
 
-	bool saveToFile(std::string filePath) const
+	bool saveToFile(QString filePath) const
 	{
+		QFile file(filePath);
+		if (!file.open(QFile::WriteOnly))
+			return false;
 
+		file.flush(); // TODO: does it do anything? I want the file to be resized to 0 immediately, guaranteed.
+		if (!checkedWrite(file, (uint64_t)_gapLocations.size()))
+			return false;
+
+		FNV_1a_64_hasher hasher;
+		for (const Gap& gap : _gapLocations)
+		{
+			hasher.updateHash(gap.length);
+			hasher.updateHash(gap.location);
+			if (!checkedWrite(file, gap.length) || !checkedWrite(file, gap.location))
+				return false;
+		}
+
+		if (!checkedWrite(file, hasher.hash()))
+			return false;
+
+		return file.flush();
+	}
+
+	bool loadFromFile(QString filePath)
+	{
+		_gapLocations.clear();
+		_insertionsSinceLastConsolidation = 0;
+
+		QFile file(filePath);
+		if (!file.open(QFile::ReadOnly))
+			return false;
+
+		uint64_t size = 0;
+		if (!checkedRead(file, size))
+			return false;
+
+		FNV_1a_64_hasher hasher;
+		for (size_t i = 0; i < size; ++i)
+		{
+			Gap gap;
+			if (!checkedRead(file, gap.length) || !checkedRead(file, gap.location))
+				return false;
+
+			hasher.updateHash(gap.length);
+			hasher.updateHash(gap.location);
+			
+			_gapLocations.emplace(std::move(gap));
+		}
+
+		uint64_t hash = 0;
+		if (!checkedRead(file, hash))
+			return false;
+
+		assert_and_return_r(hash == hasher.hash(), false);
+		return true;
 	}
 
 private:

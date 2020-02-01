@@ -64,4 +64,5 @@ HEADERS += \
 	src/index_helpers.hpp \
 	src/dbfield.hpp \
 	src/dbstorage.hpp \
+	src/storage/storage_helpers.hpp \
 	src/storage_io.hpp
