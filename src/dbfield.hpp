@@ -83,15 +83,18 @@ constexpr void Field<T, fieldId>::checkSanity() noexcept
 //
 
 template <auto id, typename FirstField = void, typename... OtherFields>
-struct FieldTypeById {
-	using Type = std::conditional_t<FirstField::id == id, typename FirstField::ValueType, typename FieldTypeById<id, OtherFields...>::Type>;
+struct FieldById {
+	using Type = std::conditional_t<FirstField::id == id, FirstField, typename FieldById<id, OtherFields...>::Type>;
 };
 
 // This specialization, combined with defaulting 'FirstField' to 'void' when only 'id' argument is supplied, allows for instantiating 'Indices<>' - an empty index.
 template <auto id>
-struct FieldTypeById<id, void> {
+struct FieldById<id, void> {
 	using Type = void;
 };
 
 template <auto id, typename... Fields>
-using FieldTypeById_t = typename FieldTypeById<id, Fields...>::Type;
+using FieldById_t = typename FieldById<id, Fields...>::Type;
+
+template <auto id, typename... Fields>
+using FieldValueTypeById_t = typename FieldById_t<id, Fields...>::ValueType;

@@ -3,19 +3,21 @@
 #include "utility/constexpr_algorithms.hpp"
 #include "parameter_pack/parameter_pack_helpers.hpp"
 #include "tuple/tuple_helpers.hpp"
+#include "assert/advanced_assert.h"
 
 #include <array>
 #include <limits>
+#include <optional>
 #include <tuple>
 
 template <class... FieldsSequence>
 struct DbRecord
 {
 private:
+	std::optional<size_t> _tombstoneFieldId;
 	std::tuple<FieldsSequence...> _fields;
 
 public:
-
 	template <typename Field>
 	auto fieldValue() const noexcept
 	{
@@ -24,6 +26,17 @@ public:
 
 		return std::get<pack::index_for_type_v<Field, FieldsSequence...>>(_fields);
 	}
+
+	// TODO: move to compile time somehow
+	template <typename T>
+	void setTombstoneFieldId(T fieldId) noexcept
+	{
+		assert_debug_only(!_tombstoneFieldId);
+		using FieldType = FieldById_t<fieldId, FieldsSequence...>;
+		static_assert(!std::is_same_v<FieldType, void>);
+		_tombstoneFieldId = pack::index_for_type_v<FieldType, FieldsSequence...>;
+	}
+
 
 //
 // All the junk below is for compile-time correctness validation only.
