@@ -27,8 +27,9 @@ public:
 		return std::get<pack::index_for_type_v<Field, FieldsSequence...>>(_fields);
 	}
 
+	// TODO: move to compile time somehow
 	template <typename T>
-	void setTombstoneFieldId(T fieldId)
+	void setTombstoneFieldId(T fieldId) noexcept
 	{
 		assert_debug_only(!_tombstoneFieldId);
 		using FieldType = FieldById_t<fieldId, FieldsSequence...>;
