@@ -65,7 +65,7 @@ public:
 
 	// TODO: add default functor for one value (no filter)
 	template <auto queryFieldId>
-	std::vector<Record> find(const FieldTypeById_t<queryFieldId, Fields...>& value) {
+	std::vector<Record> find(const FieldValueTypeById_t<queryFieldId, Fields...>& value) {
 		static_assert(Index::template hasIndex<queryFieldId>(), "Attempting to query on an un-indexed field!");
 
 		std::vector<Record> results;
