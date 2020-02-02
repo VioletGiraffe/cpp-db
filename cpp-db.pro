@@ -52,8 +52,7 @@ linux*|mac*{
 
 INCLUDEPATH += \
 	../cpputils \
-	../cpp-template-utils \
-	../qtutils
+	../cpp-template-utils
 
 HEADERS += \
 	src/cpp-db.hpp \

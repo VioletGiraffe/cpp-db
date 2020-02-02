@@ -10,6 +10,19 @@ MOC_DIR     = ../bin_tests/$${OUTPUT_DIR}/$${TARGET}
 UI_DIR      = ../bin_tests/$${OUTPUT_DIR}/$${TARGET}
 RCC_DIR     = ../bin_tests/$${OUTPUT_DIR}/$${TARGET}
 
+mac* | linux* | freebsd {
+	CONFIG(release, debug|release):CONFIG *= Release optimize_full
+	CONFIG(debug, debug|release):CONFIG *= Debug
+}
+contains(QT_ARCH, x86_64) {
+	ARCHITECTURE = x64
+} else {
+	ARCHITECTURE = x86
+}
+
+Release:LIBS_DIR=bin/release/$${ARCHITECTURE}
+Debug:OUTPUT_DIR=bin/debug/$${ARCHITECTURE}
+
 win*{
 	QMAKE_CXXFLAGS += /std:c++17 /permissive- /Zc:__cplusplus
 
@@ -40,4 +53,4 @@ INCLUDEPATH += \
 
 SOURCES += tests_main.cpp
 
-LIBS += -L$${PWD}/../ -L$${PWD}/../../ -lcpputils
+LIBS += -L$${PWD}/../$${OUTPUT_DIR} -L$${PWD}/../../$${OUTPUT_DIR} -lcpputils

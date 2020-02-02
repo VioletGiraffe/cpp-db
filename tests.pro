@@ -8,7 +8,6 @@ exists(../cpputils) {
 	SUBREPOS_DIR=$${PWD}
 }
 
-message($${SUBREPOS_DIR})
 cpputils.subdir=$${SUBREPOS_DIR}/cpputils
 cpp-template-utils.subdir=$${SUBREPOS_DIR}/cpp-template-utils
 cpp-db.subdir=$${SUBREPOS_DIR}/cpp-db
