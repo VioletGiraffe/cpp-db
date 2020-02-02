@@ -32,7 +32,6 @@ before_script:
 
 script:
   # Building the main binaries
-  - cd tests
   - pwd
   - ls
   - $QMAKE -r CONFIG+=release
