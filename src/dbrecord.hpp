@@ -21,7 +21,7 @@ public:
 	template <typename Field>
 	auto fieldValue() const noexcept
 	{
-		static_assert(Field::is_field());
+		static_assert(Field::isField());
 		static_assert(pack::type_count<Field, FieldsSequence...>() == 1);
 
 		return std::get<pack::index_for_type_v<Field, FieldsSequence...>>(_fields);
@@ -34,7 +34,7 @@ public:
 	{
 		assert_debug_only(!_tombstoneFieldId);
 		using FieldType = FieldById_t<fieldId, FieldsSequence...>;
-		static_assert(!std::is_same_v<FieldType, void>);
+		static_assert(!std::is_same_v<FieldType, void> && FieldType::isSuitableForTombstone());
 
 		_tombstoneFieldId = pack::index_for_type_v<FieldType, FieldsSequence...>;
 	}
@@ -47,14 +47,14 @@ private:
 	static constexpr bool checkAssertions() noexcept
 	{
 		static_assert(sizeof...(FieldsSequence) > 0);
-		static_assert((FieldsSequence::is_field() && ...), "All template parameter types must be Fields!");
+		static_assert((FieldsSequence::isField() && ...), "All template parameter types must be Fields!");
 
 		constexpr_for<1, sizeof...(FieldsSequence)>([](auto index) {
 			constexpr int i = index;
 			using Field1 = typename pack::type_by_index<i - 1, FieldsSequence...>;
 			using Field2 = typename pack::type_by_index<i, FieldsSequence...>;
-			static_assert(Field1::is_field() && Field2::is_field(), "One of the types in FieldsSequence is not a field!");
-			static_assert(!(Field1::hasStaticSize() == false && Field2::hasStaticSize() == true), "All the fields with compile-time size must be grouped before fields with dynamic size.");
+			static_assert(Field1::isField() && Field2::isField(), "One of the types in FieldsSequence is not a field!");
+			static_assert(!(Field1::sizeKnownAtCompileTime() == false && Field2::sizeKnownAtCompileTime() == true), "All the fields with compile-time size must be grouped before fields with dynamic size.");
 			static_assert(pack::type_count<Field1, FieldsSequence...>() == 1 && pack::type_count<Field2, FieldsSequence...>() == 1, "Each unique field shall only be specified once within a record!");
 		});
 

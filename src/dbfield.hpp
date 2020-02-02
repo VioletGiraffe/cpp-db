@@ -34,24 +34,24 @@ struct Field {
 	constexpr Field(T val) noexcept : value{ std::move(val) }
 	{}
 
-	static constexpr bool hasStaticSize() noexcept
+	static constexpr bool sizeKnownAtCompileTime() noexcept
 	{
 		return std::is_trivial_v<ValueType> && std::is_standard_layout_v<ValueType>;
 	}
 
 	static constexpr size_t staticSize() noexcept
 	{
-		static_assert(hasStaticSize(), "This field type does not have compile-time-static size.");
+		static_assert(sizeKnownAtCompileTime(), "This field type does not have compile-time-static size.");
 		return sizeof(ValueType);
 	}
 
-	template <bool staticSizeAvailable = hasStaticSize()>
+	template <bool staticSizeAvailable = sizeKnownAtCompileTime()>
 	std::enable_if_t<staticSizeAvailable, size_t> fieldSize() const noexcept
 	{
 		return staticSize();
 	}
 
-	template <bool staticSizeAvailable = hasStaticSize()>
+	template <bool staticSizeAvailable = sizeKnownAtCompileTime()>
 	std::enable_if_t<!staticSizeAvailable, size_t> fieldSize() const noexcept
 	{
 		return ::valueSize(value);
@@ -62,10 +62,10 @@ struct Field {
 		return value < other.value;
 	}
 
-	static constexpr bool is_field() noexcept { return true; }
+	static constexpr bool isField() noexcept { return true; }
 
-	static constexpr bool suitable_for_tombstone() noexcept {
-		return std::is_trivial_v<ValueType> && hasStaticSize();
+	static constexpr bool isSuitableForTombstone() noexcept {
+		return std::is_trivial_v<ValueType> && sizeKnownAtCompileTime();
 	}
 
 public:
@@ -79,7 +79,7 @@ template<typename T, auto fieldId>
 constexpr void Field<T, fieldId>::checkSanity() noexcept
 {
 	static_assert(std::is_trivially_destructible_v<Field<T, fieldId>>);
-	static_assert(!hasStaticSize() || std::is_trivial_v<T>);
+	static_assert(!sizeKnownAtCompileTime() || std::is_trivial_v<T>);
 }
 
 //

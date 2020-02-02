@@ -25,7 +25,7 @@ class Collection
 		size_t dynamicFieldCount = 0;
 		static_for<0, sizeof...(Fields)>([&dynamicFieldCount](auto i) {
 			using FieldType = pack::type_by_index<decltype(i)::value, Fields...>;
-			if constexpr (FieldType::hasStaticSize() == false)
+			if constexpr (FieldType::sizeKnownAtCompileTime() == false)
 				++dynamicFieldCount;
 		});
 

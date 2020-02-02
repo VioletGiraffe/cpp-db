@@ -28,7 +28,7 @@ bool StorageIO::write(const Field<T, id>& field, QFile& storageFile, const std::
 	if (offset)
 		assert_and_return_r(storageFile.seek(static_cast<qint64>(*offset)), false);
 
-	static_assert(field.hasStaticSize(), "The field must have static size for this instantiation!");
+	static_assert(field.sizeKnownAtCompileTime(), "The field must have static size for this instantiation!");
 	constexpr auto size = field.staticSize();
 	assert_and_return_r(storageFile.write(reinterpret_cast<const char*>(&field.value), size) == size, false);
 
@@ -53,7 +53,7 @@ bool StorageIO::read(Field<T, id>& field, QFile& storageFile, const std::optiona
 	if (offset)
 		assert_and_return_r(storageFile.seek(static_cast<qint64>(*offset)), false);
 
-	static_assert(field.hasStaticSize(), "The field must have static size for this instantiation!");
+	static_assert(field.sizeKnownAtCompileTime(), "The field must have static size for this instantiation!");
 	constexpr auto size = field.staticSize();
 	assert_and_return_r(storageFile.read(reinterpret_cast<char*>(&field.value), size) == size, false);
 

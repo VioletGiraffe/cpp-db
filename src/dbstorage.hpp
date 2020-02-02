@@ -24,7 +24,7 @@ class DBStorage
 		size_t totalSize = 0;
 		static_for<0, sizeof...(Fields)>([&totalSize](auto i) {
 			using FieldType = pack::type_by_index<decltype(i)::value, Fields...>;
-			if constexpr (FieldType::hasStaticSize() == true)
+			if constexpr (FieldType::sizeKnownAtCompileTime() == true)
 				totalSize += FieldType::staticSize();
 		});
 
@@ -41,7 +41,7 @@ class DBStorage
 			using Type0 = pack::type_by_index<decltype(i)::value - 1, Fields...>;
 			using Type1 = pack::type_by_index<decltype(i)::value, Fields...>;
 
-			fixedSizeFieldsBeforeDynamicFields = fixedSizeFieldsBeforeDynamicFields && !(Type0::hasStaticSize() == false && Type1::hasStaticSize() == true);
+			fixedSizeFieldsBeforeDynamicFields = fixedSizeFieldsBeforeDynamicFields && !(Type0::sizeKnownAtCompileTime() == false && Type1::sizeKnownAtCompileTime() == true);
 		});
 
 		return fixedSizeFieldsBeforeDynamicFields;
@@ -76,7 +76,7 @@ public:
 		static_for<0, sizeof...(Fields)>([&](auto i) {
 			constexpr auto index = decltype(i)::value;
 			using FieldType = pack::type_by_index<index, Fields...>;
-			if constexpr (FieldType::hasStaticSize())
+			if constexpr (FieldType::sizeKnownAtCompileTime())
 			{
 				memcpy(&std::get<index>(record), buffer + bufferOffset, FieldType::staticSize());
 				bufferOffset += FieldType::staticSize();

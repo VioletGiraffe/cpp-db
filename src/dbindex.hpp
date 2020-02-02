@@ -14,7 +14,7 @@ class DbIndex
 {
 	using FieldValueType = typename IndexedField::ValueType;
 
-	static_assert(IndexedField::is_field());
+	static_assert(IndexedField::isField());
 
 public:
 	std::vector<StorageLocation> findValueLocations(FieldValueType value)
