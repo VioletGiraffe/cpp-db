@@ -4,11 +4,11 @@ QT = core
 TEMPLATE = app
 CONFIG += console
 
-DESTDIR  = ../bin_tests/$${OUTPUT_DIR}/
-OBJECTS_DIR = ../bin_tests/$${OUTPUT_DIR}/$${TARGET}
-MOC_DIR     = ../bin_tests/$${OUTPUT_DIR}/$${TARGET}
-UI_DIR      = ../bin_tests/$${OUTPUT_DIR}/$${TARGET}
-RCC_DIR     = ../bin_tests/$${OUTPUT_DIR}/$${TARGET}
+DESTDIR  = bin_tests/$${OUTPUT_DIR}/
+OBJECTS_DIR = bin_tests/$${OUTPUT_DIR}/$${TARGET}
+MOC_DIR     = bin_tests/$${OUTPUT_DIR}/$${TARGET}
+UI_DIR      = bin_tests/$${OUTPUT_DIR}/$${TARGET}
+RCC_DIR     = bin_tests/$${OUTPUT_DIR}/$${TARGET}
 
 mac* | linux* | freebsd {
 	CONFIG(release, debug|release):CONFIG *= Release optimize_full

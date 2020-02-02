@@ -31,7 +31,8 @@ before_script:
 
 script:
   # Building the main binaries
-  - $QMAKE -r tests.pro CONFIG+=release
+  - cd tests
+  - $QMAKE -r CONFIG+=release
   - make -j
   # Running tests
   - ./bin_tests/tests
