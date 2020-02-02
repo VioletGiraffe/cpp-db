@@ -10,7 +10,7 @@ exists(../cpputils) {
 
 cpputils.subdir=$${SUBREPOS_DIR}/cpputils
 cpp-template-utils.subdir=$${SUBREPOS_DIR}/cpp-template-utils
-cpp-db.subdir=$${SUBREPOS_DIR}/cpp-db
+cpp-db.subdir=$${PWD}
 
 #cpp-db.depends = cpputils cpp-template-utils
 
