@@ -12,6 +12,6 @@ cpputils.subdir=$${SUBREPOS_DIR}/cpputils
 cpp-template-utils.subdir=$${SUBREPOS_DIR}/cpp-template-utils
 cpp-db.subdir=$${PWD}/../../cpp-db
 
-cpp-db.depends = cpputils cpp-template-utils
+#cpp-db.depends = cpputils cpp-template-utils
 
-test-app.depends = cpp-db cpputils
+test-app.depends = cpputils

@@ -62,7 +62,11 @@ struct Field {
 		return value < other.value;
 	}
 
-	static constexpr bool is_field() noexcept {return true;}
+	static constexpr bool is_field() noexcept { return true; }
+
+	static constexpr bool suitable_for_tombstone() noexcept {
+		return std::is_trivial_v<ValueType> && hasStaticSize();
+	}
 
 public:
 	T value {};

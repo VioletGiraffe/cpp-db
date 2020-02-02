@@ -27,13 +27,15 @@ public:
 		return std::get<pack::index_for_type_v<Field, FieldsSequence...>>(_fields);
 	}
 
-	// TODO: move to compile time somehow
+	// TODO: move to compile time
+	// A tombstone field uses high bit (the first one) to encode that this record has been deleted.
 	template <typename T>
 	void setTombstoneFieldId(T fieldId) noexcept
 	{
 		assert_debug_only(!_tombstoneFieldId);
 		using FieldType = FieldById_t<fieldId, FieldsSequence...>;
 		static_assert(!std::is_same_v<FieldType, void>);
+
 		_tombstoneFieldId = pack::index_for_type_v<FieldType, FieldsSequence...>;
 	}
 
