@@ -27,11 +27,11 @@ before_script:
 
   - $QMAKE -v
   - git clone --depth 1 https://github.com/VioletGiraffe/cpp-template-utils
+  - git clone --depth 1 https://github.com/VioletGiraffe/cpputils
 
 script:
   # Building the main binaries
-  - cd tests
-  - $QMAKE -r CONFIG+=release
+  - $QMAKE -r tests.pro CONFIG+=release
   - make -j
   # Running tests
-  - ./tests
+  - ./bin_tests/tests
