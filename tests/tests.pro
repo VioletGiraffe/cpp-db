@@ -1,8 +1,14 @@
 CONFIG += c++1z strict_c++
-CONFIG -= qt
+QT = core
 
 TEMPLATE = app
 CONFIG += console
+
+DESTDIR  = ../bin_tests/$${OUTPUT_DIR}/
+OBJECTS_DIR = ../bin_tests/$${OUTPUT_DIR}/$${TARGET}
+MOC_DIR     = ../bin_tests/$${OUTPUT_DIR}/$${TARGET}
+UI_DIR      = ../bin_tests/$${OUTPUT_DIR}/$${TARGET}
+RCC_DIR     = ../bin_tests/$${OUTPUT_DIR}/$${TARGET}
 
 win*{
 	QMAKE_CXXFLAGS += /std:c++17 /permissive- /Zc:__cplusplus
@@ -26,19 +32,12 @@ linux*|mac*{
 }
 
 INCLUDEPATH += \
-	$${PWD}/../src/ \
-	$${PWD}/../cpp-template-utils/ \
-	$${PWD}/../../cpp-template-utils/
+	$${PWD}/../src \
+	$${PWD}/../cpp-template-utils \
+	$${PWD}/../../cpp-template-utils \
+	$${PWD}/../cpputils \
+	$${PWD}/../../cpputils
 
 SOURCES += tests_main.cpp
 
-HEADERS += \
-	../src/cpp-db.hpp \
-	../src/dbfield.hpp \
-	../src/dbfilegaps.hpp \
-	../src/dbindex.hpp \
-	../src/dbindices.hpp \
-	../src/dbrecord.hpp \
-	../src/dbstorage.hpp \
-	../src/index_helpers.hpp \
-	../src/storage_io.hpp
+LIBS += -L$${PWD}/../ -L$${PWD}/../../ -lcpputils
