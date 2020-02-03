@@ -32,9 +32,10 @@ before_script:
 
 script:
   # Building the main binaries
-  - pwd
-  - ls
   - $QMAKE -r CONFIG+=release
   - make -j
+  - pwd
+  - ls
+  - ls bin_tests/
   # Running tests
   - ./bin_tests/test-app
