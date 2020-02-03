@@ -4,7 +4,7 @@ QT = core
 TEMPLATE = app
 CONFIG += console
 
-DESTDIR  = ../bin_tests/
+DESTDIR  = ./bin_tests/
 OBJECTS_DIR = $${DESTDIR}/build/
 MOC_DIR     = $${DESTDIR}/build/
 UI_DIR      = $${DESTDIR}/build/
