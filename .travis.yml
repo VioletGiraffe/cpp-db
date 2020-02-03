@@ -37,4 +37,4 @@ script:
   - $QMAKE -r CONFIG+=release
   - make -j
   # Running tests
-  - ./bin_tests/tests
+  - ./bin_tests/test-app
