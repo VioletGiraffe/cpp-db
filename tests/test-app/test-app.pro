@@ -54,3 +54,9 @@ INCLUDEPATH += \
 SOURCES += tests_main.cpp
 
 LIBS += -L$${PWD}/../$${OUTPUT_DIR} -L$${PWD}/../../../$${OUTPUT_DIR} -lcpputils
+
+HEADERS += \
+	dbfilegaps_load-store_test.hpp \
+	dbfilegaps_operations_test.hpp \
+	dbfilegaps_test.hpp \
+	dbfilegaps_tester.hpp
