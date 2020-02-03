@@ -16,6 +16,7 @@
 
 class DbFileGaps
 {
+	friend struct DbFileGaps_Tester;
 	struct Gap {
 		uint64_t location;
 		uint64_t length;
@@ -120,8 +121,7 @@ public:
 
 	bool loadFromFile(QString filePath)
 	{
-		_gapLocations.clear();
-		_insertionsSinceLastConsolidation = 0;
+		clear();
 
 		QFile file(filePath);
 		if (!file.open(QFile::ReadOnly))
@@ -140,7 +140,7 @@ public:
 
 			hasher.updateHash(gap.length);
 			hasher.updateHash(gap.location);
-			
+
 			_gapLocations.emplace(std::move(gap));
 		}
 
@@ -150,6 +150,12 @@ public:
 
 		assert_and_return_r(hash == hasher.hash(), false);
 		return true;
+	}
+
+	void clear() noexcept
+	{
+		_gapLocations.clear();
+		_insertionsSinceLastConsolidation = 0;
 	}
 
 private:
