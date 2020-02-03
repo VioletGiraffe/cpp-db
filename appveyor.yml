@@ -18,7 +18,7 @@ install:
   - git clone --depth 1 https://github.com/VioletGiraffe/cpputils
   - set PATH=C:\Qt\%qt%\bin;%PATH%;
   - dir "C:\Program Files (x86)\Windows Kits\10\include\"
-  - \"C:\Qt\%qt%\bin\qmake.exe\" -v
+  - '"C:\Qt\%qt%\bin\qmake.exe"' -v
   - cd tests
   - call "%programfiles(x86)%\Microsoft Visual Studio\%VS_VERSION%\Community\VC\Auxiliary\Build\vcvarsall.bat" amd64 %WIN_SDK% && "C:\Qt\%qt%\bin\qmake.exe" -tp vc -r
 
