@@ -20,7 +20,7 @@ contains(QT_ARCH, x86_64) {
 	ARCHITECTURE = x86
 }
 
-Release:LIBS_DIR=bin/release/$${ARCHITECTURE}
+Release:OUTPUT_DIR=bin/release/$${ARCHITECTURE}
 Debug:OUTPUT_DIR=bin/debug/$${ARCHITECTURE}
 
 win*{
