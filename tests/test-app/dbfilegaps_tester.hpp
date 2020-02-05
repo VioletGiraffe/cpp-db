@@ -2,6 +2,7 @@
 
 #include "dbfilegaps.hpp"
 #include "random/randomnumbergenerator.h"
+#include "container/algorithms.hpp"
 
 #include <algorithm>
 #include <vector>
@@ -16,16 +17,15 @@ struct DbFileGaps_Tester {
 	{}
 
 	inline bool generateGaps(const uint64_t count) {
-		_referenceGaps.clear();
-		_gaps.clear();
-		_referenceGaps.reserve(count);
+		_referenceGaps.reserve(_referenceGaps.size() + count);
 		for (uint64_t i = 0; i < count;)
 		{
-			DbFileGaps::Gap newGap{_rngLocation.rand(), _rngLength.rand()};
-			if (std::find_if(cbegin_to_end(_referenceGaps), [&newGap](const DbFileGaps::Gap& gap){return gap.location == newGap.location;}) != _referenceGaps.cend())
+			const auto location = _rngLocation.rand();
+			DbFileGaps::Gap newGap{location, location};
+			if (std::find_if(cbegin_to_end(_referenceGaps), [&location](const DbFileGaps::Gap& gap){return gap.location == location;}) != _referenceGaps.cend())
 				continue;
 
-			_gaps.registerGap(newGap.location, newGap.length);
+			_gaps.registerGap(location, location);
 			_referenceGaps.emplace_back(std::move(newGap));
 			++i;
 		}
@@ -52,6 +52,24 @@ struct DbFileGaps_Tester {
 		std::sort(begin_to_end(_referenceGaps), gapLessComp);
 		std::sort(begin_to_end(actualGaps), gapLessComp);
 		return std::equal(cbegin_to_end(_referenceGaps), cbegin_to_end(actualGaps), [](const DbFileGaps::Gap& l, const DbFileGaps::Gap& r) {return r.length == l.length && r.location == l.location; });
+	}
+
+	
+
+	inline void clear()
+	{
+		_gaps.clear();
+		_referenceGaps.clear();
+	}
+
+	inline bool takeGap(const uint64_t length)
+	{
+		const auto gapLocation = _gaps.takeSuitableGap(length);
+		if (gapLocation == DbFileGaps::noGap)
+			return false;
+
+		ContainerAlgorithms::erase_if(_referenceGaps, [&](auto&& gap) {return gap.location == gapLocation; });
+		return true;
 	}
 
 private:
