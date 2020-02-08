@@ -46,10 +46,20 @@ public:
 		*/
 
 
-		if (begin != end)
-			return (*begin)->location;
-		else if (_insertionsSinceLastConsolidation < 1000)
-			return noGap;
+		if (begin == end)
+		{
+			if (_insertionsSinceLastConsolidation < 1000)
+				return noGap;
+
+			consolidateGaps();
+			return takeSuitableGap(gapLength); // Recursing once to check if consolidation freed up enough space.
+		}
+		
+		const auto suitableGap = 
+		if ((*begin)->length == gapLength)
+		{
+
+		}
 
 		// If no gap is found, consolidate gaps and try again
 		consolidateGaps();
