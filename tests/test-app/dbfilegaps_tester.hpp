@@ -68,7 +68,8 @@ struct DbFileGaps_Tester {
 		if (gapLocation == DbFileGaps::noGap)
 			return false;
 
-		ContainerAlgorithms::erase_if(_referenceGaps, [&](auto&& gap) {return gap.location == gapLocation; });
+
+		ContainerAlgorithms::erase_if(_referenceGaps, [&](auto&& gap) {return gap.location == gapLocation;});
 		return true;
 	}
 

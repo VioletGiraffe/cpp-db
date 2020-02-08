@@ -34,10 +34,10 @@ public:
 		++_insertionsSinceLastConsolidation;
 	}
 
-	inline uint64_t takeSuitableGap(const uint64_t gapLength) noexcept {
-		assert(gapLength > 0);
+	inline uint64_t takeSuitableGap(const uint64_t requestedGapLength) noexcept {
+		assert(requestedGapLength > 0);
 
-		const auto [begin, end] = _gapLocations.findSecondaryInRange(gapLength, std::numeric_limits<decltype(Gap::length)>::max());
+		const auto [begin, end] = _gapLocations.findSecondaryInRange(requestedGapLength, std::numeric_limits<decltype(Gap::length)>::max());
 		/* TODO: experiment with smart heuristics, e. g.:
 			- taking the shortest suitable gap;
 			- taking the longest suitable gap;
@@ -51,20 +51,22 @@ public:
 			if (_insertionsSinceLastConsolidation < 1000)
 				return noGap;
 
-			consolidateGaps();
-			return takeSuitableGap(gapLength); // Recursing once to check if consolidation freed up enough space.
+			consolidateGaps(); // If no gap is found, consolidate gaps and try again
+			return takeSuitableGap(requestedGapLength); // Recursing once to check if consolidation freed up enough space.
 		}
 		
-		const auto suitableGap = 
-		if ((*begin)->length == gapLength)
+		Gap remainingGap = *(*begin);
+		const auto offset = remainingGap.location;
+		assert_r(_gapLocations.erase(remainingGap.location) == 1);
+		if (remainingGap.length != requestedGapLength)
 		{
-
+			assert_debug_only(remainingGap.length > requestedGapLength);
+			remainingGap.location += requestedGapLength;
+			remainingGap.length -= requestedGapLength;
+			_gapLocations.emplace(std::move(remainingGap));
 		}
 
-		// If no gap is found, consolidate gaps and try again
-		consolidateGaps();
-		const auto [newBegin, newEnd] = _gapLocations.findSecondaryInRange(gapLength, std::numeric_limits<decltype(Gap::length)>::max());
-		return newBegin != newEnd ? (*newBegin)->location : noGap;
+		return offset;
 	}
 
 	void consolidateGaps() noexcept
