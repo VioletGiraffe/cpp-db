@@ -10,19 +10,19 @@ TEST_CASE("Filling empty DbFileGaps benchmark", "[dbfilegaps]") {
 		BENCHMARK("Filling an empty index, 100 items") {
 			tester.generateGaps(100);
 		};
-		REQUIRE_NOTHROW(tester.verifyGaps());
+		REQUIRE(tester.verifyGaps());
 
 		tester.clear();
 		BENCHMARK("Filling an empty index, 200 items") {
 			tester.generateGaps(200);
 		};
-		REQUIRE_NOTHROW(tester.verifyGaps());
+		REQUIRE(tester.verifyGaps());
 
 		tester.clear();
 		BENCHMARK("Filling an empty index, 400 items") {
 			tester.generateGaps(400);
 		};
-		REQUIRE_NOTHROW(tester.verifyGaps());
+		REQUIRE(tester.verifyGaps());
 
 	} catch(...) {
 		FAIL();
@@ -38,17 +38,17 @@ TEST_CASE("Adding more gaps to non-empty DbFileGaps benchmark", "[dbfilegaps]") 
 		BENCHMARK("Adding 100 to 1000 existing, 1000 items") {
 			tester.generateGaps(100);
 		};
-		REQUIRE_NOTHROW(tester.verifyGaps());
+		REQUIRE(tester.verifyGaps());
 
 		BENCHMARK("Adding 100 more") {
 			tester.generateGaps(100);
 		};
-		REQUIRE_NOTHROW(tester.verifyGaps());
+		REQUIRE(tester.verifyGaps());
 
 		BENCHMARK("And another 100") {
 			tester.generateGaps(100);
 		};
-		REQUIRE_NOTHROW(tester.verifyGaps());
+		REQUIRE(tester.verifyGaps());
 
 	}
 	catch (...) {
