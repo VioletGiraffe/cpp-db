@@ -101,19 +101,24 @@ void DbFileGaps::consolidateGaps() noexcept
 			accumulatedGap.length += next->endOffset() - current->location;
 
 			// So have to erase both
-			const auto toBeErased_1 = current, toBeErased_2 = next;
+			const auto oldCurrent = current, oldNext = next;
 			current = ++next;
 			if (next != end)
 			{
 				++next;
 
-				_gapLocations.erase(toBeErased_1);
-				_gapLocations.erase(toBeErased_2);
+				const auto oldNextEndOffset = oldNext->endOffset();
+
+				_gapLocations.erase(oldCurrent);
+				_gapLocations.erase(oldNext);
+
+				if (oldNextEndOffset < current->location)
+					break;
 			}
 			else
 			{
-				_gapLocations.erase(toBeErased_1);
-				_gapLocations.erase(toBeErased_2);
+				_gapLocations.erase(oldCurrent);
+				_gapLocations.erase(oldNext);
 
 				break;
 			}
@@ -131,8 +136,8 @@ void DbFileGaps::consolidateGaps() noexcept
 		}
 		else
 		{
-			current = next;
-			++next;
+			//current = next;
+			//++next;
 		}
 	}
 
