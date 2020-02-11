@@ -126,18 +126,13 @@ void DbFileGaps::consolidateGaps() noexcept
 
 		if (accumulatedGap.length > 0)
 		{
-			if (current != end && next == end && current->location == accumulatedGap.endOffset())
+			if (next == end && current != end && current->location == accumulatedGap.endOffset())
 			{
 				accumulatedGap.length += current->length;
 				_gapLocations.erase(current);
 			}
 
 			mergedGaps.emplace_back(std::move(accumulatedGap));
-		}
-		else
-		{
-			//current = next;
-			//++next;
 		}
 	}
 
