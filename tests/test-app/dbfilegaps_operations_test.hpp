@@ -3,7 +3,7 @@
 #include "3rdparty/catch2/catch.hpp"
 #include "dbfilegaps_tester.hpp"
 
-TEST_CASE("Small test, filling DbFileGaps", "[dbfilegaps]") {
+TEST_CASE("Simple interface test (black box)", "[dbfilegaps]") {
 	try {
 		DbFileGaps gaps;
 
@@ -48,7 +48,7 @@ TEST_CASE("Small test, filling DbFileGaps", "[dbfilegaps]") {
 	}
 }
 
-TEST_CASE("Larger test, filling DbFileGaps and then removing gaps", "[dbfilegaps]") {
+TEST_CASE("White box test", "[dbfilegaps]") {
 	try {
 	
 	}

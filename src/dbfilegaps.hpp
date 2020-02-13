@@ -32,25 +32,27 @@ public:
 	inline void registerGap(const uint64_t gapOffset, const uint64_t gapLength) noexcept;
 	inline uint64_t takeSuitableGap(const uint64_t requestedGapLength) noexcept;
 
-	void consolidateGaps() noexcept;
+	inline void consolidateGaps() noexcept;
 
-	bool saveToFile(QString filePath) const noexcept;
-	bool loadFromFile(QString filePath) noexcept;
+	inline bool saveToFile(QString filePath) const noexcept;
+	inline bool loadFromFile(QString filePath) noexcept;
 
-	size_t size() const noexcept;
-	void clear() noexcept;
+	inline size_t size() const noexcept;
+
+private:
+	inline void clear() noexcept;
 
 private:
 	MultiIndexSet<Gap, &Gap::location, &Gap::length> _gapLocations;
 	uint64_t _insertionsSinceLastConsolidation = 0;
 };
 
-void DbFileGaps::registerGap(const uint64_t gapOffset, const uint64_t gapLength) noexcept {
+inline void DbFileGaps::registerGap(const uint64_t gapOffset, const uint64_t gapLength) noexcept {
 	_gapLocations.emplace(Gap{ gapOffset, gapLength });
 	++_insertionsSinceLastConsolidation;
 }
 
-uint64_t DbFileGaps::takeSuitableGap(const uint64_t requestedGapLength) noexcept {
+inline uint64_t DbFileGaps::takeSuitableGap(const uint64_t requestedGapLength) noexcept {
 	assert(requestedGapLength > 0);
 
 	const auto [begin, end] = _gapLocations.findSecondaryInRange(requestedGapLength, std::numeric_limits<decltype(Gap::length)>::max());
@@ -85,7 +87,7 @@ uint64_t DbFileGaps::takeSuitableGap(const uint64_t requestedGapLength) noexcept
 	return offset;
 }
 
-void DbFileGaps::consolidateGaps() noexcept
+inline void DbFileGaps::consolidateGaps() noexcept
 {
 	std::vector<Gap> mergedGaps;
 	mergedGaps.reserve(1000);
@@ -143,7 +145,7 @@ void DbFileGaps::consolidateGaps() noexcept
 	_insertionsSinceLastConsolidation = 0;
 }
 
-bool DbFileGaps::saveToFile(QString filePath) const noexcept
+inline bool DbFileGaps::saveToFile(QString filePath) const noexcept
 {
 	QFile file(filePath);
 	if (!file.open(QFile::WriteOnly))
@@ -168,7 +170,7 @@ bool DbFileGaps::saveToFile(QString filePath) const noexcept
 	return file.flush();
 }
 
-bool DbFileGaps::loadFromFile(QString filePath) noexcept
+inline bool DbFileGaps::loadFromFile(QString filePath) noexcept
 {
 	clear();
 
@@ -201,12 +203,12 @@ bool DbFileGaps::loadFromFile(QString filePath) noexcept
 	return true;
 }
 
-size_t DbFileGaps::size() const noexcept
+inline size_t DbFileGaps::size() const noexcept
 {
 	return _gapLocations.size();
 }
 
-void DbFileGaps::clear() noexcept
+inline void DbFileGaps::clear() noexcept
 {
 	_gapLocations.clear();
 	_insertionsSinceLastConsolidation = 0;
