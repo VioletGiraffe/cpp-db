@@ -10,7 +10,7 @@
 struct DbFileGaps_Tester {
 	DbFileGaps _gaps;
 
-	std::vector<DbFileGaps::Gap> enumerateGaps() const noexcept;
+	std::vector<std::pair<uint64_t, uint64_t>> enumerateGaps() const noexcept;
 
 private:
 	RandomNumberGenerator<uint64_t> _rngLength;

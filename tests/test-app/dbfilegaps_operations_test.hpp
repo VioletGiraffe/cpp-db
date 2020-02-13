@@ -50,7 +50,17 @@ TEST_CASE("Simple interface test (black box)", "[dbfilegaps]") {
 
 TEST_CASE("White box test", "[dbfilegaps]") {
 	try {
-	
+
+		DbFileGaps_Tester tester;
+		std::vector<std::pair<uint64_t, uint64_t>> referenceGaps;
+		for (uint64_t offset = 0, length = 10000; length > 0; --length, offset += length)
+		{
+			tester._gaps.registerGap(offset, length);
+			referenceGaps.emplace_back(offset, length);
+		}
+
+		std::sort(begin_to_end(referenceGaps), [](auto&& gapL, auto&& gapR) {return gapL.first < gapR.first;});
+		CHECK(std::equal(begin_to_end(referenceGaps), begin_to_end(tester.enumerateGaps())), )
 	}
 	catch (...) {
 		FAIL();
