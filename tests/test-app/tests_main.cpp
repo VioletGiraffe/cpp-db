@@ -5,6 +5,4 @@
 #include "dbfilegaps_operations_test.hpp"
 #include "dbfilegaps_load-store_test.hpp"
 
-#ifndef _DEBUG
-//#include "dbfilegaps_benchmarks.hpp"
-#endif
+#include "dbfilegaps_benchmarks.hpp"

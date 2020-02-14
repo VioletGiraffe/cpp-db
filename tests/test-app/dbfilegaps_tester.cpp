@@ -3,10 +3,12 @@
 #include <algorithm>
 #include <iterator>
 
-std::vector<DbFileGaps::Gap> DbFileGaps_Tester::enumerateGaps() const noexcept
+std::vector<std::pair<uint64_t, uint64_t>> DbFileGaps_Tester::enumerateGaps() const noexcept
 {
-	std::vector<DbFileGaps::Gap> gaps;
+	std::vector<std::pair<uint64_t, uint64_t>> gaps;
 	gaps.reserve(_gaps.size());
-	std::copy(cbegin_to_end(_gaps._gapLocations), std::back_inserter(gaps));
+	for (const DbFileGaps::Gap& gap : _gaps._gapLocations)
+		gaps.emplace_back(gap.location, gap.length);
+
 	return gaps;
 }
