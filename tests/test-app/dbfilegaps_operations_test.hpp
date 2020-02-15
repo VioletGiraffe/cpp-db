@@ -65,6 +65,7 @@ TEST_CASE("White box test", "[dbfilegaps]") {
 
 		tester._gaps.consolidateGaps();
 		CHECK(tester.enumerateGaps() == std::vector<std::pair<uint64_t, uint64_t>>{ {0, maxLength * (maxLength + 1) / 2} });
+		CHECK_FALSE(tester.enumerateGaps() == std::vector<std::pair<uint64_t, uint64_t>>{ {0, maxLength* (maxLength + 1) / 2 + 1} });
 	}
 	catch (...) {
 		FAIL();
