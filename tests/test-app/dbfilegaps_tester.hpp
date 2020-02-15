@@ -8,7 +8,7 @@
 #include <vector>
 
 struct DbFileGaps_Tester {
-	DbFileGaps _gaps;
+	FileAllocationManager _gaps;
 
 	std::vector<std::pair<uint64_t, uint64_t>> enumerateGaps() const noexcept;
 

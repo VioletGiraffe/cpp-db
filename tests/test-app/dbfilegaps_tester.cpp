@@ -7,7 +7,7 @@ std::vector<std::pair<uint64_t, uint64_t>> DbFileGaps_Tester::enumerateGaps() co
 {
 	std::vector<std::pair<uint64_t, uint64_t>> gaps;
 	gaps.reserve(_gaps.size());
-	for (const DbFileGaps::Gap& gap : _gaps._gapLocations)
+	for (const FileAllocationManager::Gap& gap : _gaps._gapLocations)
 		gaps.emplace_back(gap.location, gap.length);
 
 	return gaps;

@@ -14,7 +14,7 @@
 #include <string>
 #include <vector>
 
-class DbFileGaps
+class FileAllocationManager
 {
 	friend struct DbFileGaps_Tester;
 	struct Gap {
@@ -47,24 +47,22 @@ private:
 	uint64_t _insertionsSinceLastConsolidation = 0;
 };
 
-inline void DbFileGaps::registerGap(const uint64_t gapOffset, const uint64_t gapLength) noexcept {
+inline void FileAllocationManager::registerGap(const uint64_t gapOffset, const uint64_t gapLength) noexcept {
 	_gapLocations.emplace(Gap{ gapOffset, gapLength });
 	++_insertionsSinceLastConsolidation;
 }
 
-inline uint64_t DbFileGaps::takeSuitableGap(const uint64_t requestedGapLength) noexcept {
+inline uint64_t FileAllocationManager::takeSuitableGap(const uint64_t requestedGapLength) noexcept {
 	assert(requestedGapLength > 0);
 
 	const auto [begin, end] = _gapLocations.findSecondaryInRange(requestedGapLength, std::numeric_limits<decltype(Gap::length)>::max());
-			/* TODO: experiment with smart heuristics, e. g.:
-					- taking the shortest suitable gap;
-					- taking the longest suitable gap;
-					- taking the gap with the smallest offset (may or not accidentally be what *begin already refers to).
-					- taking the gap adjacent with another gap for consolidating free space
-				*/
-
-
-			if (begin == end)
+	/* TODO: experiment with smart heuristics, e. g.:
+		- taking the shortest suitable gap;
+		- taking the longest suitable gap;
+		- taking the gap with the smallest offset (may or not accidentally be what *begin already refers to).
+		- taking the gap adjacent with another gap for consolidating free space
+	*/
+	if (begin == end)
 	{
 		if (_insertionsSinceLastConsolidation < 1000)
 			return noGap;
@@ -87,7 +85,7 @@ inline uint64_t DbFileGaps::takeSuitableGap(const uint64_t requestedGapLength) n
 	return offset;
 }
 
-inline void DbFileGaps::consolidateGaps() noexcept
+inline void FileAllocationManager::consolidateGaps() noexcept
 {
 	std::vector<Gap> mergedGaps;
 	mergedGaps.reserve(1000);
@@ -145,7 +143,7 @@ inline void DbFileGaps::consolidateGaps() noexcept
 	_insertionsSinceLastConsolidation = 0;
 }
 
-inline bool DbFileGaps::saveToFile(QString filePath) const noexcept
+inline bool FileAllocationManager::saveToFile(QString filePath) const noexcept
 {
 	QFile file(filePath);
 	if (!file.open(QFile::WriteOnly))
@@ -170,7 +168,7 @@ inline bool DbFileGaps::saveToFile(QString filePath) const noexcept
 	return file.flush();
 }
 
-inline bool DbFileGaps::loadFromFile(QString filePath) noexcept
+inline bool FileAllocationManager::loadFromFile(QString filePath) noexcept
 {
 	clear();
 
@@ -203,12 +201,12 @@ inline bool DbFileGaps::loadFromFile(QString filePath) noexcept
 	return true;
 }
 
-inline size_t DbFileGaps::size() const noexcept
+inline size_t FileAllocationManager::size() const noexcept
 {
 	return _gapLocations.size();
 }
 
-inline void DbFileGaps::clear() noexcept
+inline void FileAllocationManager::clear() noexcept
 {
 	_gapLocations.clear();
 	_insertionsSinceLastConsolidation = 0;
