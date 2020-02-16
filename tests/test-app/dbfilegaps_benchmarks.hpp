@@ -45,7 +45,11 @@ TEST_CASE("Filling empty DbFileGaps benchmark", "[dbfilegaps]") {
 TEST_CASE("Taking 500 out of 20000 equal length gaps", "[dbfilegaps]") {
 	try {
 		FileAllocationManager gaps;
+#ifndef TRAVIS_BUILD
 		constexpr uint64_t n = 20000;
+#else
+		constexpr uint64_t n = 2000;
+#endif
 		for (uint64_t offset = 0, length = 1, i = 0; i < n; offset += length, ++i)
 			gaps.registerGap(offset, length);
 
@@ -66,7 +70,11 @@ TEST_CASE("Taking 500 out of 20000 equal length gaps", "[dbfilegaps]") {
 TEST_CASE("Taking 500 out of 40000 equal length gaps", "[dbfilegaps]") {
 	try {
 		FileAllocationManager gaps;
+#ifndef TRAVIS_BUILD
 		constexpr uint64_t n = 40000;
+#else
+		constexpr uint64_t n = 4000;
+#endif
 		for (uint64_t offset = 0, length = 1, i = 0; i < n; offset += length, ++i)
 			gaps.registerGap(offset, length);
 
@@ -87,7 +95,11 @@ TEST_CASE("Taking 500 out of 40000 equal length gaps", "[dbfilegaps]") {
 TEST_CASE("Taking 1000 out of 40000 equal length gaps", "[dbfilegaps]") {
 	try {
 		FileAllocationManager gaps;
+#ifndef TRAVIS_BUILD
 		constexpr uint64_t n = 40000;
+#else
+		constexpr uint64_t n = 4000;
+#endif
 		for (uint64_t offset = 0, length = 1, i = 0; i < n; offset += length, ++i)
 			gaps.registerGap(offset, length);
 
@@ -108,7 +120,11 @@ TEST_CASE("Taking 1000 out of 40000 equal length gaps", "[dbfilegaps]") {
 TEST_CASE("Requesting unavailable gap 1000 times out of 40000 equal length gaps", "[dbfilegaps]") {
 	try {
 		FileAllocationManager gaps;
+#ifndef TRAVIS_BUILD
 		constexpr uint64_t n = 40000;
+#else
+		constexpr uint64_t n = 4000;
+#endif
 		for (uint64_t offset = 0, length = 1, i = 0; i < n; offset += length, ++i)
 			gaps.registerGap(offset, length);
 

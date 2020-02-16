@@ -14,5 +14,4 @@ TEST_CASE("Compilation tests", "[cpp-db]") {
 	CHECK(fs.fieldSize() == 4 + 0);
 	fs.value = "123";
 	CHECK(fs.fieldSize() == 4 + 3);
-
 }
