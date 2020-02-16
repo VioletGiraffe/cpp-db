@@ -46,15 +46,15 @@ TEST_CASE("Taking 500 out of 20000 equal length gaps", "[dbfilegaps]") {
 	try {
 		FileAllocationManager gaps;
 #ifndef TRAVIS_BUILD
-		constexpr uint64_t n = 20000;
+		constexpr uint64_t n = 20000, m = 500;
 #else
-		constexpr uint64_t n = 2000;
+		constexpr uint64_t n = 1000, m = 50;
 #endif
 		for (uint64_t offset = 0, length = 1, i = 0; i < n; offset += length, ++i)
 			gaps.registerGap(offset, length);
 
 		BENCHMARK("Taking 500 out of 20000 equal length gaps") {
-			for (uint64_t i = 0; i < 500; ++i)
+			for (uint64_t i = 0; i < m; ++i)
 			{
 				gaps.takeSuitableGap(1);
 			}
@@ -71,15 +71,15 @@ TEST_CASE("Taking 500 out of 40000 equal length gaps", "[dbfilegaps]") {
 	try {
 		FileAllocationManager gaps;
 #ifndef TRAVIS_BUILD
-		constexpr uint64_t n = 40000;
+		constexpr uint64_t n = 40000, m = 500;
 #else
-		constexpr uint64_t n = 4000;
+		constexpr uint64_t n = 2000, m = 50;
 #endif
 		for (uint64_t offset = 0, length = 1, i = 0; i < n; offset += length, ++i)
 			gaps.registerGap(offset, length);
 
 		BENCHMARK("Taking 500 out of 40000 equal length gaps") {
-			for (uint64_t i = 0; i < 500; ++i)
+			for (uint64_t i = 0; i < m; ++i)
 			{
 				gaps.takeSuitableGap(1);
 			}
@@ -96,15 +96,15 @@ TEST_CASE("Taking 1000 out of 40000 equal length gaps", "[dbfilegaps]") {
 	try {
 		FileAllocationManager gaps;
 #ifndef TRAVIS_BUILD
-		constexpr uint64_t n = 40000;
+		constexpr uint64_t n = 40000, m = 1000;
 #else
-		constexpr uint64_t n = 4000;
+		constexpr uint64_t n = 2000, m = 100;
 #endif
 		for (uint64_t offset = 0, length = 1, i = 0; i < n; offset += length, ++i)
 			gaps.registerGap(offset, length);
 
 		BENCHMARK("Taking 1000 out of 40000 equal length gaps") {
-			for (uint64_t i = 0; i < 1000; ++i)
+			for (uint64_t i = 0; i < m; ++i)
 			{
 				gaps.takeSuitableGap(1);
 			}
@@ -121,15 +121,15 @@ TEST_CASE("Requesting unavailable gap 1000 times out of 40000 equal length gaps"
 	try {
 		FileAllocationManager gaps;
 #ifndef TRAVIS_BUILD
-		constexpr uint64_t n = 40000;
+		constexpr uint64_t n = 40000, m = 1000;
 #else
-		constexpr uint64_t n = 4000;
+		constexpr uint64_t n = 2000, m = 100;
 #endif
 		for (uint64_t offset = 0, length = 1, i = 0; i < n; offset += length, ++i)
 			gaps.registerGap(offset, length);
 
 		BENCHMARK("Requesting unavailable gap 1000 times out of 40000 equal length gaps") {
-			for (uint64_t i = 0; i < 1000; ++i)
+			for (uint64_t i = 0; i < m; ++i)
 			{
 				gaps.takeSuitableGap(n + 5);
 			}
