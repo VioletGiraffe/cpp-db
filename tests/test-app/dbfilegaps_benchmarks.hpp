@@ -8,7 +8,7 @@ constexpr uint64_t travis_downscale_factor = 1;
 #else
 #include <iostream>
 
-constexpr uint64_t travis_downscale_factor = 100;
+constexpr uint64_t travis_downscale_factor = 50;
 #endif
 
 TEST_CASE("Filling empty DbFileGaps benchmark", "[dbfilegaps]") {
