@@ -3,6 +3,14 @@
 #include "3rdparty/catch2/catch.hpp"
 #include "dbfilegaps_tester.hpp"
 
+#ifndef TRAVIS_BUILD
+constexpr uint64_t travis_downscale_factor = 1;
+#else
+#include <iostream>
+
+constexpr uint64_t travis_downscale_factor = 100;
+#endif
+
 TEST_CASE("Filling empty DbFileGaps benchmark", "[dbfilegaps]") {
 	try {
 		FileAllocationManager gaps;
@@ -44,17 +52,19 @@ TEST_CASE("Filling empty DbFileGaps benchmark", "[dbfilegaps]") {
 
 TEST_CASE("Taking 500 out of 20000 equal length gaps", "[dbfilegaps]") {
 	try {
-		FileAllocationManager gaps;
-#ifndef TRAVIS_BUILD
-		constexpr uint64_t n = 20000, m = 500;
-#else
-		constexpr uint64_t n = 1000, m = 50;
+
+#ifdef TRAVIS_BUILD
+		std::cout << "Travis CI build." << std::endl;
 #endif
+
+		FileAllocationManager gaps;
+
+		constexpr uint64_t n = 20000 / travis_downscale_factor;
 		for (uint64_t offset = 0, length = 1, i = 0; i < n; offset += length, ++i)
 			gaps.registerGap(offset, length);
 
 		BENCHMARK("Taking 500 out of 20000 equal length gaps") {
-			for (uint64_t i = 0; i < m; ++i)
+			for (uint64_t i = 0; i < 500 / travis_downscale_factor; ++i)
 			{
 				gaps.takeSuitableGap(1);
 			}
@@ -70,16 +80,14 @@ TEST_CASE("Taking 500 out of 20000 equal length gaps", "[dbfilegaps]") {
 TEST_CASE("Taking 500 out of 40000 equal length gaps", "[dbfilegaps]") {
 	try {
 		FileAllocationManager gaps;
-#ifndef TRAVIS_BUILD
-		constexpr uint64_t n = 40000, m = 500;
-#else
-		constexpr uint64_t n = 2000, m = 50;
-#endif
+
+		constexpr uint64_t n = 40000 / travis_downscale_factor;
+
 		for (uint64_t offset = 0, length = 1, i = 0; i < n; offset += length, ++i)
 			gaps.registerGap(offset, length);
 
 		BENCHMARK("Taking 500 out of 40000 equal length gaps") {
-			for (uint64_t i = 0; i < m; ++i)
+			for (uint64_t i = 0; i < 500 / travis_downscale_factor; ++i)
 			{
 				gaps.takeSuitableGap(1);
 			}
@@ -95,16 +103,14 @@ TEST_CASE("Taking 500 out of 40000 equal length gaps", "[dbfilegaps]") {
 TEST_CASE("Taking 1000 out of 40000 equal length gaps", "[dbfilegaps]") {
 	try {
 		FileAllocationManager gaps;
-#ifndef TRAVIS_BUILD
-		constexpr uint64_t n = 40000, m = 1000;
-#else
-		constexpr uint64_t n = 2000, m = 100;
-#endif
+
+		constexpr uint64_t n = 40000 / travis_downscale_factor;
+
 		for (uint64_t offset = 0, length = 1, i = 0; i < n; offset += length, ++i)
 			gaps.registerGap(offset, length);
 
 		BENCHMARK("Taking 1000 out of 40000 equal length gaps") {
-			for (uint64_t i = 0; i < m; ++i)
+			for (uint64_t i = 0; i < 1000 / travis_downscale_factor; ++i)
 			{
 				gaps.takeSuitableGap(1);
 			}
@@ -120,16 +126,14 @@ TEST_CASE("Taking 1000 out of 40000 equal length gaps", "[dbfilegaps]") {
 TEST_CASE("Requesting unavailable gap 1000 times out of 40000 equal length gaps", "[dbfilegaps]") {
 	try {
 		FileAllocationManager gaps;
-#ifndef TRAVIS_BUILD
-		constexpr uint64_t n = 40000, m = 1000;
-#else
-		constexpr uint64_t n = 2000, m = 100;
-#endif
+	
+		constexpr uint64_t n = 40000 / travis_downscale_factor;
+
 		for (uint64_t offset = 0, length = 1, i = 0; i < n; offset += length, ++i)
 			gaps.registerGap(offset, length);
 
 		BENCHMARK("Requesting unavailable gap 1000 times out of 40000 equal length gaps") {
-			for (uint64_t i = 0; i < m; ++i)
+			for (uint64_t i = 0; i < 1000 / travis_downscale_factor; ++i)
 			{
 				gaps.takeSuitableGap(n + 5);
 			}
