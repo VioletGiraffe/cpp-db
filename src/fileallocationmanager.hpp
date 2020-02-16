@@ -38,8 +38,6 @@ public:
 	inline bool loadFromFile(QString filePath) noexcept;
 
 	inline size_t size() const noexcept;
-
-private:
 	inline void clear() noexcept;
 
 private:
@@ -165,7 +163,7 @@ inline bool FileAllocationManager::saveToFile(QString filePath) const noexcept
 	if (!checkedWrite(file, hasher.hash()))
 		return false;
 
-	return file.flush();
+	return file.flush(); // Somewhat unnecessary as the file's destructor will call close() which should flush, but I want to see that 'true' value for success.
 }
 
 inline bool FileAllocationManager::loadFromFile(QString filePath) noexcept
