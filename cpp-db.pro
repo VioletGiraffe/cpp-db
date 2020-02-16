@@ -56,10 +56,10 @@ INCLUDEPATH += \
 
 HEADERS += \
 	src/cpp-db.hpp \
-	src/dbfilegaps.hpp \
 	src/dbindex.hpp \
 	src/dbindices.hpp \
 	src/dbrecord.hpp \
+	src/fileallocationmanager.hpp \
 	src/index_helpers.hpp \
 	src/dbfield.hpp \
 	src/dbstorage.hpp \
