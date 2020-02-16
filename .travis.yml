@@ -32,7 +32,7 @@ before_script:
 
 script:
   # Building the main binaries
-  - $QMAKE -r CONFIG+=release
+  - $QMAKE -r CONFIG+=release DEFINES+=TRAVIS_BUILD
   - make -j
   - pwd
   - ls
