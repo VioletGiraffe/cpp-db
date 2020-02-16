@@ -56,6 +56,8 @@ INCLUDEPATH += \
 
 HEADERS += \
 	src/cpp-db.hpp \
+	src/cppDb_compile_time_sanity_checks.hpp \
+	src/dbfield_size_helpers.hpp \
 	src/dbindex.hpp \
 	src/dbindices.hpp \
 	src/dbrecord.hpp \

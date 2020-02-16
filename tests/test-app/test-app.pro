@@ -51,11 +51,13 @@ INCLUDEPATH += \
 	$${PWD}/../cpputils \
 	$${PWD}/../../../cpputils
 
-SOURCES += tests_main.cpp
+SOURCES += tests_main.cpp \
+	dbfilegaps_tester.cpp
 
 LIBS += -L$${PWD}/../$${OUTPUT_DIR} -L$${PWD}/../../../$${OUTPUT_DIR} -lcpputils
 
 HEADERS += \
+	cpp-db_sanity_checks.h \
 	dbfilegaps_benchmarks.hpp \
 	dbfilegaps_load-store_test.hpp \
 	dbfilegaps_operations_test.hpp \

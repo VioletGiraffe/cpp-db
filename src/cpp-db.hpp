@@ -1,5 +1,6 @@
 #pragma once
 #include "dbfield.hpp"
+#include "dbfield_size_helpers.hpp"
 #include "dbrecord.hpp"
 #include "fileallocationmanager.hpp"
 #include "dbindex.hpp"

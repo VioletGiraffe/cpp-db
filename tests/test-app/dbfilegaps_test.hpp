@@ -1,7 +1,7 @@
 #pragma once
 
 #include "3rdparty/catch2/catch.hpp"
-#include "dbfilegaps.hpp"
+#include "fileallocationmanager.hpp"
 
 TEST_CASE("Construction", "[dbfilegaps]") {
 	try {
