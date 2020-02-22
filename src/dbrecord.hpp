@@ -10,7 +10,7 @@
 #include <optional>
 #include <tuple>
 
-template <class... FieldsSequence>
+template <FieldInstance... FieldsSequence>
 struct DbRecord
 {
 private:
@@ -18,7 +18,7 @@ private:
 	std::tuple<FieldsSequence...> _fields;
 
 public:
-	template <typename Field>
+	template <FieldInstance Field>
 	auto fieldValue() const noexcept
 	{
 		static_assert(Field::isField());
@@ -53,7 +53,6 @@ private:
 			constexpr int i = index;
 			using Field1 = typename pack::type_by_index<i - 1, FieldsSequence...>;
 			using Field2 = typename pack::type_by_index<i, FieldsSequence...>;
-			static_assert(Field1::isField() && Field2::isField(), "One of the types in FieldsSequence is not a field!");
 			static_assert(!(Field1::sizeKnownAtCompileTime() == false && Field2::sizeKnownAtCompileTime() == true), "All the fields with compile-time size must be grouped before fields with dynamic size.");
 			static_assert(pack::type_count<Field1, FieldsSequence...>() == 1 && pack::type_count<Field2, FieldsSequence...>() == 1, "Each unique field shall only be specified once within a record!");
 		});

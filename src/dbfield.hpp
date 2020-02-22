@@ -86,6 +86,9 @@ constexpr void Field<T, fieldId>::checkSanity() noexcept
 // Helper templates
 //
 
+template<typename T>
+concept FieldInstance = T::isField();
+
 template <auto id, typename FirstField = void, typename... OtherFields>
 struct FieldById {
 	using Type = std::conditional_t<FirstField::id == id, FirstField, typename FieldById<id, OtherFields...>::Type>;
