@@ -1,4 +1,4 @@
-CONFIG += c++1z strict_c++
+CONFIG += strict_c++
 QT = core
 
 TEMPLATE = app
@@ -24,7 +24,7 @@ Release:OUTPUT_DIR=bin/release/$${ARCHITECTURE}
 Debug:OUTPUT_DIR=bin/debug/$${ARCHITECTURE}
 
 win*{
-	QMAKE_CXXFLAGS += /std:c++17 /permissive- /Zc:__cplusplus
+	QMAKE_CXXFLAGS += /std:c++latest /permissive- /Zc:__cplusplus
 
 	QMAKE_CXXFLAGS += /MP /Zi /FS
 	QMAKE_CXXFLAGS += /wd4251
@@ -39,10 +39,13 @@ win*{
 
 linux*|mac*{
 	QMAKE_CXXFLAGS_WARN_ON = -Wall -Wno-c++11-extensions -Wno-local-type-template-args -Wno-deprecated-register
+	QMAKE_CXXFLAGS += -std=c++2a
 
 	Release:DEFINES += NDEBUG=1
 	Debug:DEFINES += _DEBUG
 }
+
+g++*:QMAKE_CXXFLAGS += -fconcepts
 
 INCLUDEPATH += \
 	$${PWD}/../../src \
