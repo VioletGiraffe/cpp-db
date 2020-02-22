@@ -18,7 +18,7 @@ private:
 	std::tuple<FieldsSequence...> _fields;
 
 public:
-	template <FieldInstance Field>
+	template <typename Field>
 	auto fieldValue() const noexcept
 	{
 		static_assert(Field::isField());
