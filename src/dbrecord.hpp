@@ -10,7 +10,7 @@
 #include <optional>
 #include <tuple>
 
-template <FieldInstance... FieldsSequence>
+template <typename... FieldsSequence>
 struct DbRecord
 {
 private:
