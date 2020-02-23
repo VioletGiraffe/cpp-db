@@ -17,7 +17,7 @@ class DbIndex
 	static_assert(IndexedField::isField());
 
 public:
-	std::vector<StorageLocation> findValueLocations(FieldValueType value)
+	std::vector<StorageLocation> findValueLocations(FieldValueType value) const noexcept
 	{
 		const auto [begin, end] = _index.equal_range(std::move(value));
 		std::vector<StorageLocation> locations;
@@ -27,12 +27,12 @@ public:
 		return locations;
 	}
 
-	void addLocationForValue(FieldValueType value, StorageLocation location)
+	void addLocationForValue(FieldValueType value, StorageLocation location) noexcept
 	{
 		_index.emplace(std::move(value), std::move(location));
 	}
 
-	bool removeValueLocation(const FieldValueType& value, const StorageLocation location)
+	bool removeValueLocation(const FieldValueType& value, const StorageLocation location) noexcept
 	{
 		const auto [begin, end] = _index.equal_range(value); // TODO: std::move?
 		
@@ -48,10 +48,16 @@ public:
 	}
 
 	// Removes every occurrence of 'value', returns the number of removed items
-	size_t removeAllValueLocations(FieldValueType value)
+	size_t removeAllValueLocations(FieldValueType value) noexcept
 	{
 		return _index.erase(std::move(value));
 	}
+
+#ifdef CATCH_CONFIG_MAIN
+	const std::multimap <FieldValueType, StorageLocation>& contents() const {
+		return _index;
+	}
+#endif
 
 private:
 	std::multimap<FieldValueType /* field value */, StorageLocation /* record location */> _index;

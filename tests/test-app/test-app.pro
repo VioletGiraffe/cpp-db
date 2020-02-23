@@ -57,9 +57,10 @@ SOURCES += tests_main.cpp \
 LIBS += -L$${PWD}/../$${OUTPUT_DIR} -L$${PWD}/../../../$${OUTPUT_DIR} -lcpputils
 
 HEADERS += \
-	cpp-db_sanity_checks.h \
+	cpp-db_sanity_checks.hpp \
 	dbfilegaps_benchmarks.hpp \
 	dbfilegaps_load-store_test.hpp \
 	dbfilegaps_operations_test.hpp \
 	dbfilegaps_test.hpp \
-	dbfilegaps_tester.hpp
+	dbfilegaps_tester.hpp \
+	debindex_test.hpp
