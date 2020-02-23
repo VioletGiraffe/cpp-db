@@ -9,7 +9,7 @@
 #include <stdint.h>
 #include <vector>
 
-template <class IndexedField>
+template <typename IndexedField>
 class DbIndex
 {
 	using FieldValueType = typename IndexedField::ValueType;

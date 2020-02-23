@@ -7,7 +7,7 @@ win*{
 CONFIG += staticlib
 QT = core
 
-CONFIG += strict_c++ c++17
+CONFIG += strict_c++ c++1z
 
 mac* | linux*{
 	CONFIG(release, debug|release):CONFIG *= Release optimize_full
@@ -30,7 +30,7 @@ RCC_DIR     = ../build/$${OUTPUT_DIR}/$${TARGET}
 
 win*{
 	QMAKE_CXXFLAGS += /MP /Zi /FS
-	QMAKE_CXXFLAGS += /std:c++17 /permissive- /Zc:__cplusplus
+	QMAKE_CXXFLAGS += /std:c++latest /permissive- /Zc:__cplusplus
 	DEFINES += WIN32_LEAN_AND_MEAN NOMINMAX
 	QMAKE_CXXFLAGS += /wd4251
 	QMAKE_CXXFLAGS_WARN_ON = /W4
@@ -42,13 +42,15 @@ win*{
 }
 
 linux*|mac*{
-	QMAKE_CXXFLAGS += -pedantic-errors
+	QMAKE_CXXFLAGS += -pedantic-errors -std=c++2a
 	QMAKE_CFLAGS += -pedantic-errors
 	QMAKE_CXXFLAGS_WARN_ON = -Wall -Wno-c++11-extensions -Wno-local-type-template-args -Wno-deprecated-register
 
 	Release:DEFINES += NDEBUG=1
 	Debug:DEFINES += _DEBUG
 }
+
+g++*: QMAKE_CXXFLAGS += -fconcepts
 
 INCLUDEPATH += \
 	../cpputils \
