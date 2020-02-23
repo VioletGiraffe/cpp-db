@@ -14,7 +14,7 @@ template <typename... FieldsSequence>
 struct DbRecord
 {
 private:
-	std::optional<size_t> _tombstoneFieldId;
+	static std::optional<size_t> _tombstoneFieldId;
 	std::tuple<FieldsSequence...> _fields;
 
 public:
@@ -30,7 +30,7 @@ public:
 	// TODO: move to compile time
 	// A tombstone field uses high bit (the first one) to encode that this record has been deleted.
 	template <typename T>
-	void setTombstoneFieldId(T fieldId) noexcept
+	static void setTombstoneFieldId(T fieldId) noexcept
 	{
 		assert_debug_only(!_tombstoneFieldId);
 		using FieldType = FieldById_t<fieldId, FieldsSequence...>;
@@ -39,6 +39,16 @@ public:
 		_tombstoneFieldId = pack::index_for_type_v<FieldType, FieldsSequence...>;
 	}
 
+	static constexpr bool canReuseGaps() noexcept
+	{
+		bool nonStaticSizeFieldDetected = false;
+		pack::for_type<FieldsSequence...>([&nonStaticSizeFieldDetected](auto type) {
+			if (!decltype(type)::type::sizeKnownAtCompileTime())
+				nonStaticSizeFieldDetected = true;
+		});
+
+		return nonStaticSizeFieldDetected == false;
+	}
 
 //
 // All the junk below is for compile-time correctness validation only.
@@ -60,34 +70,6 @@ private:
 		return true;
 	}
 
-	static constexpr bool checkIdUniqueness() noexcept
-	{
-		constexpr size_t nFields = sizeof...(FieldsSequence);
-		if constexpr (nFields == 1)
-			return true;
-
-		using FirstField = pack::first_type<FieldsSequence...>;
-		using IdType = std::remove_const_t<decltype(FirstField::id)>;
-		std::array<IdType, nFields> fieldIds{};
-		static_for<0, nFields>([&fieldIds](auto index) {
-			constexpr int i = static_cast<int>(index);
-			fieldIds[i] = pack::type_by_index<i, FieldsSequence...>::id;
-		});
-
-		constexpr_sort(fieldIds);
-
-		for (size_t i = 0; i < nFields - 1; ++i)
-		{
-			if (fieldIds[i] == fieldIds[i + 1])
-				return false;
-		}
-
-		return true;
-	}
-	
-private:
 	static_assert(checkAssertions());
-	static_assert(checkIdUniqueness(), "IDs of all fields in a DbRecord must be unique!");
-
 	static_assert(std::numeric_limits<unsigned char>::digits == 8, "No funny business!");
 };
