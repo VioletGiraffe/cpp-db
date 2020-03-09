@@ -68,4 +68,5 @@ HEADERS += \
 	src/dbfield.hpp \
 	src/dbstorage.hpp \
 	src/storage/storage_helpers.hpp \
-	src/storage_io.hpp
+	src/storage/storage_io_interface.hpp \
+	src/storage/storage_qt.hpp

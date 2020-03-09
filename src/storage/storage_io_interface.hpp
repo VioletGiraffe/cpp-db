@@ -1,15 +1,15 @@
 #pragma once
 
-#include "dbfield.hpp"
-#include "storage/storage_helpers.hpp"
+#include "storage_helpers.hpp"
+#include "../dbfield.hpp"
 #include "assert/advanced_assert.h"
-
-#include <QIODevice>
 
 #include <optional>
 #include <string>
 
-namespace StorageIO {
+template <typename IODevice>
+class StorageIO
+{
 	template <typename T, auto id>
 	bool write(const Field<T, id>& field, QIODevice& storageDevice, const std::optional<uint64_t> offset = {});
 
@@ -21,7 +21,7 @@ namespace StorageIO {
 
 	template <auto id>
 	bool read(Field<std::string, id>& field, QIODevice& storageDevice, const std::optional<uint64_t> offset = {});
-}
+};
 
 template <typename T, auto id>
 bool StorageIO::write(const Field<T, id>& field, QIODevice& storageDevice, const std::optional<uint64_t> offset)
