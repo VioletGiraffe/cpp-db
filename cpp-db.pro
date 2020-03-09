@@ -60,10 +60,11 @@ HEADERS += \
 	src/cpp-db.hpp \
 	src/cppDb_compile_time_sanity_checks.hpp \
 	src/dbfield_size_helpers.hpp \
-	src/dbindex.hpp \
-	src/dbindices.hpp \
 	src/dbrecord.hpp \
 	src/fileallocationmanager.hpp \
+	src/index/dbindex.hpp \
+	src/index/dbindices.hpp \
+	src/index/index_persistence.hpp \
 	src/index_helpers.hpp \
 	src/dbfield.hpp \
 	src/dbstorage.hpp \
