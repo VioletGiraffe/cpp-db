@@ -51,7 +51,7 @@ bool load(IndexType& index, const std::string indexStorageFolder) noexcept
 		assert_and_return_r(StorageIO::read(field, file), false);
 		assert_and_return_r(file.read(reinterpret_cast<char*>(&offset), sizeof(offset)) == sizeof(offset), false);
 
-		auto emplacementResult = index.emplace(std::move(field), std::move(offset));
+		auto emplacementResult = index.addLocationForValue(std::move(field), std::move(offset));
 		assert_r(emplacementResult.second);
 	}
 

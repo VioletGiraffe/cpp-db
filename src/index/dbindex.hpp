@@ -27,9 +27,9 @@ public:
 		return locations;
 	}
 
-	void addLocationForValue(FieldValueType value, StorageLocation location) noexcept
+	bool addLocationForValue(FieldValueType value, StorageLocation location) noexcept
 	{
-		_index.emplace(std::move(value), std::move(location));
+		return _index.emplace(std::move(value), std::move(location)).second;
 	}
 
 	bool removeValueLocation(const FieldValueType& value, const StorageLocation location) noexcept
@@ -51,6 +51,14 @@ public:
 	size_t removeAllValueLocations(FieldValueType value) noexcept
 	{
 		return _index.erase(std::move(value));
+	}
+
+	auto begin() const {
+		return _index.begin();
+	}
+
+	auto end() const {
+		return _index.end();
 	}
 
 #ifdef CATCH_CONFIG_MAIN
