@@ -3,7 +3,8 @@
 #include "dbfield_size_helpers.hpp"
 #include "dbrecord.hpp"
 #include "fileallocationmanager.hpp"
-#include "dbindex.hpp"
+#include "index/dbindex.hpp"
+#include "index/dbindices.hpp"
 #include "dbstorage.hpp"
 
 #include "parameter_pack/parameter_pack_helpers.hpp"
