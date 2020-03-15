@@ -1,4 +1,4 @@
-CONFIG += strict_c++
+CONFIG += strict_c++ c++2a
 QT = core
 
 TEMPLATE = app

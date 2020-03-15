@@ -48,7 +48,7 @@ bool load(IndexType& index, const std::string indexStorageFolder) noexcept
 		auto field = typename IndexMultiMapType::key_type{};
 		auto offset = typename IndexMultiMapType::mapped_type{ 0 };
 
-		assert_and_return_r(StorageIO::read(field, file), false);
+		assert_and_return_r(StorageQt::read(field, file), false);
 		assert_and_return_r(file.read(reinterpret_cast<char*>(&offset), sizeof(offset)) == sizeof(offset), false);
 
 		auto emplacementResult = index.addLocationForValue(std::move(field), std::move(offset));

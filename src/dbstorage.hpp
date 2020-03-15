@@ -84,7 +84,7 @@ public:
 			}
 			else
 			{
-				StorageIO::read(std::get<index>(record), _storageFile);
+				StorageQt::read(std::get<index>(record), _storageFile);
 			}
 		});
 
