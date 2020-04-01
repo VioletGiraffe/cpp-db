@@ -40,12 +40,12 @@ inline void cppDb_compileTimeChecks()
 	static_assert(F_ull::staticSize() == sizeof(uint64_t));
 	static_assert(F3::staticSize() == sizeof(long double));
 
-	DbRecord<F1, F2, Fs> record;
+	DbRecord<Tombstone<F2>, F1, F2, Fs> record;
 	const auto f2 = record.fieldValue<F2>();
 
 	static_assert(record.canReuseGaps() == false);
 	static_assert(decltype(record)::canReuseGaps() == false);
-	static_assert(DbRecord<F1, F3>::canReuseGaps() == true);
+	static_assert(DbRecord<Tombstone<F1>, F1, F3>::canReuseGaps() == true);
 
 	static_assert(pack::index_for_type<F1, F2, Fs, F1>() == 2);
 	static_assert(pack::index_for_type<F3, F2, Fs, F1>().has_value() == false);

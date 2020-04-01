@@ -1,4 +1,5 @@
 #pragma once
+
 #include "dbfield.hpp"
 #include "dbstorage.hpp"
 #include "utility/template_magic.hpp"

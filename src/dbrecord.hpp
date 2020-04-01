@@ -1,3 +1,5 @@
+#pragma once
+
 #include "dbfield.hpp"
 #include "utility/template_magic.hpp"
 #include "utility/constexpr_algorithms.hpp"
@@ -7,14 +9,21 @@
 
 #include <array>
 #include <limits>
-#include <optional>
 #include <tuple>
 
-template <typename... FieldsSequence>
+
+template <typename T>
+struct Tombstone {
+	using Field = T;
+	static constexpr auto id = Field::id;
+
+	static_assert(Field::isField());
+};
+
+template <class TombstoneField /* TODO: concept */, typename... FieldsSequence>
 struct DbRecord
 {
 private:
-	static std::optional<size_t> _tombstoneFieldId;
 	std::tuple<FieldsSequence...> _fields;
 
 public:
@@ -25,18 +34,6 @@ public:
 		static_assert(pack::type_count<Field, FieldsSequence...>() == 1);
 
 		return std::get<pack::index_for_type_v<Field, FieldsSequence...>>(_fields);
-	}
-
-	// TODO: move to compile time
-	// A tombstone field uses high bit (the first one) to encode that this record has been deleted.
-	template <typename T>
-	static void setTombstoneFieldId(T fieldId) noexcept
-	{
-		assert_debug_only(!_tombstoneFieldId);
-		using FieldType = FieldById_t<fieldId, FieldsSequence...>;
-		static_assert(!std::is_same_v<FieldType, void> && FieldType::isSuitableForTombstone());
-
-		_tombstoneFieldId = pack::index_for_type_v<FieldType, FieldsSequence...>;
 	}
 
 	static constexpr bool canReuseGaps() noexcept
@@ -58,6 +55,7 @@ private:
 	{
 		static_assert(sizeof...(FieldsSequence) > 0);
 		static_assert((FieldsSequence::isField() && ...), "All template parameter types must be Fields!");
+		static_assert(pack::has_type_v<TombstoneField::Field, FieldsSequence...>);
 
 		constexpr_for<1, sizeof...(FieldsSequence)>([](auto index) {
 			constexpr int i = index;
