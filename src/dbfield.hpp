@@ -2,7 +2,9 @@
 
 #include "utility/template_magic.hpp"
 
+#include <stddef.h>
 #include <type_traits>
+#include <utility>
 
 ////////////////////////////////////////////////////////////////////
 //              VALUE SIZE                                        //

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "dbfield.hpp"
-#include "dbstorage.hpp"
+#include "../dbfield.hpp"
+#include "../dbstorage.hpp"
 #include "utility/template_magic.hpp"
 #include "assert/advanced_assert.h"
 
@@ -36,7 +36,7 @@ public:
 	bool removeValueLocation(const FieldValueType& value, const StorageLocation location) noexcept
 	{
 		const auto [begin, end] = _index.equal_range(value); // TODO: std::move?
-		
+
 		if (begin != end)
 		{
 			// No more than one item with the same location and same value

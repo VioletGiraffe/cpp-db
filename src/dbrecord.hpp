@@ -33,7 +33,7 @@ public:
 		static_assert(Field::isField());
 		static_assert(pack::type_count<Field, FieldsSequence...>() == 1);
 
-		return std::get<pack::index_for_type_v<Field, FieldsSequence...>>(_fields);
+		return std::get<pack::index_for_type_v<Field, FieldsSequence...>>(_fields).value;
 	}
 
 	static constexpr bool canReuseGaps() noexcept
@@ -55,7 +55,7 @@ private:
 	{
 		static_assert(sizeof...(FieldsSequence) > 0);
 		static_assert((FieldsSequence::isField() && ...), "All template parameter types must be Fields!");
-		static_assert(pack::has_type_v<TombstoneField::Field, FieldsSequence...>);
+		static_assert(pack::has_type_v<typename TombstoneField::Field, FieldsSequence...>);
 
 		constexpr_for<1, sizeof...(FieldsSequence)>([](auto index) {
 			constexpr int i = index;

@@ -42,6 +42,7 @@ inline void cppDb_compileTimeChecks()
 
 	DbRecord<Tombstone<F2>, F1, F2, Fs> record;
 	const auto f2 = record.fieldValue<F2>();
+	static_assert(std::is_same_v<std::remove_cv_t<decltype(f2)>, float>);
 
 	static_assert(record.canReuseGaps() == false);
 	static_assert(decltype(record)::canReuseGaps() == false);
