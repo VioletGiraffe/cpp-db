@@ -4,7 +4,7 @@
 #include "container/multi_index.hpp"
 #include "storage/storage_helpers.hpp"
 #include "assert/advanced_assert.h"
-#include "hash/fnv_1a.h"
+#include "hash/sha3_hasher.hpp"
 
 #include <QFile>
 
@@ -151,16 +151,16 @@ inline bool FileAllocationManager::saveToFile(QString filePath) const noexcept
 	if (!checkedWrite(file, (uint64_t)_gapLocations.size()))
 		return false;
 
-	FNV_1a_64_hasher hasher;
+	Sha3_Hasher<256> hasher;
 	for (const Gap& gap : _gapLocations)
 	{
-		hasher.updateHash(gap.length);
-		hasher.updateHash(gap.location);
+		hasher.update(gap.length);
+		hasher.update(gap.location);
 		if (!checkedWrite(file, gap.length) || !checkedWrite(file, gap.location))
 			return false;
 	}
 
-	if (!checkedWrite(file, hasher.hash()))
+	if (!checkedWrite(file, hasher.get64BitHash()))
 		return false;
 
 	return file.flush(); // Somewhat unnecessary as the file's destructor will call close() which should flush, but I want to see that 'true' value for success.
@@ -178,15 +178,15 @@ inline bool FileAllocationManager::loadFromFile(QString filePath) noexcept
 	if (!checkedRead(file, size))
 		return false;
 
-	FNV_1a_64_hasher hasher;
+	Sha3_Hasher<256> hasher;
 	for (size_t i = 0; i < size; ++i)
 	{
 		Gap gap;
 		if (!checkedRead(file, gap.length) || !checkedRead(file, gap.location))
 			return false;
 
-		hasher.updateHash(gap.length);
-		hasher.updateHash(gap.location);
+		hasher.update(gap.length);
+		hasher.update(gap.location);
 
 		_gapLocations.emplace(std::move(gap));
 	}
@@ -195,7 +195,7 @@ inline bool FileAllocationManager::loadFromFile(QString filePath) noexcept
 	if (!checkedRead(file, hash))
 		return false;
 
-	assert_and_return_r(hash == hasher.hash(), false);
+	assert_and_return_r(hash == hasher.get64BitHash(), false);
 	return true;
 }
 
