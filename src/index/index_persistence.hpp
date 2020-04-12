@@ -2,6 +2,7 @@
 
 #include "../storage/storage_qt.hpp"
 #include "container/std_container_helpers.hpp"
+#include "hash/sha3_hasher.hpp"
 
 #include <QFile>
 
@@ -22,11 +23,25 @@ bool store(const IndexType& index, const std::string indexStorageFolder) noexcep
 	QFile file(QString::fromStdString(filePath));
 	assert_and_return_r(file.open(QFile::WriteOnly), false);
 
+	Sha3_Hasher<256> hasher;
+
+	const auto numIndexEntries = index.size();
+	assert_and_return_r(file.write(&numIndexEntries, sizeof(numIndexEntries)) == sizeof(numIndexEntries), false);
+
+	hasher.update(numIndexEntries);
+
 	for (const auto& indexEntry : index)
 	{
+		static_assert(std::is_trivial_v<std::remove_reference_t<decltype(indexEntry.first)>>);
+		static_assert(std::is_trivial_v<std::remove_reference_t<decltype(indexEntry.second)>>);
 		assert_and_return_r(StorageQt::write(indexEntry.first, file), false);
+		hasher.update(indexEntry.first);
 		assert_and_return_r(file.write(reinterpret_cast<const char*>(&indexEntry.second), sizeof(indexEntry.second)) == sizeof(indexEntry.second), false);
+		hasher.update(indexEntry.second);
 	}
+
+	const uint64_t hash = hasher.get64BitHash();
+	assert_and_return_r(file.write(&hash, sizeof(hash)) == sizeof(hash), false);
 
 	return true;
 }
@@ -42,7 +57,13 @@ bool load(IndexType& index, const std::string indexStorageFolder) noexcept
 	QFile file(QString::fromStdString(filePath));
 	assert_and_return_r(file.open(QFile::ReadOnly), false);
 
-	while (!file.atEnd())
+	uint64_t numIndexEntries = 0;
+	assert_and_return_r(file.read(&numIndexEntries, sizeof(numIndexEntries)) == sizeof(numIndexEntries), false);
+
+	Sha3_Hasher<256> hasher;
+	hasher.update(numIndexEntries);
+
+	for (uint64_t i = 0; i < numIndexEntries; ++i)
 	{
 		using IndexMultiMapType = std::decay_t<decltype(index)>;
 		auto field = typename IndexMultiMapType::key_type{};
@@ -51,9 +72,18 @@ bool load(IndexType& index, const std::string indexStorageFolder) noexcept
 		assert_and_return_r(StorageQt::read(field, file), false);
 		assert_and_return_r(file.read(reinterpret_cast<char*>(&offset), sizeof(offset)) == sizeof(offset), false);
 
+		hasher.update(field);
+		hasher.update(offset);
+
 		auto emplacementResult = index.addLocationForValue(std::move(field), std::move(offset));
 		assert_r(emplacementResult.second);
 	}
+
+	uint64_t hash = 0;
+	assert_and_return_r(file.read(&hash, sizeof(hash)) == sizeof(hash), false);
+	assert_and_return_r(hasher.get64BitHash() == hash, false);
+
+	assert_r(file.atEnd());
 
 	return true;
 }
