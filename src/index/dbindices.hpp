@@ -65,19 +65,33 @@ public:
 	template <auto id>
 	constexpr auto& indexForField()
 	{
-		constexpr auto fieldTupleIndex = detail::indexByFieldId<id, IndexedFields...>();
+		constexpr auto fieldTupleIndex = detail::indexByFieldId<id, IndexedFields...>;
 		return std::get<fieldTupleIndex>(_indices);
 	}
 
 	template <auto id>
 	constexpr const auto& indexForField() const
 	{
-		constexpr auto fieldTupleIndex = detail::indexByFieldId<id, IndexedFields...>();
+		constexpr auto fieldTupleIndex = detail::indexByFieldId<id, IndexedFields...>;
 		return std::get<fieldTupleIndex>(_indices);
 	}
 
 	bool load(const std::string& indexStorageFolder);
 	bool store(const std::string& indexStorageFolder);
+
+private:
+	static constexpr bool sanityCheck()
+	{
+		bool success = true;
+		pack::for_type<IndexedFields...>([&](auto type_wrapper) {
+			if (pack::type_count<typename decltype(type_wrapper)::type, IndexedFields...>() != 1)
+				success = false;
+		});
+
+		return success;
+	}
+
+	static_assert(sanityCheck(), "Indices<...> sanity check failed");
 
 private:
 	std::tuple<DbIndex<IndexedFields>...> _indices;

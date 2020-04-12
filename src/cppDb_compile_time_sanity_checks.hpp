@@ -66,4 +66,18 @@ inline void cppDb_compileTimeChecks()
 	static_assert(std::is_same_v<F3::ValueType, FieldValueTypeById_t<F3::id, F1, F2, F3, Fs>>);
 
 	FileAllocationManager gaps;
+
+	Indices<> noIndices;
+	Indices<F1> singleFieldIndex;
+	Indices<F2, F1, Fs> threeIndices;
+
+	static_assert(Indices<>::hasIndex<F1::id>() == false);
+	static_assert(Indices<F1>::hasIndex<F2::id>() == false);
+	static_assert(Indices<F1>::hasIndex<F1::id>() == true);
+	static_assert(Indices<Fs, F1>::hasIndex<F2::id>() == false);
+	static_assert(Indices<Fs, F1>::hasIndex<F1::id>() == true);
+	static_assert(Indices<Fs, F1>::hasIndex<Fs::id>() == true);
+
+	auto& f1Index1 = singleFieldIndex.indexForField<F1::id>();
+	auto& fsIndex = threeIndices.indexForField<Fs::id>();
 }

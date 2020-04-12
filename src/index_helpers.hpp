@@ -1,7 +1,5 @@
 #pragma once
 
-#include <tuple>
-
 namespace detail {
 
 template <size_t Index, auto id, typename... EmptyTypesList>
@@ -16,8 +14,6 @@ struct FieldToIndex<Index, id, Head, Rest...> {
 };
 
 template <auto id, typename... Args>
-constexpr size_t indexByFieldId() {
-	return FieldToIndex<0, id, Args...>::value;
-}
+inline constexpr size_t indexByFieldId = FieldToIndex<0, id, Args...>::value;
 
 }
