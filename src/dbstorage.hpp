@@ -7,6 +7,7 @@
 
 #include <QFile>
 
+#include <compare>
 #include <limits>
 #include <mutex>
 #include <optional>
@@ -15,6 +16,10 @@
 
 struct StorageLocation {
 	uint64_t location;
+
+	constexpr bool operator==(const StorageLocation& other) {
+		return location == other.location;
+	}
 };
 
 template <typename... Fields>

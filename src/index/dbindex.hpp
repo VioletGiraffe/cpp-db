@@ -5,6 +5,7 @@
 #include "utility/template_magic.hpp"
 #include "assert/advanced_assert.h"
 
+#include <iterator>
 #include <map>
 #include <optional>
 #include <stdint.h>
@@ -22,26 +23,50 @@ public:
 	{
 		const auto [begin, end] = _index.equal_range(std::move(value));
 		std::vector<StorageLocation> locations;
+		// TODO: reserve(std::distance(begin, end))
 		for (auto it = begin; it != end; ++it)
 			locations.emplace_back(it->second);
 
 		return locations;
 	}
 
+	// Returns false if this value-location pair is already registered (no duplicate will be added), otherwise true
 	bool addLocationForValue(FieldValueType value, StorageLocation location) noexcept
 	{
-		return _index.emplace(std::move(value), std::move(location)).second;
+		// Disallow duplicate value-location pairs; only let the same value be registered at different locations.
+		const auto [begin, end] = _index.equal_range(value);
+		for (auto it = begin; it != end; ++it)
+		{
+			if (it->second == location)
+				return false;
+		}
+
+#ifdef _DEBUG
+		// Checking that the supplied location is globally unique
+		for (auto&& item : _index)
+			assert_r(item.second != location);
+#endif
+
+		_index.emplace(std::move(value), std::move(location));
+		return true;
 	}
 
 	bool removeValueLocation(const FieldValueType& value, const StorageLocation location) noexcept
 	{
 		const auto [begin, end] = _index.equal_range(value); // TODO: std::move?
-
 		if (begin != end)
 		{
-			// No more than one item with the same location and same value
-			assert_debug_only(std::count(begin, end, value) <= 1); // TODO: add the same check, but for all values (no duplicate locations)
-			_index.erase(begin);
+			// Among all records for this value, looking for the particular requested location
+			const auto target = std::find_if(begin, end, [&](auto&& item) { return item.second == location; });
+			if (target == end)
+				return false;
+
+
+			// The check in addLocationForValue ensures that there can be no more than one of any value+location pair.
+			// Still, double-checking for sanity.
+			assert_debug_only(std::find_if(std::make_reverse_iterator(begin), std::make_reverse_iterator(end), [&](auto&& item) { return item.second == location; }).base() == target);
+
+			_index.erase(target);
 			return true;
 		}
 		else
@@ -61,12 +86,6 @@ public:
 	auto end() const {
 		return _index.end();
 	}
-
-#ifdef CATCH_CONFIG_MAIN
-	const std::multimap <FieldValueType, StorageLocation>& contents() const {
-		return _index;
-	}
-#endif
 
 private:
 	std::multimap<FieldValueType /* field value */, StorageLocation /* record location */> _index;
