@@ -17,7 +17,7 @@
 struct StorageLocation {
 	uint64_t location;
 
-	constexpr bool operator==(const StorageLocation& other) {
+	constexpr bool operator==(const StorageLocation& other) const noexcept {
 		return location == other.location;
 	}
 };

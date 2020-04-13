@@ -4,6 +4,7 @@
 #include "dbfilegaps_test.hpp"
 #include "dbfilegaps_operations_test.hpp"
 #include "dbfilegaps_load-store_test.hpp"
+#include "dbindex_test.hpp"
 #include "cpp-db_sanity_checks.hpp"
 
 //#include "dbfilegaps_benchmarks.hpp"

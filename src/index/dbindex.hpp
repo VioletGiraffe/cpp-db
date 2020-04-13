@@ -14,11 +14,11 @@
 template <typename IndexedField>
 class DbIndex
 {
-	using FieldValueType = typename IndexedField::ValueType;
-
 	static_assert(IndexedField::isField());
 
 public:
+	using FieldValueType = typename IndexedField::ValueType;
+
 	std::vector<StorageLocation> findValueLocations(FieldValueType value) const noexcept
 	{
 		const auto [begin, end] = _index.equal_range(std::move(value));
@@ -64,7 +64,7 @@ public:
 
 			// The check in addLocationForValue ensures that there can be no more than one of any value+location pair.
 			// Still, double-checking for sanity.
-			assert_debug_only(std::find_if(std::make_reverse_iterator(begin), std::make_reverse_iterator(end), [&](auto&& item) { return item.second == location; }).base() == target);
+			assert_debug_only(std::find_if(std::next(target), end, [&](auto&& item) { return item.second == location; }) == end);
 
 			_index.erase(target);
 			return true;

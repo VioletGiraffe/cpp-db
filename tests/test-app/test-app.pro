@@ -66,4 +66,4 @@ HEADERS += \
 	dbfilegaps_operations_test.hpp \
 	dbfilegaps_test.hpp \
 	dbfilegaps_tester.hpp \
-	debindex_test.hpp
+	dbindex_test.hpp
