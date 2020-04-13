@@ -7,7 +7,6 @@
 
 #include <QFile>
 
-#include <compare>
 #include <limits>
 #include <mutex>
 #include <optional>
