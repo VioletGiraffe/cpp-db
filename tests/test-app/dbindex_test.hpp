@@ -151,7 +151,7 @@ TEST_CASE("Storing / loading", "[dbindex]") {
 #ifdef _DEBUG
 		constexpr uint64_t N = 10000;
 #else
-		constexpr uint64_t N = 200000;
+		constexpr uint64_t N = 400000;
 #endif
 
 		SECTION("int") {
