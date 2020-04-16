@@ -18,6 +18,8 @@ class DbIndex
 
 public:
 	using FieldValueType = typename IndexedField::ValueType;
+	using key_type = FieldValueType;
+	using mapped_type = StorageLocation;
 
 	std::vector<StorageLocation> findValueLocations(FieldValueType value) const noexcept
 	{
@@ -79,13 +81,32 @@ public:
 		return _index.erase(std::move(value));
 	}
 
-	auto begin() const {
+	auto begin() const noexcept
+	{
 		return _index.begin();
 	}
 
-	auto end() const {
+	auto end() const noexcept
+	{
 		return _index.end();
 	}
+
+	size_t size() const noexcept
+	{
+		return _index.size();
+	}
+
+	bool empty() const noexcept
+	{
+		return _index.empty();
+	}
+
+#ifdef CATCH_CONFIG_MAIN
+	void clear()
+	{
+		_index.clear();
+	}
+#endif
 
 private:
 	std::multimap<FieldValueType /* field value */, StorageLocation /* record location */> _index;
