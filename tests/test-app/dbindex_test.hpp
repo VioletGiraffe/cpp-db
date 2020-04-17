@@ -42,6 +42,7 @@ auto fillIndexRandomly(DbIndex<Field>& index, const uint64_t nItems)
 }
 
 TEST_CASE("Simple interface test", "[dbindex]") {
+
 	try {
 		using F1 = Field<std::string, 0>;
 		DbIndex<F1> index;

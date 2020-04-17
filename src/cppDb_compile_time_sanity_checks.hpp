@@ -7,6 +7,10 @@
 
 inline void cppDb_compileTimeChecks()
 {
+	volatile int guard = 0;
+	if (guard == 0)
+		return;
+
 	using F1 = Field<int, 0>;
 	using F2 = Field<float, 1>;
 	using F3 = Field<long double, 4>;
