@@ -84,7 +84,7 @@ std::optional<std::string> load(IndexType& index, const std::string indexStorage
 	for (uint64_t i = 0; i < numIndexEntries; ++i)
 	{
 		using IndexMultiMapType = std::decay_t<decltype(index)>;
-		static_assert(is_trivially_serializable_v<IndexMultiMapType::mapped_type>);
+		static_assert(is_trivially_serializable_v<typename IndexMultiMapType::mapped_type>);
 
 		auto field = typename IndexMultiMapType::key_type{};
 		auto offset = typename IndexMultiMapType::mapped_type{ 0 };
