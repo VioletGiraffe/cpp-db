@@ -81,6 +81,9 @@ inline void cppDb_compileTimeChecks()
 	auto& f1Index1 = singleFieldIndex.indexForField<F1::id>();
 	auto& fsIndex = threeIndices.indexForField<Fs::id>();
 
+	auto storePath = Index::store(fsIndex, "Z:Z:");
+	storePath = Index::load(fsIndex, "Z:Z:");
+
 	fsIndex.addLocationForValue("123", { 10 });
 	fsIndex.findValueLocations("123");
 	fsIndex.removeValueLocation("1", { 0 });
