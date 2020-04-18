@@ -75,6 +75,11 @@ inline void cppDb_compileTimeChecks()
 	Indices<F1> singleFieldIndex;
 	Indices<F2, F1, Fs> threeIndices;
 
+	threeIndices.addLocationForValue<Fs::id>(std::string{ "123" }, StorageLocation{ 0 });
+
+	static_assert(decltype(threeIndices)::hasIndex<F3>() == false);
+	static_assert(decltype(noIndices)::hasIndex<F3>() == false);
+
 	static_assert(Indices<>::hasIndex<F1::id>() == false);
 	static_assert(Indices<F1>::hasIndex<F2::id>() == false);
 	static_assert(Indices<F1>::hasIndex<F1::id>() == true);

@@ -10,8 +10,6 @@
 #include "tuple/tuple_helpers.hpp"
 #include "container/string_helpers.hpp"
 
-#include <map>
-#include <stdint.h>
 #include <string>
 #include <tuple>
 #include <type_traits>
@@ -25,41 +23,33 @@ public:
 	using FieldValueTypeById = typename FieldValueTypeById_t<id, IndexedFields...>::ValueType;
 
 	template <auto id, typename U>
-	std::vector<uint64_t> find(U&& value) const
+	std::vector<uint64_t> findValueLocations(U&& value) const
 	{
-		const auto range = indexForField<id>().equal_range(std::forward<U>(value));
-		std::vector<uint64_t> result;
-		for (auto it = range.first; it != range.second; ++it)
-			result.push_back(it->second);
-
-		return result;
+		return indexForField<id>().findValueLocations(std::forward<U>(value));
 	}
 
 	template <auto id>
-	void removeAllEntriesByValue(const FieldValueTypeById<id>& value)
+	bool addLocationForValue(FieldValueTypeById<id> value, StorageLocation location)
 	{
-		const auto range = indexForField<id>().equal_range(value);
-		indexForField<id>().erase(range.first, range.last);
+		return indexForField<id>().addLocationForValue(std::move(value), std::move(location));
 	}
 
 	template <auto id>
-	void registerValueLocation(const FieldValueTypeById<id>& value, const uint64_t location) const
+	size_t removeAllValueLocations(FieldValueTypeById<id> value)
 	{
-		// Disallow duplicate value-location pairs; only let the same value be registered at different locations.
-		const auto range = indexForField<id>().equal_range(value);
-		for (auto it = range.first; it != range.second; ++it)
-		{
-			if (it->second == location)
-				return;
-		}
-
-		indexForField<id>().emplace(value, location);
+		return indexForField<id>().removeAllValueLocations(std::move(value));
 	}
 
 	template <auto id>
 	static constexpr bool hasIndex()
 	{
 		return ((IndexedFields::id == id) || ...);
+	}
+
+	template <typename FieldType>
+	static constexpr bool hasIndex()
+	{
+		return hasIndex<FieldType::id>();
 	}
 
 	template <auto id>
