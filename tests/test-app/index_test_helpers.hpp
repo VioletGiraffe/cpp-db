@@ -36,3 +36,9 @@ inline auto fillIndexRandomly(DbIndex<Field>& index, const uint64_t nItems)
 
 	return items;
 }
+
+template <typename Index, typename ReferenceVector>
+bool verifyIndexContents(const Index& index, const ReferenceVector& reference)
+{
+	return std::equal(cbegin_to_end(index), cbegin_to_end(reference));
+}

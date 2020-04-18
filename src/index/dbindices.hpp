@@ -35,6 +35,12 @@ public:
 	}
 
 	template <auto id>
+	bool removeValueLocation(FieldValueTypeById<id> value, const StorageLocation location) noexcept
+	{
+		return indexForField<id>().removeValueLocation(std::move(value), std::move(location));
+	}
+
+	template <auto id>
 	size_t removeAllValueLocations(FieldValueTypeById<id> value)
 	{
 		return indexForField<id>().removeAllValueLocations(std::move(value));
