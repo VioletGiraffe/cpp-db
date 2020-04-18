@@ -20,10 +20,10 @@ class Indices
 {
 public:
 	template <auto id>
-	using FieldValueTypeById = typename FieldValueTypeById_t<id, IndexedFields...>::ValueType;
+	using FieldValueTypeById = FieldValueTypeById_t<id, IndexedFields...>;
 
 	template <auto id, typename U>
-	std::vector<uint64_t> findValueLocations(U&& value) const
+	std::vector<StorageLocation> findValueLocations(U&& value) const
 	{
 		return indexForField<id>().findValueLocations(std::forward<U>(value));
 	}

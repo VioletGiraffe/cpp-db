@@ -75,7 +75,13 @@ inline void cppDb_compileTimeChecks()
 	Indices<F1> singleFieldIndex;
 	Indices<F2, F1, Fs> threeIndices;
 
-	threeIndices.addLocationForValue<Fs::id>(std::string{ "123" }, StorageLocation{ 0 });
+	[[maybe_unused]] bool added = threeIndices.addLocationForValue<Fs::id>("123", 0);
+	[[maybe_unused]] std::vector<StorageLocation> locs = threeIndices.findValueLocations<Fs::id>("123");
+	locs = threeIndices.findValueLocations<F2::id>(3.14f);
+	locs = threeIndices.findValueLocations<F1::id>(31);
+	[[maybe_unused]] size_t nRemoved = threeIndices.removeAllValueLocations<Fs::id>({});
+	[[maybe_unused]] bool success = threeIndices.load(".");
+	success = threeIndices.store(".");
 
 	static_assert(decltype(threeIndices)::hasIndex<F3>() == false);
 	static_assert(decltype(noIndices)::hasIndex<F3>() == false);

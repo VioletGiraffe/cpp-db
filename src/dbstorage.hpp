@@ -21,6 +21,10 @@ struct StorageLocation {
 	inline constexpr bool operator==(const StorageLocation& other) const noexcept {
 		return location == other.location;
 	}
+
+	inline constexpr bool operator!=(const StorageLocation& other) const noexcept {
+		return !operator==(other);
+	}
 };
 
 template <typename... Fields>
