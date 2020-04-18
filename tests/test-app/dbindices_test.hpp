@@ -41,7 +41,7 @@ TEST_CASE("Indices - simple interface test", "[dbindices]") {
 
 		CHECK(indices.findValueLocations<F2::id>(-1e35f) == std::vector<StorageLocation>{20});
 
-		CHECK(indices.removeValueLocation<F2::id>(-1e35f, 20) == 1);
+		CHECK(indices.removeValueLocation<F2::id>(-1e35f, 20) == true);
 		CHECK(indices.findValueLocations<F2::id>(-1e35f) == std::vector<StorageLocation>{});
 		CHECK(indices.findValueLocations<F2::id>(0.0f) == std::vector<StorageLocation>{5});
 		CHECK(indices.removeAllValueLocations<F2::id>(0.0f) == 1);
