@@ -2,7 +2,7 @@
 
 #include "container/std_container_helpers.hpp"
 #include "container/multi_index.hpp"
-#include "storage/storage_helpers.hpp"
+#include "storage/storage_io_interface.hpp"
 #include "assert/advanced_assert.h"
 #include "hash/sha3_hasher.hpp"
 
@@ -34,8 +34,10 @@ public:
 
 	inline void consolidateGaps() noexcept;
 
-	inline bool saveToFile(QString filePath) const noexcept;
-	inline bool loadFromFile(QString filePath) noexcept;
+	template <typename StorageAdapter>
+	bool saveToFile(std::string filePath) const noexcept;
+	template <typename StorageAdapter>
+	bool loadFromFile(std::string filePath) noexcept;
 
 	inline size_t size() const noexcept;
 	inline void clear() noexcept;
@@ -141,14 +143,15 @@ inline void FileAllocationManager::consolidateGaps() noexcept
 	_insertionsSinceLastConsolidation = 0;
 }
 
-inline bool FileAllocationManager::saveToFile(QString filePath) const noexcept
+template <typename StorageAdapter>
+bool FileAllocationManager::saveToFile(std::string filePath) const noexcept
 {
-	QFile file(filePath);
-	if (!file.open(QFile::WriteOnly))
+	StorageIO<StorageAdapter> storage;
+	if (!storage.open(std::move(filePath), io::OpenMode::Write))
 		return false;
 
-	file.flush(); // TODO: does it do anything? I want the file to be resized to 0 immediately, guaranteed.
-	if (!checkedWrite(file, (uint64_t)_gapLocations.size()))
+	storage.flush(); // TODO: does it do anything? I want the file to be resized to 0 immediately, guaranteed.
+	if (!storage.write(static_cast<int64_t>(_gapLocations.size())))
 		return false;
 
 	Sha3_Hasher<256> hasher;
@@ -156,33 +159,34 @@ inline bool FileAllocationManager::saveToFile(QString filePath) const noexcept
 	{
 		hasher.update(gap.length);
 		hasher.update(gap.location);
-		if (!checkedWrite(file, gap.length) || !checkedWrite(file, gap.location))
+		if (!storage.write(gap.length) || !storage.write(gap.location))
 			return false;
 	}
 
-	if (!checkedWrite(file, hasher.get64BitHash()))
+	if (!storage.write(hasher.get64BitHash()))
 		return false;
 
-	return file.flush(); // Somewhat unnecessary as the file's destructor will call close() which should flush, but I want to see that 'true' value for success.
+	return storage.flush(); // Somewhat unnecessary as the file's destructor will call close() which should flush, but I want to see that 'true' value for success.
 }
 
-inline bool FileAllocationManager::loadFromFile(QString filePath) noexcept
+template <typename StorageAdapter>
+bool FileAllocationManager::loadFromFile(std::string filePath) noexcept
 {
 	clear();
 
-	QFile file(filePath);
-	if (!file.open(QFile::ReadOnly))
+	StorageIO<StorageAdapter> storage;
+	if (!storage.open(std::move(filePath), io::OpenMode::Read))
 		return false;
 
 	uint64_t size = 0;
-	if (!checkedRead(file, size))
+	if (!storage.read(size))
 		return false;
 
 	Sha3_Hasher<256> hasher;
 	for (size_t i = 0; i < size; ++i)
 	{
 		Gap gap;
-		if (!checkedRead(file, gap.length) || !checkedRead(file, gap.location))
+		if (!storage.read(gap.length) || !storage.read(gap.location))
 			return false;
 
 		hasher.update(gap.length);
@@ -192,7 +196,7 @@ inline bool FileAllocationManager::loadFromFile(QString filePath) noexcept
 	}
 
 	uint64_t hash = 0;
-	if (!checkedRead(file, hash))
+	if (!storage.read(hash))
 		return false;
 
 	assert_and_return_r(hash == hasher.get64BitHash(), false);

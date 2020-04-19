@@ -2,6 +2,7 @@
 
 #include "dbindex.hpp"
 #include "../dbfield.hpp"
+#include "storage/storage_qt.hpp"
 #include "index_persistence.hpp"
 #include "../index_helpers.hpp"
 
@@ -98,7 +99,7 @@ bool Indices<IndexedFields...>::store(const std::string& indexStorageFolder)
 {
 	bool success = true;
 	tuple::for_each(_indices, [this, &success, &indexStorageFolder](const auto& index) {
-		if (!Index::store(index, indexStorageFolder))
+		if (!Index::store<io::QFileAdapter>(index, indexStorageFolder))
 		{
 			success = false;
 			return;
@@ -114,7 +115,7 @@ bool Indices<IndexedFields...>::load(const std::string& indexStorageFolder)
 {
 	bool success = true;
 	tuple::for_each(_indices, [this, &success, &indexStorageFolder](auto& index) {
-		if (!Index::load(index, indexStorageFolder))
+		if (!Index::load<io::QFileAdapter>(index, indexStorageFolder))
 		{
 			success = false;
 			return;

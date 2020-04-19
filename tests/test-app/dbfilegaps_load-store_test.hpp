@@ -2,6 +2,7 @@
 
 #include "3rdparty/catch2/catch.hpp"
 #include "dbfilegaps_tester.hpp"
+#include "storage/storage_qt.hpp"
 #include "random/randomnumbergenerator.h"
 #include "system/processfilepath.hpp"
 
@@ -22,29 +23,29 @@ TEST_CASE("Storing and reloading a small set", "[dbfilegaps]") {
 		REQUIRE(tester._gaps.size() == n);
 
 		const auto reference = tester.enumerateGaps();
-		const auto fileMapPath = QFileInfo(QString::fromStdWString(processFilePath())).absolutePath() + "/test_file_allocation_map.map";
-		REQUIRE(tester._gaps.saveToFile(fileMapPath));
+		const auto fileMapPath = QFileInfo(QString::fromStdWString(processFilePath())).absolutePath().toStdString() + "/test_file_allocation_map.map";
+		REQUIRE(tester._gaps.saveToFile<io::QFileAdapter>(fileMapPath));
 
 		tester._gaps.clear();
 		REQUIRE(tester._gaps.size() == 0);
 		REQUIRE(tester.enumerateGaps() == decltype(reference){});
 
-		REQUIRE(tester._gaps.loadFromFile(fileMapPath));
+		REQUIRE(tester._gaps.loadFromFile<io::QFileAdapter>(fileMapPath));
 		REQUIRE(tester.enumerateGaps() == reference);
 
-		REQUIRE(QFileInfo(fileMapPath).exists());
+		REQUIRE(QFileInfo(QString::fromStdString(fileMapPath)).exists());
 
 		tester._gaps.consolidateGaps();
 		REQUIRE(tester._gaps.size() == 1);
 		const auto newReference = tester.enumerateGaps();
 		REQUIRE(newReference.size() == 1);
 
-		REQUIRE(tester._gaps.saveToFile(fileMapPath));
+		REQUIRE(tester._gaps.saveToFile<io::QFileAdapter>(fileMapPath));
 		tester._gaps.clear();
 		REQUIRE(tester._gaps.size() == 0);
 		REQUIRE(tester.enumerateGaps() == decltype(reference){});
 
-		REQUIRE(tester._gaps.loadFromFile(fileMapPath));
+		REQUIRE(tester._gaps.loadFromFile<io::QFileAdapter>(fileMapPath));
 		REQUIRE(tester.enumerateGaps() != reference);
 		REQUIRE(tester.enumerateGaps() == newReference);
 
@@ -61,11 +62,11 @@ TEST_CASE("Storing and reloading an empty set", "[dbfilegaps]") {
 		const auto reference = tester.enumerateGaps();
 		REQUIRE((reference.empty() && reference == decltype(reference){}));
 		const auto fileMapPath = QFileInfo(QString::fromStdWString(processFilePath())).absolutePath() + "/test_file_allocation_map.map";
-		REQUIRE(tester._gaps.saveToFile(fileMapPath));
+		REQUIRE(tester._gaps.saveToFile<io::QFileAdapter>(fileMapPath.toStdString()));
 		REQUIRE(QFileInfo(fileMapPath).exists());
 		CHECK(QFileInfo(fileMapPath).size() == 2 * sizeof(uint64_t));
 
-		REQUIRE(tester._gaps.loadFromFile(fileMapPath));
+		REQUIRE(tester._gaps.loadFromFile<io::QFileAdapter>(fileMapPath.toStdString()));
 		REQUIRE(tester._gaps.size() == 0);
 		REQUIRE(tester.enumerateGaps() == decltype(reference){});
 	}

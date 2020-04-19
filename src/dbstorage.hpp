@@ -1,11 +1,9 @@
 #pragma once
 
 #include "dbfield.hpp"
-#include "storage/storage_qt.hpp"
+#include "storage/storage_io_interface.hpp"
 #include "assert/advanced_assert.h"
 #include "parameter_pack/parameter_pack_helpers.hpp"
-
-#include <QFile>
 
 #include <limits>
 #include <mutex>
@@ -27,7 +25,7 @@ struct StorageLocation {
 	}
 };
 
-template <typename... Fields>
+template <typename StorageAdapter, typename... Fields>
 class DBStorage
 {
 	static constexpr size_t staticFieldsTotalSize()
@@ -63,8 +61,7 @@ public:
 
 	bool openStorageFile(const std::string& filePath)
 	{
-		_storageFile.setFileName(QString::fromStdString(filePath));
-		return _storageFile.open(QFile::ReadWrite);
+		return _storageFile.open(filePath, io::OpenMode::ReadWrite);
 	}
 
 	Record readRecord(uint64_t recordStartLocation)
@@ -94,7 +91,8 @@ public:
 			}
 			else
 			{
-				StorageQt::read(std::get<index>(record), _storageFile);
+				auto& field = std::get<index>(record);
+				_storageFile.read(field, field.size());
 			}
 		});
 
@@ -107,6 +105,6 @@ public:
 	}
 
 private:
-	QFile _storageFile;
+	StorageIO<StorageAdapter> _storageFile;
 	std::mutex _storageMutex;
 };

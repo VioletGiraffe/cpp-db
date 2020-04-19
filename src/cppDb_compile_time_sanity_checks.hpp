@@ -1,6 +1,7 @@
 #pragma once
 
 #include "cpp-db.hpp"
+#include "storage/storage_qt.hpp"
 
 #include <string>
 #include <type_traits>
@@ -96,8 +97,8 @@ inline void cppDb_compileTimeChecks()
 	auto& f1Index1 = singleFieldIndex.indexForField<F1::id>();
 	auto& fsIndex = threeIndices.indexForField<Fs::id>();
 
-	auto storePath = Index::store(fsIndex, "Z:Z:");
-	storePath = Index::load(fsIndex, "Z:Z:");
+	auto storePath = Index::store<io::QFileAdapter>(fsIndex, "Z:Z:");
+	storePath = Index::load<io::QFileAdapter>(fsIndex, "Z:Z:");
 
 	fsIndex.addLocationForValue("123", { 10 });
 	fsIndex.findValueLocations("123");

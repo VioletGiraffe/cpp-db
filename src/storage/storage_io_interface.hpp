@@ -7,27 +7,35 @@
 #include <optional>
 #include <string>
 
+namespace io {
+	enum class OpenMode { Read, Write, ReadWrite };
+}
+
 template <typename IOAdapter>
 struct StorageIO
 {
-	template <typename T, auto id>
-	static bool writeField(const Field<T, id>& field, const std::optional<uint64_t> position = {}) noexcept;
+	bool open(std::string filePath, const io::OpenMode mode);
 
 	template <typename T, auto id>
-	static bool readField(Field<T, id>& field, const std::optional<uint64_t> position = {}) noexcept;
+	bool writeField(const Field<T, id>& field, const std::optional<uint64_t> position = {}) noexcept;
+
+	template <typename T, auto id>
+	bool readField(Field<T, id>& field, const std::optional<uint64_t> position = {}) noexcept;
 
 	template <typename T>
-	static bool read(T& value, const std::optional<uint64_t> position = {}) noexcept;
+	bool read(T& value, const std::optional<uint64_t> position = {}) noexcept;
 
 	template <typename T>
-	static bool write(T&& value, const std::optional<uint64_t> position = {}) noexcept;
+	bool write(T&& value, const std::optional<uint64_t> position = {}) noexcept;
 
-	static bool read(std::string& value, const std::optional<uint64_t> position = {}) noexcept;
+	bool read(std::string& value, const std::optional<uint64_t> position = {}) noexcept;
 
-	static bool write(const std::string& value, const std::optional<uint64_t> position = {}) noexcept;
+	bool write(const std::string& value, const std::optional<uint64_t> position = {}) noexcept;
 
-	static bool read(void* destinationBuffer, const size_t bytesToRead, const std::optional<uint64_t> position = {}) noexcept;
-	static bool write(const void const* sourceBuffer, const size_t bytesToWrite, const std::optional<uint64_t> position = {}) noexcept;
+	bool flush();
+
+	uint64_t pos() const noexcept;
+	uint64_t size() const noexcept;
 
 private:
 	template <typename T>
@@ -49,8 +57,14 @@ private:
 };
 
 template<typename IOAdapter>
+bool StorageIO<IOAdapter>::open(std::string filePath, const io::OpenMode mode)
+{
+	return _io.open(std::move(filePath), mode);
+}
+
+template<typename IOAdapter>
 template<typename T, auto id>
-inline bool StorageIO<IOAdapter>::writeField(const Field<T, id>& field, const std::optional<uint64_t> position) noexcept
+bool StorageIO<IOAdapter>::writeField(const Field<T, id>& field, const std::optional<uint64_t> position) noexcept
 {
 	static_assert(sizeof(std::remove_reference_t<T>) == field.staticSize());
 	return write(field.value, position);
@@ -58,7 +72,7 @@ inline bool StorageIO<IOAdapter>::writeField(const Field<T, id>& field, const st
 
 template<typename IOAdapter>
 template<typename T, auto id>
-inline bool StorageIO<IOAdapter>::readField(Field<T, id>& field, const std::optional<uint64_t> position) noexcept
+bool StorageIO<IOAdapter>::readField(Field<T, id>& field, const std::optional<uint64_t> position) noexcept
 {
 	static_assert(sizeof(std::remove_reference_t<T>) == field.staticSize());
 	return read(field.value, position);
@@ -66,45 +80,63 @@ inline bool StorageIO<IOAdapter>::readField(Field<T, id>& field, const std::opti
 
 template<typename IOAdapter>
 template<typename T>
-inline bool StorageIO<IOAdapter>::read(T& value, const std::optional<uint64_t> position) noexcept
+bool StorageIO<IOAdapter>::read(T& value, const std::optional<uint64_t> position) noexcept
 {
 	if (position)
-		assert_and_return_r(storageDevice.seek(*position), false);
+		assert_and_return_r(_io.seek(*position), false);
 
-	return checkedRead(storageDevice, value);
+	return checkedRead(value);
 }
 
 template<typename IOAdapter>
 template<typename T>
-inline bool StorageIO<IOAdapter>::write(T&& value, const std::optional<uint64_t> position) noexcept
+bool StorageIO<IOAdapter>::write(T&& value, const std::optional<uint64_t> position) noexcept
 {
 	if (position)
-		assert_and_return_r(storageDevice.seek(*position), false);
+		assert_and_return_r(_io.seek(*position), false);
 
-	return checkedWrite(storageDevice, std::forward<T>(value));
+	return checkedWrite(std::forward<T>(value));
 }
 
 template<typename IOAdapter>
-inline bool StorageIO<IOAdapter>::read(std::string& value, const std::optional<uint64_t> position) noexcept
+bool StorageIO<IOAdapter>::read(std::string& str, const std::optional<uint64_t> position) noexcept
 {
 	if (position)
-		assert_and_return_r(storageDevice.seek(*position), false);
+		assert_and_return_r(_io.seek(*position), false);
 
 	uint32_t dataSize = 0;
-	assert_and_return_r(checkedRead(storageDevice, dataSize), false);
+	assert_and_return_r(checkedRead(dataSize), false);
 
 	str.resize(static_cast<size_t>(dataSize), '\0'); // This should automatically support empty strings of length 0 as well.
-	return storageDevice.read(str.data(), dataSize);
+	return _io.read(str.data(), dataSize);
 }
 
 template<typename IOAdapter>
-inline bool StorageIO<IOAdapter>::write(const std::string& value, const std::optional<uint64_t> position) noexcept
+bool StorageIO<IOAdapter>::write(const std::string& str, const std::optional<uint64_t> position) noexcept
 {
 	if (position)
-		assert_and_return_r(storageDevice.seek(*position), false);
+		assert_and_return_r(_io.seek(*position), false);
 
 	const uint32_t dataSize = static_cast<uint32_t>(str.size());
-	assert_and_return_r(checkedWrite(storageDevice, dataSize), false);
+	assert_and_return_r(checkedWrite(dataSize), false);
 
-	return storageDevice.write(str.data(), dataSize);
+	return _io.write(str.data(), dataSize);
+}
+
+template<typename IOAdapter>
+bool StorageIO<IOAdapter>::flush()
+{
+	return _io.flush();
+}
+
+template<typename IOAdapter>
+uint64_t StorageIO<IOAdapter>::pos() const noexcept
+{
+	return _io.pos();
+}
+
+template<typename IOAdapter>
+uint64_t StorageIO<IOAdapter>::size() const noexcept
+{
+	return _io.size();
 }

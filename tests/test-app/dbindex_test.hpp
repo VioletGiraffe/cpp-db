@@ -126,13 +126,13 @@ TEST_CASE("Storing / loading", "[dbindices]") {
 		SECTION("int") {
 			DbIndex<Field<uint64_t, 0>> index;
 			const auto reference = fillIndexRandomly(index, N);
-			const auto storePath = Index::store(index, ".");
+			const auto storePath = Index::store<io::QFileAdapter>(index, ".");
 			REQUIRE(storePath);
 
 			index.clear();
 			REQUIRE(index.empty());
 
-			const auto loadPath = Index::load(index, ".");
+			const auto loadPath = Index::load<io::QFileAdapter>(index, ".");
 			REQUIRE(loadPath);
 			REQUIRE(std::equal(cbegin_to_end(index), cbegin_to_end(reference)));
 
@@ -143,13 +143,13 @@ TEST_CASE("Storing / loading", "[dbindices]") {
 		SECTION("std::string") {
 			DbIndex<Field<std::string, 0>> index;
 			const auto reference = fillIndexRandomly(index, N);
-			const auto storePath = Index::store(index, ".");
+			const auto storePath = Index::store<io::QFileAdapter>(index, ".");
 			REQUIRE(storePath);
 
 			index.clear();
 			REQUIRE(index.empty());
 
-			const auto loadPath = Index::load(index, ".");
+			const auto loadPath = Index::load<io::QFileAdapter>(index, ".");
 			REQUIRE(loadPath);
 			REQUIRE(std::equal(cbegin_to_end(index), cbegin_to_end(reference)));
 

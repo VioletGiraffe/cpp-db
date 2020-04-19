@@ -1,11 +1,9 @@
 #pragma once
 
-#include "../storage/storage_qt.hpp"
+#include "../storage/storage_io_interface.hpp"
 #include "container/std_container_helpers.hpp"
 #include "hash/sha3_hasher.hpp"
 #include "utility/extra_type_traits.hpp"
-
-#include <QFile>
 
 #include <ctype.h>
 #include <optional>
@@ -32,51 +30,51 @@ namespace detail {
 }
 
 // On success, returns the full path to the stored file; else - empty optional.
-template <typename IndexType>
-std::optional<std::string> store(const IndexType& index, const std::string indexStorageFolder) noexcept
+template <typename StorageAdapter, typename IndexType>
+std::optional<std::string> store(const IndexType& index, std::string indexStorageFolder) noexcept
 {
 	const std::string indexFileName = detail::normalizedFileName(std::string{ typeid(index).name() });
 
 	const auto filePath = indexStorageFolder + "/" + indexFileName + ".index";
 
-	QFile file{QString::fromStdString(filePath)};
-	assert_and_return_r(file.open(QFile::WriteOnly), {});
+	StorageIO<StorageAdapter> file;
+	assert_and_return_r(file.open(filePath, io::OpenMode::Write), {});
 
 	Sha3_Hasher<256> hasher;
 
 	const auto numIndexEntries = index.size();
-	assert_and_return_r(StorageQt::write(numIndexEntries, file), {});
+	assert_and_return_r(file.write(numIndexEntries), {});
 
 	hasher.update(numIndexEntries);
 
 	for (const auto& indexEntry : index)
 	{
 		static_assert(is_trivially_serializable_v<decltype(indexEntry.second)>);
-		assert_and_return_r(StorageQt::write(indexEntry.first, file), {});
+		assert_and_return_r(file.write(indexEntry.first), {});
 		hasher.update(indexEntry.first);
-		assert_and_return_r(file.write(reinterpret_cast<const char*>(&indexEntry.second), sizeof(indexEntry.second)) == sizeof(indexEntry.second), {});
+		assert_and_return_r(file.write(indexEntry.second), {});
 		hasher.update(indexEntry.second);
 	}
 
 	const uint64_t hash = hasher.get64BitHash();
-	assert_and_return_r(StorageQt::write(hash, file), {});
+	assert_and_return_r(file.write(hash), {});
 
 	return filePath;
 }
 
 // On success, returns the full path to the stored file; else - empty optional.
-template <typename IndexType>
+template <typename StorageAdapter, typename IndexType>
 std::optional<std::string> load(IndexType& index, const std::string indexStorageFolder) noexcept
 {
 	const std::string indexFileName = detail::normalizedFileName(std::string{ typeid(index).name() });
 
 	const auto filePath = indexStorageFolder + "/" + indexFileName + ".index";
 
-	QFile file{QString::fromStdString(filePath)};
-	assert_and_return_r(file.open(QFile::ReadOnly), {});
+	StorageIO<StorageAdapter> file;
+	assert_and_return_r(file.open(filePath, io::OpenMode::Read), {});
 
 	uint64_t numIndexEntries = 0;
-	assert_and_return_r(StorageQt::read(numIndexEntries, file), {});
+	assert_and_return_r(file.read(numIndexEntries), {});
 
 	Sha3_Hasher<256> hasher;
 	hasher.update(numIndexEntries);
@@ -89,8 +87,8 @@ std::optional<std::string> load(IndexType& index, const std::string indexStorage
 		auto field = typename IndexMultiMapType::key_type{};
 		auto offset = typename IndexMultiMapType::mapped_type{ 0 };
 
-		assert_and_return_r(StorageQt::read(field, file), {});
-		assert_and_return_r(file.read(reinterpret_cast<char*>(&offset), sizeof(offset)) == sizeof(offset), {});
+		assert_and_return_r(file.read(field), {});
+		assert_and_return_r(file.read(offset), {});
 
 		hasher.update(field);
 		hasher.update(offset);
@@ -100,10 +98,10 @@ std::optional<std::string> load(IndexType& index, const std::string indexStorage
 	}
 
 	uint64_t hash = 0;
-	assert_and_return_r(StorageQt::read(hash, file), {});
+	assert_and_return_r(file.read(hash), {});
 	assert_and_return_r(hasher.get64BitHash() == hash, {});
 
-	assert_r(file.atEnd());
+	assert_r(file.pos() == file.size());
 
 	return filePath;
 }
