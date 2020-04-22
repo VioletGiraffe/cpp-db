@@ -31,7 +31,7 @@ public:
 	static constexpr bool isRecord() noexcept { return true; }
 
 public:
-	constexpr DbRecord() noexcept = default;
+	constexpr DbRecord() = default;
 
 	template <typename Field>
 	auto fieldValue() const noexcept
@@ -53,7 +53,7 @@ public:
 	static constexpr size_t staticFieldsCount() noexcept
 	{
 		size_t count = 0;
-		static_for<0, sizeof...(FieldsSequence)>([&totalSize](auto i) {
+		static_for<0, sizeof...(FieldsSequence)>([&count](auto i) {
 			using FieldType = pack::type_by_index<decltype(i)::value, FieldsSequence...>;
 			if constexpr (FieldType::sizeKnownAtCompileTime() == true)
 				++count;
@@ -78,7 +78,7 @@ public:
 	size_t totalSize() const noexcept
 	{
 		size_t totalSize = staticFieldsSize();
-		static_for<staticFieldsCount(), sizeof...(FieldsSequence)>([&totalSize](auto i) {
+		static_for<staticFieldsCount(), sizeof...(FieldsSequence)>([&totalSize, this](auto i) {
 			using FieldType = pack::type_by_index<decltype(i)::value, FieldsSequence...>;
 			static_assert(FieldType::sizeKnownAtCompileTime() == false);
 

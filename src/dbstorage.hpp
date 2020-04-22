@@ -4,10 +4,12 @@
 #include "storage/storage_io_interface.hpp"
 #include "assert/advanced_assert.h"
 #include "parameter_pack/parameter_pack_helpers.hpp"
+#include "utility/extra_type_traits.hpp"
 
 #include <mutex>
 #include <optional>
 #include <string>
+#include <string.h> // memcpy
 
 struct StorageLocation {
 	uint64_t location;
@@ -48,13 +50,12 @@ public:
 
 		assert_and_return_r(_storageFile.read(buffer.data(), staticFieldsSize), false);
 
-		Record record;
 		size_t bufferOffset = 0;
 		bool success = true;
 		static_for<0, Record::fieldCount()>([&](auto i) {
 			using FieldType = typename Record::template FieldTypeByIndex_t<i>;
 
-			auto& field = record.fieldAt<i>();
+			auto& field = record.template fieldAt<i>();
 			static_assert(std::is_same_v<std::remove_cv_t<FieldType>, remove_cv_and_reference_t<decltype(field)>>);
 
 			if constexpr (FieldType::sizeKnownAtCompileTime())
@@ -89,12 +90,11 @@ public:
 		static constexpr size_t staticFieldsSize = record.staticFieldsSize();
 		std::array<uint8_t, staticFieldsSize> buffer;
 
-		Record record;
 		size_t bufferOffset = 0;
 		static_for<0, record.staticFieldsCount()>([&](auto i) {
 			using FieldType = typename Record::template FieldTypeByIndex_t<i>;
 
-			const auto& field = record.fieldAt<i>();
+			const auto& field = record.template fieldAt<i>();
 			static_assert(std::is_same_v<std::remove_cv_t<FieldType>, remove_cv_and_reference_t<decltype(field)>>);
 			static_assert(is_trivially_serializable_v<FieldType>);
 			static_assert(FieldType::sizeKnownAtCompileTime());
@@ -113,7 +113,7 @@ public:
 
 			using FieldType = typename Record::template FieldTypeByIndex_t<i>;
 
-			const auto& field = record.fieldAt<i>();
+			const auto& field = record.template fieldAt<i>();
 			static_assert(std::is_same_v<std::remove_cv_t<FieldType>, remove_cv_and_reference_t<decltype(field)>>);
 			static_assert(!FieldType::sizeKnownAtCompileTime());
 
@@ -129,7 +129,6 @@ public:
 
 private:
 	static_assert(Record::isRecord());
-	static_assert(std::is_same_v<R, Record>);
 
 private:
 	StorageIO<StorageAdapter> _storageFile;

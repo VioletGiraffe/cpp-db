@@ -2,9 +2,11 @@
 
 #include "3rdparty/catch2/catch.hpp"
 #include "index_test_helpers.hpp"
+#include "storage/storage_qt.hpp"
 
 #include "index/dbindex.hpp"
 #include "container/algorithms.hpp"
+#include "container/std_container_helpers.hpp"
 
 #include <random>
 #include <string>
@@ -13,7 +15,6 @@ TEST_CASE("DBindices interface test", "[dbindex]") {
 
 	try {
 		using F1 = Field<std::string, 0>;
-		using F2 = Field<int, 1>;
 
 		DbIndex<F1> index;
 
