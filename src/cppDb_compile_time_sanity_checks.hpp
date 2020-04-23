@@ -3,14 +3,47 @@
 #include "cpp-db.hpp"
 #include "storage/storage_qt.hpp"
 
+#include <assert.h>
 #include <string>
 #include <type_traits>
+
+inline void dbRecord_checks()
+{
+	using F3 = Field<long double, 4>;
+	using F_ull = Field<uint64_t, 4>;
+	using Fs = Field<std::string, 42>;
+
+	DbRecord<F_ull, F3, F_ull, Fs> record;
+	static_assert(record.staticFieldsCount() == 2);
+	static_assert(record.staticFieldsSize() == sizeof(uint64_t) + sizeof(long double));
+	static_assert(record.isRecord());
+	static_assert(record.allFieldsHaveStaticSize() == false);
+	static_assert(record.fieldCount() == 3);
+
+	assert(record.totalSize() == record.staticFieldsSize());
+}
+
+inline void dbField_checks()
+{
+	using F3 = Field<long double, 4>;
+	using F_ull = Field<uint64_t, 4>;
+	using Fs = Field<std::string, 42>;
+
+	constexpr F3 f3 = 3.14;
+	static_assert(f3.value == 3.14);
+	const auto f3_copy = f3;
+
+	Fs fs{ std::string{"abc"} };
+	const auto copy = fs;
+}
 
 inline void cppDb_compileTimeChecks()
 {
 	volatile int guard = 0;
 	if (guard == 0)
 		return;
+
+	dbField_checks();
 
 	using F1 = Field<int, 0>;
 	using F2 = Field<float, 1>;
@@ -104,4 +137,6 @@ inline void cppDb_compileTimeChecks()
 	fsIndex.findValueLocations("123");
 	fsIndex.removeValueLocation("1", { 0 });
 	f1Index1.removeAllValueLocations(5);
+
+	dbRecord_checks();
 }

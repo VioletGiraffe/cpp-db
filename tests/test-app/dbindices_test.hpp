@@ -68,7 +68,7 @@ TEST_CASE("Indices - simple interface test", "[dbindices]") {
 TEST_CASE("Indices - Storing / loading", "[dbindices]") {
 	try {
 #ifdef _DEBUG
-		constexpr uint64_t N = 10000;
+		constexpr uint64_t N = 3000;
 #else
 		constexpr uint64_t N = 400000;
 #endif

@@ -1,6 +1,6 @@
 TEMPLATE = subdirs
 
-SUBDIRS =cpputils test-app cpp-template-utils cpp-db
+SUBDIRS = cpputils test-app cpp-template-utils cpp-db
 
 exists(../../cpputils) {
 	SUBREPOS_DIR=$${PWD}/../..

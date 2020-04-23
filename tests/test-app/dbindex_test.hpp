@@ -83,7 +83,7 @@ TEST_CASE("Adding and removing random locations", "[dbindex]") {
 		DbIndex<F1> index;
 
 #ifdef _DEBUG
-		constexpr uint64_t N = 10000;
+		constexpr uint64_t N = 3000;
 #else
 		constexpr uint64_t N = 200000;
 #endif
@@ -119,7 +119,7 @@ TEST_CASE("Adding and removing random locations", "[dbindex]") {
 TEST_CASE("Storing / loading", "[dbindices]") {
 	try {
 #ifdef _DEBUG
-		constexpr uint64_t N = 10000;
+		constexpr uint64_t N = 3000;
 #else
 		constexpr uint64_t N = 400000;
 #endif

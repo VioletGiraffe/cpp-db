@@ -7,6 +7,7 @@
 #include "dbfilegaps_load-store_test.hpp"
 #include "dbindex_test.hpp"
 #include "dbindices_test.hpp"
+#include "dbrecord_tests.hpp"
 
 
 //#include "dbfilegaps_benchmarks.hpp"

@@ -29,9 +29,8 @@ struct Field {
 	static constexpr auto id = fieldId;
 
 	constexpr Field() noexcept = default;
-
-	constexpr Field(const Field&) noexcept = default;
-	constexpr Field(Field&&) noexcept = default;
+	constexpr Field(const Field& other) = default;
+	constexpr Field(Field&& other) noexcept = default;
 
 	constexpr Field(T val) noexcept : value{ std::move(val) }
 	{}
@@ -88,8 +87,8 @@ constexpr void Field<T, fieldId>::checkSanity() noexcept
 // Helper templates
 //
 
-template<typename T>
-concept FieldInstance = T::isField();
+//template<typename T>
+//concept FieldInstance = T::isField();
 
 template <auto id, typename FirstField = void, typename... OtherFields>
 struct FieldById {

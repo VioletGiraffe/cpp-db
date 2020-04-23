@@ -34,7 +34,13 @@ public:
 	constexpr DbRecord() = default;
 
 	template <typename Field>
-	auto fieldValue() const noexcept
+	const auto& fieldValue() const & noexcept
+	{
+		return std::get<pack::index_for_type_v<Field, FieldsSequence...>>(_fields).value;
+	}
+
+	template <typename Field>
+	auto& fieldValue() & noexcept
 	{
 		return std::get<pack::index_for_type_v<Field, FieldsSequence...>>(_fields).value;
 	}
