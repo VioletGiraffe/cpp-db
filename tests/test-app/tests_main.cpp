@@ -8,6 +8,7 @@
 #include "dbindex_test.hpp"
 #include "dbindices_test.hpp"
 #include "dbrecord_tests.hpp"
+#include "dbstorage_tests.hpp"
 
 
 //#include "dbfilegaps_benchmarks.hpp"

@@ -16,9 +16,19 @@ template <typename T>
 struct Tombstone {
 	using Field = T;
 	static constexpr auto id = Field::id;
+	static constexpr bool is_valid_v = true;
 
 	static_assert(Field::isField());
 };
+
+template<>
+struct Tombstone<void> {
+	using Field = void;
+	static constexpr auto id = -1;
+	static constexpr bool is_valid_v = false;
+};
+
+using NoTombstone = Tombstone<void>;
 
 template <class TombstoneField /* TODO: concept */, typename... FieldsSequence>
 class DbRecord
@@ -119,7 +129,8 @@ private:
 	{
 		static_assert(sizeof...(FieldsSequence) > 0);
 		static_assert((FieldsSequence::isField() && ...), "All template parameter types must be Fields!");
-		static_assert(pack::has_type_v<typename TombstoneField::Field, FieldsSequence...>);
+		static_assert(TombstoneField::is_valid_v == true || TombstoneField::is_valid_v == false, "The first template parameter must beither Tombstone<FieldType>, or NoTombstone.");
+		static_assert(!TombstoneField::is_valid_v || pack::has_type_v<typename TombstoneField::Field, FieldsSequence...>);
 
 		static_assert(std::is_same_v<typename pack::type_by_index<0, FieldsSequence...>, std::tuple_element_t<0, std::tuple<FieldsSequence...>>>);
 

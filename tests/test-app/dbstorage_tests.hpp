@@ -7,7 +7,7 @@
 #include <string>
 
 
-TEST_CASE("DbRecord - basic functionality", "[dbrecord]") {
+TEST_CASE("DbStorage - basic functionality", "[dbstorage]") {
 
 	try {
 		using F3 = Field<long double, 4>;

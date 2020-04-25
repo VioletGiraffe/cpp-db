@@ -69,4 +69,5 @@ HEADERS += \
 	dbindex_test.hpp \
 	dbindices_test.hpp \
 	dbrecord_tests.hpp \
+	dbstorage_tests.hpp \
 	index_test_helpers.hpp
