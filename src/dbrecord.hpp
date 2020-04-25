@@ -24,11 +24,17 @@ struct Tombstone {
 	static_assert(Field::staticSize() == sizeof(bitPattern));
 	static_assert(Field::isField());
 
-	constexpr static bool isTombstoneValue(const typename Field::ValueType& value) noexcept {
-		if constexpr (std::is_same_v<typename Field::ValueType, decltype(bitPattern)>)
+	template <typename U>
+	constexpr static bool isTombstoneValue(U&& value) noexcept
+	{
+		static_assert(sizeof(value) == sizeof(bitPattern));
+		if constexpr (std::is_same_v<remove_cv_and_reference_t<U>, decltype(bitPattern)>)
 			return value == bitPattern;
 		else
-			return bitwise_equal(value, bitPattern);
+		{
+			const auto localBitPattern = bitPattern;
+			return ::memcmp(std::addressof(value), std::addressof(localBitPattern), sizeof(bitPattern)) == 0;
+		}
 	}
 };
 

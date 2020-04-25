@@ -10,7 +10,7 @@
 TEST_CASE("DbRecord - basic functionality", "[dbrecord]") {
 
 	try {
-		using F3 = Field<long double, 4>;
+		using F3 = Field<double, 4>;
 		using F_ull = Field<uint64_t, 4>;
 		using Fs = Field<std::string, 42>;
 
@@ -24,7 +24,7 @@ TEST_CASE("DbRecord - basic functionality", "[dbrecord]") {
 		record.fieldValue<F_ull>() = 42;
 		CHECK(record.totalSize() == record.staticFieldsSize() + stringCharacterCountFieldSize);
 		CHECK(record.fieldAt<0>().value == 3.14);
-		static_assert(record.staticFieldsSize() == sizeof(uint64_t) + sizeof(long double));
+		static_assert(record.staticFieldsSize() == sizeof(uint64_t) + sizeof(double));
 
 		record.fieldValue<Fs>() = "abcd";
 		CHECK(record.totalSize() == record.staticFieldsSize() + 4 + stringCharacterCountFieldSize);
@@ -43,6 +43,11 @@ TEST_CASE("DbRecord - basic functionality", "[dbrecord]") {
 		CHECK(copy.fieldAt<1>().value == std::numeric_limits<uint64_t>::max() - 5);
 		CHECK(copy.fieldAt<2>().value == std::string{ "abcd" });
 		CHECK(copy.totalSize() == record.staticFieldsSize() + 4 + stringCharacterCountFieldSize);
+
+		DbRecord<Tombstone<F3, std::numeric_limits<uint64_t>::max()>, F3> doubleRecord;
+		static_assert(doubleRecord.hasTombstone());
+		CHECK(doubleRecord.isTombstoneValue(std::numeric_limits<uint64_t>::max()));
+		CHECK(!doubleRecord.isTombstoneValue(std::numeric_limits<uint64_t>::max() - 1));
 	}
 	catch (...) {
 		FAIL();

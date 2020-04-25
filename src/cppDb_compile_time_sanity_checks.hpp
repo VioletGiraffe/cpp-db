@@ -33,8 +33,8 @@ inline void dbRecord_checks()
 
 	DbRecord<Tombstone<F3, std::numeric_limits<uint64_t>::max()>, F3> doubleRecord;
 	static_assert(doubleRecord.hasTombstone());
-	static_assert(doubleRecord.isTombstoneValue(std::numeric_limits<uint64_t>::max()));
-	static_assert(!doubleRecord.isTombstoneValue(std::numeric_limits<uint64_t>::max() - 1));
+	assert(doubleRecord.isTombstoneValue(std::numeric_limits<uint64_t>::max()));
+	assert(!doubleRecord.isTombstoneValue(std::numeric_limits<uint64_t>::max() - 1));
 }
 
 inline void dbField_checks()
