@@ -14,7 +14,7 @@ TEST_CASE("DbStorage - basic functionality", "[dbstorage]") {
 		using F_ull = Field<uint64_t, 4>;
 		using Fs = Field<std::string, 42>;
 
-		DbRecord<Tombstone<F_ull>, F3, F_ull, Fs> record;
+		DbRecord<Tombstone<F_ull, std::numeric_limits<uint64_t>::max()>, F3, F_ull, Fs> record;
 
 		constexpr size_t stringCharacterCountFieldSize = 4 /* the size of the character count filed for strings */;
 

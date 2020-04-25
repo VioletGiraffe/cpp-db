@@ -13,7 +13,7 @@ inline void dbRecord_checks()
 	using F_ull = Field<uint64_t, 4>;
 	using Fs = Field<std::string, 42>;
 
-	DbRecord<Tombstone<F_ull>, F3, F_ull, Fs> record;
+	DbRecord<Tombstone<F_ull, std::numeric_limits<uint64_t>::max()>, F3, F_ull, Fs> record;
 	static_assert(record.staticFieldsCount() == 2);
 	static_assert(record.staticFieldsSize() == sizeof(uint64_t) + sizeof(long double));
 	static_assert(record.isRecord());
@@ -23,6 +23,18 @@ inline void dbRecord_checks()
 	assert(record.totalSize() == record.staticFieldsSize());
 
 	DbRecord<NoTombstone, F3, F_ull, Fs> record_no_tombstone;
+	static_assert(record.hasTombstone());
+	static_assert(record.isTombstoneValue(std::numeric_limits<uint64_t>::max()));
+	static_assert(!record.isTombstoneValue(std::numeric_limits<uint64_t>::max() - 1));
+
+	static_assert(!record_no_tombstone.hasTombstone());
+	static_assert(!record_no_tombstone.isTombstoneValue(std::numeric_limits<uint64_t>::max()));
+	static_assert(!record_no_tombstone.isTombstoneValue(std::numeric_limits<uint64_t>::max() - 1));
+
+	DbRecord<Tombstone<F3, std::numeric_limits<uint64_t>::max()>, F3> doubleRecord;
+	static_assert(doubleRecord.hasTombstone());
+	static_assert(doubleRecord.isTombstoneValue(std::numeric_limits<uint64_t>::max()));
+	static_assert(!doubleRecord.isTombstoneValue(std::numeric_limits<uint64_t>::max() - 1));
 }
 
 inline void dbField_checks()
@@ -80,13 +92,13 @@ inline void cppDb_compileTimeChecks()
 	static_assert(F_ull::staticSize() == sizeof(uint64_t));
 	static_assert(F3::staticSize() == sizeof(long double));
 
-	DbRecord<Tombstone<F2>, F1, F2, Fs> record;
+	DbRecord<Tombstone<F2, -1>, F1, F2, Fs> record;
 	const auto f2 = record.fieldValue<F2>();
 	static_assert(std::is_same_v<std::remove_cv_t<decltype(f2)>, float>);
 
 	static_assert(record.allFieldsHaveStaticSize() == false);
 	static_assert(decltype(record)::allFieldsHaveStaticSize() == false);
-	static_assert(DbRecord<Tombstone<F1>, F1, F3>::allFieldsHaveStaticSize() == true);
+	static_assert(DbRecord<Tombstone<F1, -1>, F1, F3>::allFieldsHaveStaticSize() == true);
 
 	static_assert(pack::index_for_type<F1, F2, Fs, F1>() == 2);
 	static_assert(pack::index_for_type<F3, F2, Fs, F1>().has_value() == false);

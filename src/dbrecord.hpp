@@ -6,39 +6,53 @@
 #include "parameter_pack/parameter_pack_helpers.hpp"
 #include "tuple/tuple_helpers.hpp"
 #include "assert/advanced_assert.h"
+#include "utility/memory_cast.hpp"
 
+#include <bit>
 #include <array>
 #include <limits>
 #include <tuple>
 
 
-template <typename T>
+template <typename T, auto bitPattern>
 struct Tombstone {
 	using Field = T;
+
 	static constexpr auto id = Field::id;
 	static constexpr bool is_valid_v = true;
 
+	static_assert(Field::staticSize() == sizeof(bitPattern));
 	static_assert(Field::isField());
+
+	constexpr static bool isTombstoneValue(const typename Field::ValueType& value) noexcept {
+		if constexpr (std::is_same_v<typename Field::ValueType, decltype(bitPattern)>)
+			return value == bitPattern;
+		else
+			return bitwise_equal(value, bitPattern);
+	}
 };
 
 template<>
-struct Tombstone<void> {
+struct Tombstone<void, 0> {
 	using Field = void;
 	static constexpr auto id = -1;
 	static constexpr bool is_valid_v = false;
+
+	template <typename T>
+	static constexpr bool isTombstoneValue(T&&) noexcept {
+		return false;
+	}
 };
 
-using NoTombstone = Tombstone<void>;
+using NoTombstone = Tombstone<void, 0>;
 
 template <class TombstoneField /* TODO: concept */, typename... FieldsSequence>
 class DbRecord
 {
 public:
 // Traits
-	template <int index>
-	using FieldTypeByIndex_t = typename pack::type_by_index<index, FieldsSequence...>;
-
 	static constexpr bool isRecord() noexcept { return true; }
+	static constexpr bool hasTombstone() noexcept { return TombstoneField::is_valid_v; }
 
 public:
 	constexpr DbRecord() = default;
@@ -121,6 +135,11 @@ public:
 		return sizeof...(FieldsSequence);
 	}
 
+	template <typename U>
+	static constexpr bool isTombstoneValue(U&& value) noexcept {
+		return TombstoneField::isTombstoneValue(std::forward<U>(value));
+	}
+
 //
 // All the junk below is for compile-time correctness validation only.
 //
@@ -135,13 +154,13 @@ private:
 		static_assert(std::is_same_v<typename pack::type_by_index<0, FieldsSequence...>, std::tuple_element_t<0, std::tuple<FieldsSequence...>>>);
 
 		constexpr_for<1, sizeof...(FieldsSequence)>([](auto index) {
-			constexpr int i = index;
-			using Field1 = FieldTypeByIndex_t<i - 1>;
-			using Field2 = FieldTypeByIndex_t<i>;
+
+			using Field1 = typename pack::type_by_index<index - 1, FieldsSequence...>;
+			using Field2 = typename pack::type_by_index<index, FieldsSequence...>;
 			static_assert(!(Field1::sizeKnownAtCompileTime() == false && Field2::sizeKnownAtCompileTime() == true), "All the fields with compile-time size must be grouped before fields with dynamic size.");
 			static_assert(pack::type_count<Field1, FieldsSequence...>() == 1 && pack::type_count<Field2, FieldsSequence...>() == 1, "Each unique field shall only be specified once within a record!");
 
-			static_assert(std::is_same_v<Field2, std::tuple_element_t<i, std::tuple<FieldsSequence...>>>);
+			static_assert(std::is_same_v<Field2, std::tuple_element_t<index, std::tuple<FieldsSequence...>>>);
 		});
 
 		return true;
