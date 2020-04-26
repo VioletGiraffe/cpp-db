@@ -28,7 +28,7 @@ struct Tombstone {
 	constexpr static bool isTombstoneValue(U&& value) noexcept
 	{
 		static_assert(sizeof(value) == sizeof(bitPattern));
-		if constexpr (std::is_same_v<remove_cv_and_reference_t<U>, decltype(bitPattern)>)
+		if constexpr (is_equal_comparable_v<remove_cv_and_reference_t<U>, decltype(bitPattern)>)
 			return value == bitPattern;
 		else
 		{
