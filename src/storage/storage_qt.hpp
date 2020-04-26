@@ -2,9 +2,9 @@
 
 #include "storage_io_interface.hpp"
 
-#include <string>
+#include <QFile>
 
-class QFile;
+#include <string>
 
 namespace io {
 

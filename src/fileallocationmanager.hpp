@@ -6,8 +6,6 @@
 #include "assert/advanced_assert.h"
 #include "hash/sha3_hasher.hpp"
 
-#include <QFile>
-
 #include <assert.h>
 #include <limits>
 #include <stdint.h>
