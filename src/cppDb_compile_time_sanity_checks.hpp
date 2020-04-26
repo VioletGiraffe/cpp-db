@@ -9,13 +9,13 @@
 
 inline void dbRecord_checks()
 {
-	using F3 = Field<long double, 4>;
+	using F3 = Field<double, 4>;
 	using F_ull = Field<uint64_t, 4>;
 	using Fs = Field<std::string, 42>;
 
 	DbRecord<Tombstone<F_ull, std::numeric_limits<uint64_t>::max()>, F3, F_ull, Fs> record;
 	static_assert(record.staticFieldsCount() == 2);
-	static_assert(record.staticFieldsSize() == sizeof(uint64_t) + sizeof(long double));
+	static_assert(record.staticFieldsSize() == sizeof(uint64_t) + sizeof(double));
 	static_assert(record.isRecord());
 	static_assert(record.allFieldsHaveStaticSize() == false);
 	static_assert(record.fieldCount() == 3);
@@ -45,7 +45,8 @@ inline void dbField_checks()
 
 	constexpr F3 f3 = 3.14;
 	static_assert(f3.value == 3.14);
-	const auto f3_copy = f3;
+	constexpr auto f3_copy = f3;
+	static_assert(f3_copy.value == 3.14);
 
 	Fs fs{ std::string{"abc"} };
 	const auto copy = fs;
