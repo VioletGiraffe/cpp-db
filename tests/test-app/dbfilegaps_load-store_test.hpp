@@ -12,7 +12,11 @@ TEST_CASE("Storing and reloading a small set", "[dbfilegaps]") {
 	try {
 		DbFileGaps_Tester tester;
 		RandomNumberGenerator<uint64_t> rng(0, 1, 1000000000);
+#ifdef _DEBUG
+		constexpr size_t n = 5000;
+#else
 		constexpr size_t n = 100000;
+#endif
 		for (uint64_t i = 0, offset = 0, length = rng.rand(); i < n; ++i)
 		{
 			tester._gaps.registerGap(offset, length);

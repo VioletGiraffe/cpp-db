@@ -8,6 +8,7 @@
 #include <ctype.h>
 #include <optional>
 #include <string>
+#include <typeinfo>
 
 namespace Index {
 

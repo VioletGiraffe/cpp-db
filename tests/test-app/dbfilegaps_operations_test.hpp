@@ -71,3 +71,37 @@ TEST_CASE("White box test", "[dbfilegaps]") {
 		FAIL();
 	}
 }
+
+TEST_CASE("Store/load test", "[dbfilegaps]") {
+	try {
+
+		DbFileGaps_Tester tester;
+		std::vector<std::pair<uint64_t, uint64_t>> referenceGaps;
+
+		uint64_t offset = 0, length = 1;
+#ifdef _DEBUG
+		constexpr size_t N = 1000;
+#else
+		constexpr size_t N = 10000;
+#endif
+		for (size_t i = 0; i < N; ++i)
+		{
+			offset += length + 1;
+			length = (rand() % 10000) + 1;
+
+			tester._gaps.registerGap(offset, length);
+			referenceGaps.emplace_back(offset, length);
+		}
+
+
+		REQUIRE(tester.enumerateGaps() == referenceGaps);
+		std::sort(begin_to_end(referenceGaps), [](auto&& gapL, auto&& gapR) {return gapL.first < gapR.first; });
+		REQUIRE(tester.enumerateGaps() == referenceGaps);
+
+		tester._gaps.consolidateGaps();
+		REQUIRE(tester.enumerateGaps() == referenceGaps);
+	}
+	catch (...) {
+		FAIL();
+	}
+}

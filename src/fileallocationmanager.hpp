@@ -85,54 +85,56 @@ inline uint64_t FileAllocationManager::takeSuitableGap(const uint64_t requestedG
 
 inline void FileAllocationManager::consolidateGaps() noexcept
 {
-	std::vector<Gap> mergedGaps;
-	mergedGaps.reserve(1000);
+	const auto locationsCount = _gapLocations.size();
+	if (locationsCount < 2)
+		return;
 
-	for (auto current = _gapLocations.begin(), next = ++_gapLocations.begin(), end = _gapLocations.end(); next != end;)
+	std::vector<Gap> mergedGaps;
+	mergedGaps.reserve(locationsCount / 8);
+
+	std::vector<typename decltype(_gapLocations)::iterator> gapsToErase;
+	gapsToErase.reserve(locationsCount / 8);
+
+	auto current = _gapLocations.begin(), next = ++_gapLocations.begin();
+	const auto end = _gapLocations.end();
+	Gap accumulatedGap{ current->location, current->length };
+	bool accumulationOccurred = false;
+	for (; next != end;)
 	{
-		Gap accumulatedGap{ current->location, 0 };
-		while (next != end && current->endOffset() >= next->location)
+		if (current->endOffset() >= next->location)
 		{
 			assert(current->endOffset() == next->location);
-			// Merge current and next into a new gap item.
-			// Can't do in-place because std::set's items are const.
-			accumulatedGap.length += next->endOffset() - current->location;
+			accumulatedGap.length += next->length;
+			accumulationOccurred = true;
 
-			// So have to erase both
-			const auto oldCurrent = current, oldNext = next;
-			current = ++next;
-			if (next != end)
-			{
-				++next;
-
-				const auto oldNextEndOffset = oldNext->endOffset();
-
-				_gapLocations.erase(oldCurrent);
-				_gapLocations.erase(oldNext);
-
-				if (oldNextEndOffset < current->location)
-					break;
-			}
-			else
-			{
-				_gapLocations.erase(oldCurrent);
-				_gapLocations.erase(oldNext);
-
-				break;
-			}
+			gapsToErase.emplace_back(current);
 		}
-
-		if (accumulatedGap.length > 0)
+		else
 		{
-			if (next == end && current != end && current->location == accumulatedGap.endOffset())
-			{
-				accumulatedGap.length += current->length;
-				_gapLocations.erase(current);
-			}
+			if (accumulationOccurred) // The current item was consumed on the previous iteration
+				gapsToErase.emplace_back(current);
 
+			accumulationOccurred = false;
+			// Process what's been accumulated up to now
 			mergedGaps.emplace_back(std::move(accumulatedGap));
+			// And reset the accumulator
+			accumulatedGap = Gap{ next->location, next->length };
 		}
+
+		current = next;
+		++next;
 	}
+
+	if (accumulationOccurred)
+	{
+		assert(current != end);
+		mergedGaps.emplace_back(std::move(accumulatedGap));
+		gapsToErase.emplace_back(current);
+	}
+
+	// Erase the items subject to merging
+	for (auto&& it : gapsToErase)
+		_gapLocations.erase(it);
 
 	// Put the merged items back in
 	for (auto&& gap : mergedGaps)
