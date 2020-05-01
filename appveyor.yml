@@ -27,5 +27,6 @@ build_script:
   - msbuild tests.sln /t:Build /p:Configuration=Release;PlatformToolset=v142
 
 test_script:
-  - .\bin_tests\test-app.exe * -r junit -o tests.xml
+  - .\bin_tests\test-app.exe --reporter junit -o tests.xml
   - ps: (new-object net.webclient).UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\tests.xml))
+  - .\bin_tests\test-app.exe [benchmark]
