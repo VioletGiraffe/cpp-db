@@ -85,6 +85,8 @@ inline uint64_t FileAllocationManager::takeSuitableGap(const uint64_t requestedG
 
 inline void FileAllocationManager::consolidateGaps() noexcept
 {
+	_insertionsSinceLastConsolidation = 0;
+
 	const auto locationsCount = _gapLocations.size();
 	if (locationsCount < 2)
 		return;
@@ -139,8 +141,6 @@ inline void FileAllocationManager::consolidateGaps() noexcept
 	// Put the merged items back in
 	for (auto&& gap : mergedGaps)
 		_gapLocations.emplace(std::move(gap));
-
-	_insertionsSinceLastConsolidation = 0;
 }
 
 template <typename StorageAdapter>

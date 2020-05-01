@@ -10,8 +10,8 @@
 #include "dbrecord_tests.hpp"
 #include "dbstorage_tests.hpp"
 
-
-//#include "dbfilegaps_benchmarks.hpp"
+#include "benchmarks/dbindex_benchmarks.hpp"
+#include "benchmarks/dbfilegaps_benchmarks.hpp"
 
 
 

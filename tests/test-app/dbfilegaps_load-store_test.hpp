@@ -8,12 +8,12 @@
 
 #include <QFileInfo>
 
-TEST_CASE("Storing and reloading a small set", "[dbfilegaps]") {
+TEST_CASE("Storing and reloading a large set", "[dbfilegaps]") {
 	try {
 		DbFileGaps_Tester tester;
 		RandomNumberGenerator<uint64_t> rng(0, 1, 1000000000);
 #ifdef _DEBUG
-		constexpr size_t n = 5000;
+		constexpr size_t n = 3000;
 #else
 		constexpr size_t n = 100000;
 #endif

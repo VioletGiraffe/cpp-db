@@ -60,8 +60,9 @@ SOURCES += tests_main.cpp \
 LIBS += -L$${PWD}/../$${OUTPUT_DIR} -L$${PWD}/../../../$${OUTPUT_DIR} -lcpputils
 
 HEADERS += \
+	benchmarks/dbindex_benchmarks.hpp \
+	benchmarks/dbfilegaps_benchmarks.hpp \
 	cpp-db_sanity_checks.hpp \
-	dbfilegaps_benchmarks.hpp \
 	dbfilegaps_load-store_test.hpp \
 	dbfilegaps_operations_test.hpp \
 	dbfilegaps_test.hpp \
