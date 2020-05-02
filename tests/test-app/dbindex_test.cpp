@@ -1,5 +1,3 @@
-#pragma once
-
 #include "3rdparty/catch2/catch.hpp"
 #include "index_test_helpers.cpp"
 #include "storage/storage_qt.hpp"

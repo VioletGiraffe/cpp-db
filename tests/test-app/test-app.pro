@@ -62,11 +62,13 @@ SOURCES += tests_main.cpp \
 	dbfilegaps_load-store_test.cpp \
 	dbfilegaps_operations_test.cpp \
 	dbfilegaps_test.cpp \
-	dbfilegaps_tester.cpp \
 	dbindex_test.cpp \
 	dbindices_test.cpp \
 	dbrecord_tests.cpp \
 	dbstorage_tests.cpp \
 	index_test_helpers.cpp
+
+HEADERS += \
+	dbfilegaps_tester.hpp
 
 LIBS += -L$${PWD}/../$${OUTPUT_DIR} -L$${PWD}/../../../$${OUTPUT_DIR} -lcpputils

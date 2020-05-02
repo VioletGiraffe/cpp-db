@@ -1,5 +1,3 @@
-#pragma once
-
 #include "index/dbindex.hpp"
 #include "random/randomnumbergenerator.h"
 #include "container/std_container_helpers.hpp"

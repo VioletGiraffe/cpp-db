@@ -1,5 +1,3 @@
-#pragma once
-
 #define CATCH_CONFIG_ENABLE_BENCHMARKING
 #include "3rdparty/catch2/catch.hpp"
 #include "dbfilegaps_tester.hpp"

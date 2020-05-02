@@ -1,5 +1,3 @@
-#pragma once
-
 #include "3rdparty/catch2/catch.hpp"
 #include "dbrecord.hpp"
 
@@ -10,7 +8,7 @@
 TEST_CASE("DbStorage - basic functionality", "[dbstorage]") {
 
 	try {
-		
+
 	}
 	catch (...) {
 		FAIL();

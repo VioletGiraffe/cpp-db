@@ -1,5 +1,3 @@
-#pragma once
-
 #include "3rdparty/catch2/catch.hpp"
 #include "cppDb_compile_time_sanity_checks.hpp"
 
