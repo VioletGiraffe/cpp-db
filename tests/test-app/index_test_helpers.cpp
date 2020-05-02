@@ -2,6 +2,7 @@
 
 #include "index/dbindex.hpp"
 #include "random/randomnumbergenerator.h"
+#include "container/std_container_helpers.hpp"
 
 template <typename T1, typename U1, typename T2, typename U2>
 inline bool operator==(const std::pair<T1, U1>& p1, const std::pair<T2, U2>& p2)

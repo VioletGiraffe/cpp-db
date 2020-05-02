@@ -8,20 +8,22 @@
 
 ////////////////////////////////////////////////////////////////////
 //              VALUE SIZE                                        //
+////////////////////////////////////////////////////////////////////
+
 // Specialize this function for a custom dynamically-sized type
 // to use this type in a Field
 
 template<typename T>
-size_t valueSize(T&& /*value*/);
+size_t valueSize(const T& /*value*/);
 
 // A sample implementation for std::string
 /*
 	template<>
-	inline size_t valueSize(const std::string& value) {
+	size_t valueSize<std::string>(const std::string& value) {
 		return sizeof(uint32_t) + value.size();
 	}
 */
-////////////////////////////////////////////////////////////////////
+
 
 template <typename T, auto fieldId>
 struct Field {

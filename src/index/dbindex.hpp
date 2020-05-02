@@ -101,7 +101,7 @@ public:
 		return _index.empty();
 	}
 
-#ifdef CATCH_CONFIG_MAIN
+#ifdef TEST_CASE
 	void clear()
 	{
 		_index.clear();

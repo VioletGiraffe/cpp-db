@@ -55,20 +55,18 @@ INCLUDEPATH += \
 	$${PWD}/../../../cpputils
 
 SOURCES += tests_main.cpp \
-	dbfilegaps_tester.cpp
+	benchmarks/dbfilegaps_benchmarks.cpp \
+	benchmarks/dbindex_benchmarks.cpp \
+	dbfilegaps_tester.cpp \
+	cpp-db_sanity_checks.cpp \
+	dbfilegaps_load-store_test.cpp \
+	dbfilegaps_operations_test.cpp \
+	dbfilegaps_test.cpp \
+	dbfilegaps_tester.cpp \
+	dbindex_test.cpp \
+	dbindices_test.cpp \
+	dbrecord_tests.cpp \
+	dbstorage_tests.cpp \
+	index_test_helpers.cpp
 
 LIBS += -L$${PWD}/../$${OUTPUT_DIR} -L$${PWD}/../../../$${OUTPUT_DIR} -lcpputils
-
-HEADERS += \
-	benchmarks/dbindex_benchmarks.hpp \
-	benchmarks/dbfilegaps_benchmarks.hpp \
-	cpp-db_sanity_checks.hpp \
-	dbfilegaps_load-store_test.hpp \
-	dbfilegaps_operations_test.hpp \
-	dbfilegaps_test.hpp \
-	dbfilegaps_tester.hpp \
-	dbindex_test.hpp \
-	dbindices_test.hpp \
-	dbrecord_tests.hpp \
-	dbstorage_tests.hpp \
-	index_test_helpers.hpp

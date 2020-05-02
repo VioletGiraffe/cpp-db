@@ -8,7 +8,6 @@
 #include "assert/advanced_assert.h"
 #include "utility/memory_cast.hpp"
 
-#include <bit>
 #include <array>
 #include <limits>
 #include <tuple>

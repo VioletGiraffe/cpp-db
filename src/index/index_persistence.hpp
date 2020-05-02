@@ -13,7 +13,7 @@
 namespace Index {
 
 namespace detail {
-	std::string normalizedFileName(std::string name) {
+	inline std::string normalizedFileName(std::string name) {
 		for (auto& ch : name)
 		{
 			if (::isalnum(ch) || ch == ' ' || ch == ',' || ch == '_')

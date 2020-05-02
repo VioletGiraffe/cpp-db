@@ -1,7 +1,7 @@
 #pragma once
 
 #include "3rdparty/catch2/catch.hpp"
-#include "index_test_helpers.hpp"
+#include "index_test_helpers.cpp"
 
 #include "index/dbindices.hpp"
 #include "container/algorithms.hpp"
