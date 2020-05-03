@@ -8,24 +8,93 @@ TEST_CASE("DbRecord - construction from a pack of values", "[dbrecord]") {
 
 	try {
 		using Fd= Field<double, 4>;
-		using Fi = Field<uint64_t, 4>;
+		using Fi = Field<uint64_t, 5>;
 		using Fs = Field<std::string, 42>;
 
-		const DbRecord<NoTombstone, Fd, Fi, Fs> record{ 3.14, 123, "abc" };
-		CHECK(record.fieldValue<Fd>() == 3.14);
-		CHECK(record.fieldValue<Fi>() == 123);
-		CHECK(record.fieldValue<Fs>() == "abc");
+		{
+			const DbRecord<NoTombstone, Fd, Fi, Fs> record{ 3.14, 123, "abc" };
+			CHECK(record.fieldValue<Fd>() == 3.14);
+			CHECK(record.fieldValue<Fi>() == 123);
+			CHECK(record.fieldValue<Fs>() == "abc");
 
-		CHECK(record.fieldAt<0>().value == 3.14);
-		CHECK(record.fieldAt<1>().value == 123);
-		CHECK(record.fieldAt<2>().value == "abc");
+			CHECK(record.fieldAt<0>().value == 3.14);
+			CHECK(record.fieldAt<1>().value == 123);
+			CHECK(record.fieldAt<2>().value == "abc");
+		}
 
-		constexpr DbRecord<NoTombstone, Fd, Fi> record2{ 3.14, 123 };
-		static_assert(record2.fieldValue<Fd>() == 3.14);
-		static_assert(record2.fieldValue<Fi>() == 123);
+		{
+			constexpr DbRecord<NoTombstone, Fd, Fi> record2{ 3.14, 123 };
+			static_assert(record2.fieldValue<Fd>() == 3.14);
+			static_assert(record2.fieldValue<Fi>() == 123);
 
-		static_assert(record2.fieldAt<0>().value == 3.14);
-		static_assert(record2.fieldAt<1>().value == 123);
+			static_assert(record2.fieldAt<0>().value == 3.14);
+			static_assert(record2.fieldAt<1>().value == 123);
+		}
+
+		{
+			constexpr DbRecord<Tombstone<Fi, 42ull>, Fi> singleField{ 42 };
+			static_assert(singleField.fieldValue<Fi>() == 42);
+			static_assert(singleField.allFieldsHaveStaticSize());
+			static_assert(singleField.staticFieldsSize() == sizeof(uint64_t));
+			static_assert(singleField.hasTombstone());
+			static_assert(singleField.isTombstoneValue(42ull));
+		}
+
+		{
+			const DbRecord<NoTombstone, Fs> singleDynamicField{ "def" };
+			CHECK(singleDynamicField.fieldValue<Fs>() == "def");
+			CHECK(singleDynamicField.fieldAt<0>().value == "def");
+		}
+	}
+	catch (...) {
+		FAIL();
+	}
+}
+
+TEST_CASE("DbRecord - static fields handling", "[dbrecord]") {
+
+	try {
+		using Fd = Field<double, 4>;
+		using Full = Field<uint64_t, 5>;
+		using Fs = Field<std::string, 42>;
+
+		{
+			using Record = DbRecord<NoTombstone, Fd>;
+			static_assert(Record::staticFieldsCount() == 1);
+			static_assert(Record::staticFieldsSize() == sizeof(double));
+		}
+
+		{
+			using Record = DbRecord<NoTombstone, Fs>;
+			static_assert(Record::staticFieldsCount() == 0);
+			static_assert(Record::staticFieldsSize() == 0);
+		}
+
+		{
+			using Record = DbRecord<NoTombstone, Fs, Field<std::string, 564>>;
+			static_assert(Record::staticFieldsCount() == 0);
+			static_assert(Record::staticFieldsSize() == 0);
+		}
+
+		{
+			using Record = DbRecord<NoTombstone, Full, Fs>;
+			static_assert(Record::staticFieldsCount() == 1);
+			static_assert(Record::staticFieldsSize() == sizeof(uint64_t));
+		}
+
+		{
+			using Record = DbRecord<NoTombstone, Full, Fd>;
+			static_assert(Record::staticFieldsCount() == 2);
+			static_assert(Record::staticFieldsSize() == sizeof(uint64_t) + sizeof(double));
+		}
+
+		{
+			using Record = DbRecord<NoTombstone, Full, Fd, Fs>;
+			static_assert(Record::staticFieldsCount() == 2);
+			static_assert(Record::staticFieldsSize() == sizeof(uint64_t) + sizeof(double));
+		}
+
+		CHECK(true);
 	}
 	catch (...) {
 		FAIL();
@@ -37,7 +106,7 @@ TEST_CASE("DbRecord - basic functionality", "[dbrecord]") {
 
 	try {
 		using F3 = Field<double, 4>;
-		using F_ull = Field<uint64_t, 4>;
+		using F_ull = Field<uint64_t, 5>;
 		using Fs = Field<std::string, 42>;
 
 		DbRecord<Tombstone<F_ull, std::numeric_limits<uint64_t>::max()>, F3, F_ull, Fs> record;

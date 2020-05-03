@@ -10,7 +10,7 @@
 inline void dbRecord_checks()
 {
 	using F3 = Field<double, 4>;
-	using F_ull = Field<uint64_t, 4>;
+	using F_ull = Field<uint64_t, 5>;
 	using Fs = Field<std::string, 42>;
 
 	DbRecord<Tombstone<F_ull, std::numeric_limits<uint64_t>::max()>, F3, F_ull, Fs> record;
@@ -36,8 +36,8 @@ inline void dbRecord_checks()
 	assert(doubleRecord.isTombstoneValue(std::numeric_limits<uint64_t>::max()));
 	assert(!doubleRecord.isTombstoneValue(std::numeric_limits<uint64_t>::max() - 1));
 
-	using Fd = Field<double, 4>;
-	using Fi = Field<uint64_t, 4>;
+	using Fd = Field<double, 10>;
+	using Fi = Field<uint64_t, 40>;
 
 	const DbRecord<NoTombstone, Fd, Fi, Fs> recordConst{ 3.14, 123, "abc" };
 

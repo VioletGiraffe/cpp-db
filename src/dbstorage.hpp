@@ -72,7 +72,7 @@ public:
 				if (!success)
 					return;
 
-				if (!_storageFile.read(field))
+				if (!_storageFile.readField(field))
 				{
 					assert_unconditional_r("Failed to read data!");
 					success = false;
@@ -120,7 +120,7 @@ public:
 			static_assert(std::is_same_v<std::remove_cv_t<FieldType>, remove_cv_and_reference_t<decltype(field)>>);
 			static_assert(!FieldType::sizeKnownAtCompileTime());
 
-			if (!_storageFile.write(field))
+			if (!_storageFile.writeField(field))
 			{
 				assert_unconditional_r("Failed to write data!");
 				success = false;

@@ -48,16 +48,12 @@ struct Field {
 		return sizeof(ValueType);
 	}
 
-	template <bool staticSizeAvailable = sizeKnownAtCompileTime()>
-	std::enable_if_t<staticSizeAvailable, size_t> fieldSize() const noexcept
+	size_t fieldSize() const noexcept
 	{
-		return staticSize();
-	}
-
-	template <bool staticSizeAvailable = sizeKnownAtCompileTime()>
-	std::enable_if_t<!staticSizeAvailable, size_t> fieldSize() const noexcept
-	{
-		return ::valueSize(value);
+		if constexpr (sizeKnownAtCompileTime())
+			return staticSize();
+		else
+			return ::valueSize(value);
 	}
 
 	bool operator<(const Field& other) const noexcept
@@ -80,15 +76,8 @@ public:
 	T value {};
 
 private:
-	static constexpr void checkSanity() noexcept;
-};
-
-template<typename T, auto fieldId>
-constexpr void Field<T, fieldId>::checkSanity() noexcept
-{
-	static_assert(std::is_trivially_destructible_v<Field<T, fieldId>>);
 	static_assert(!sizeKnownAtCompileTime() || std::is_trivial_v<T>);
-}
+};
 
 //
 // Helper templates

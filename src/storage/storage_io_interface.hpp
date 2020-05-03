@@ -68,7 +68,7 @@ template<typename IOAdapter>
 template<typename T, auto id>
 bool StorageIO<IOAdapter>::writeField(const Field<T, id>& field, const std::optional<uint64_t> position) noexcept
 {
-	static_assert(sizeof(std::remove_reference_t<T>) == field.staticSize());
+	static_assert(!field.sizeKnownAtCompileTime() || (sizeof(std::remove_reference_t<T>) == field.staticSize()));
 	return write(field.value, position);
 }
 
@@ -76,7 +76,7 @@ template<typename IOAdapter>
 template<typename T, auto id>
 bool StorageIO<IOAdapter>::readField(Field<T, id>& field, const std::optional<uint64_t> position) noexcept
 {
-	static_assert(sizeof(std::remove_reference_t<T>) == field.staticSize());
+	static_assert(!field.sizeKnownAtCompileTime() || (sizeof(std::remove_reference_t<T>) == field.staticSize()));
 	return read(field.value, position);
 }
 

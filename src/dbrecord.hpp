@@ -173,11 +173,11 @@ private:
 		static_assert(std::is_same_v<typename pack::type_by_index<0, FieldsSequence...>, std::tuple_element_t<0, std::tuple<FieldsSequence...>>>);
 
 		constexpr_for<1, sizeof...(FieldsSequence)>([](auto index) {
-
 			using Field1 = typename pack::type_by_index<index - 1, FieldsSequence...>;
 			using Field2 = typename pack::type_by_index<index, FieldsSequence...>;
 			static_assert(!(Field1::sizeKnownAtCompileTime() == false && Field2::sizeKnownAtCompileTime() == true), "All the fields with compile-time size must be grouped before fields with dynamic size.");
-			static_assert(pack::type_count<Field1, FieldsSequence...>() == 1 && pack::type_count<Field2, FieldsSequence...>() == 1, "Each unique field shall only be specified once within a record!");
+			static_assert(pack::type_count<Field1, FieldsSequence...>() == 1 && pack::type_count<Field2, FieldsSequence...>() == 1, "Each unique field type shall only be specified once within a record!");
+			static_assert(Field1::id != Field2::id, "All the fields must have different IDs!");
 
 			static_assert(std::is_same_v<Field2, std::tuple_element_t<index, std::tuple<FieldsSequence...>>>);
 		});
