@@ -71,6 +71,11 @@ struct Field {
 		return std::is_trivial_v<ValueType> && sizeKnownAtCompileTime();
 	}
 
+	constexpr bool operator==(const Field& other) const noexcept
+	{
+		return value == other.value;
+	}
+
 public:
 	T value {};
 

@@ -154,6 +154,11 @@ public:
 		return TombstoneField::isTombstoneValue(std::forward<U>(value));
 	}
 
+	constexpr bool operator==(const DbRecord& other) const noexcept
+	{
+		return _fields == other._fields;
+	}
+
 //
 // All the junk below is for compile-time correctness validation only.
 //

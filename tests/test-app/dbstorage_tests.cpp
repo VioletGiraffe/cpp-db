@@ -26,13 +26,25 @@ TEST_CASE("DbStorage - basic functionality", "[dbstorage]") {
 		REQUIRE(offset == 0);
 		static_assert(Record::staticFieldsSize() == 10);
 		static_assert(Record::allFieldsHaveStaticSize());
+		REQUIRE(Record{}.totalSize() == Record::staticFieldsSize());
 
 		for (size_t i = 0; i < N; ++i)
 		{
 			const auto& newRecord = reference.emplace_back(RNG64::next(), RNG16s::next());
-			storage.writeRecord(newRecord, offset);
+			REQUIRE(storage.writeRecord(newRecord, offset));
 
-			offset.location += Record::staticFieldsSize();
+			offset.location += newRecord.totalSize();
+		}
+
+		offset.location = 0;
+
+		for (size_t i = 0; i < N; ++i)
+		{
+			Record r;
+			REQUIRE(storage.readRecord(r, offset.location));
+			REQUIRE(r == reference[i]);
+
+			offset.location += r.totalSize();
 		}
 	}
 	catch (...) {

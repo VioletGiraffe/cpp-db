@@ -63,7 +63,7 @@ public:
 
 			if constexpr (FieldType::sizeKnownAtCompileTime())
 			{
-				static_assert(is_trivially_serializable_v<FieldType>);
+				static_assert(is_trivially_serializable_v<FieldType::ValueType>);
 				::memcpy(std::addressof(field.value), buffer.data() + bufferOffset, FieldType::staticSize());
 				bufferOffset += FieldType::staticSize();
 			}
@@ -99,7 +99,7 @@ public:
 
 			const auto& field = record.template fieldAt<i>();
 			static_assert(std::is_same_v<std::remove_cv_t<FieldType>, remove_cv_and_reference_t<decltype(field)>>);
-			static_assert(is_trivially_serializable_v<FieldType>);
+			static_assert(is_trivially_serializable_v<typename FieldType::ValueType>);
 			static_assert(FieldType::sizeKnownAtCompileTime());
 
 			::memcpy(buffer.data() + bufferOffset, std::addressof(field.value), FieldType::staticSize());
