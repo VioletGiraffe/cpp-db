@@ -6,6 +6,7 @@
 
 #include <optional>
 #include <string>
+#include <type_traits>
 
 namespace io {
 	enum class OpenMode { Read, Write, ReadWrite };
@@ -18,21 +19,22 @@ struct StorageIO
 
 	template <typename T, auto id>
 	bool writeField(const Field<T, id>& field, const std::optional<uint64_t> position = {}) noexcept;
-
 	template <typename T, auto id>
 	bool readField(Field<T, id>& field, const std::optional<uint64_t> position = {}) noexcept;
 
-	template <typename T>
+	template <typename T, typename = std::enable_if_t<!std::is_pointer_v<T>>>
 	bool read(T& value, const std::optional<uint64_t> position = {}) noexcept;
-
-	template <typename T>
+	template <typename T, typename = std::enable_if_t<!std::is_pointer_v<T>>>
 	bool write(T&& value, const std::optional<uint64_t> position = {}) noexcept;
 
 	bool read(std::string& value, const std::optional<uint64_t> position = {}) noexcept;
-
 	bool write(const std::string& value, const std::optional<uint64_t> position = {}) noexcept;
 
-	bool flush();
+	bool read(void* const dataPtr, uint64_t size) noexcept;
+	bool write(const void* const dataPtr, uint64_t size) noexcept;
+
+	bool flush() noexcept;
+	bool seek(uint64_t location) noexcept;
 
 	uint64_t pos() const noexcept;
 	uint64_t size() const noexcept;
@@ -79,7 +81,7 @@ bool StorageIO<IOAdapter>::readField(Field<T, id>& field, const std::optional<ui
 }
 
 template<typename IOAdapter>
-template<typename T>
+template<typename T, typename>
 bool StorageIO<IOAdapter>::read(T& value, const std::optional<uint64_t> position) noexcept
 {
 	if (position)
@@ -89,7 +91,7 @@ bool StorageIO<IOAdapter>::read(T& value, const std::optional<uint64_t> position
 }
 
 template<typename IOAdapter>
-template<typename T>
+template<typename T, typename>
 bool StorageIO<IOAdapter>::write(T&& value, const std::optional<uint64_t> position) noexcept
 {
 	if (position)
@@ -124,7 +126,25 @@ bool StorageIO<IOAdapter>::write(const std::string& str, const std::optional<uin
 }
 
 template<typename IOAdapter>
-bool StorageIO<IOAdapter>::flush()
+bool StorageIO<IOAdapter>::read(void* const dataPtr, uint64_t size) noexcept
+{
+	return _io.read(dataPtr, size);
+}
+
+template<typename IOAdapter>
+bool StorageIO<IOAdapter>::write(const void* const dataPtr, uint64_t size) noexcept
+{
+	return _io.write(dataPtr, size);
+}
+
+template<typename IOAdapter>
+bool StorageIO<IOAdapter>::seek(uint64_t location) noexcept
+{
+	return _io.seek(location);
+}
+
+template<typename IOAdapter>
+bool StorageIO<IOAdapter>::flush() noexcept
 {
 	return _io.flush();
 }

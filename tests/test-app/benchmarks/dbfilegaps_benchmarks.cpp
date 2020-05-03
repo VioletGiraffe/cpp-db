@@ -64,7 +64,7 @@ TEST_CASE("Gap consolidation benchmark", "[.benchmark][dbfilegaps]") {
 
 			meter.measure([&] { fam.consolidateGaps(); return fam.size(); });
 
-			CHECK(fam.size() == 1);
+			REQUIRE(fam.size() == 1);
 		};
 
 		BENCHMARK_ADVANCED("Ineffective gap consolidation")(Catch::Benchmark::Chronometer meter) {
@@ -80,7 +80,7 @@ TEST_CASE("Gap consolidation benchmark", "[.benchmark][dbfilegaps]") {
 
 			meter.measure([&] { fam.consolidateGaps(); return fam.size(); });
 
-			CHECK(fam.size() == n);
+			REQUIRE(fam.size() == n);
 		};
 	}
 	catch (...) {

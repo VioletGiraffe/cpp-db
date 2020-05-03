@@ -6,6 +6,7 @@
 #include "parameter_pack/parameter_pack_helpers.hpp"
 #include "utility/extra_type_traits.hpp"
 
+#include <limits>
 #include <mutex>
 #include <optional>
 #include <string>
@@ -13,6 +14,8 @@
 
 struct StorageLocation {
 	uint64_t location;
+
+	static constexpr auto noLocation = std::numeric_limits<decltype(location)>::max();
 
 	inline constexpr StorageLocation(uint64_t loc) noexcept : location{ loc } {}
 
@@ -42,7 +45,7 @@ public:
 	{
 		std::lock_guard locker(_storageMutex);
 
-		assert_r(_storageFile.seek(recordStartLocation.location));
+		assert_and_return_r(_storageFile.seek(recordStartLocation.location), false);
 
 		// Statically sized fields are grouped before others and can be read or written in a single block.
 		static constexpr size_t staticFieldsSize = record.staticFieldsSize();
@@ -84,7 +87,7 @@ public:
 	{
 		std::lock_guard locker(_storageMutex);
 
-		assert_r(_storageFile.seek(recordStartLocation.location));
+		assert_and_return_r(_storageFile.seek(recordStartLocation.location), false);
 
 		// Statically sized fields are grouped before others and can be read or written in a single block.
 		static constexpr size_t staticFieldsSize = record.staticFieldsSize();

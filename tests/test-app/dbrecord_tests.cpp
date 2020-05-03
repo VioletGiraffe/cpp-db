@@ -4,6 +4,34 @@
 #include <limits>
 #include <string>
 
+TEST_CASE("DbRecord - construction from a pack of values", "[dbrecord]") {
+
+	try {
+		using Fd= Field<double, 4>;
+		using Fi = Field<uint64_t, 4>;
+		using Fs = Field<std::string, 42>;
+
+		const DbRecord<NoTombstone, Fd, Fi, Fs> record{ 3.14, 123, "abc" };
+		CHECK(record.fieldValue<Fd>() == 3.14);
+		CHECK(record.fieldValue<Fi>() == 123);
+		CHECK(record.fieldValue<Fs>() == "abc");
+
+		CHECK(record.fieldAt<0>().value == 3.14);
+		CHECK(record.fieldAt<1>().value == 123);
+		CHECK(record.fieldAt<2>().value == "abc");
+
+		constexpr DbRecord<NoTombstone, Fd, Fi> record2{ 3.14, 123 };
+		static_assert(record2.fieldValue<Fd>() == 3.14);
+		static_assert(record2.fieldValue<Fi>() == 123);
+
+		static_assert(record2.fieldAt<0>().value == 3.14);
+		static_assert(record2.fieldAt<1>().value == 123);
+	}
+	catch (...) {
+		FAIL();
+	}
+}
+
 
 TEST_CASE("DbRecord - basic functionality", "[dbrecord]") {
 

@@ -35,6 +35,18 @@ inline void dbRecord_checks()
 	static_assert(doubleRecord.hasTombstone());
 	assert(doubleRecord.isTombstoneValue(std::numeric_limits<uint64_t>::max()));
 	assert(!doubleRecord.isTombstoneValue(std::numeric_limits<uint64_t>::max() - 1));
+
+	using Fd = Field<double, 4>;
+	using Fi = Field<uint64_t, 4>;
+
+	const DbRecord<NoTombstone, Fd, Fi, Fs> recordConst{ 3.14, 123, "abc" };
+
+	constexpr DbRecord<NoTombstone, Fd, Fi> recordConstexpr{ 3.14, 123 };
+	static_assert(recordConstexpr.fieldValue<Fd>() == 3.14);
+	static_assert(recordConstexpr.fieldValue<Fi>() == 123);
+
+	static_assert(recordConstexpr.fieldAt<0>().value == 3.14);
+	static_assert(recordConstexpr.fieldAt<1>().value == 123);
 }
 
 inline void dbField_checks()

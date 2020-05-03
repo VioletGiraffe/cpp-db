@@ -25,7 +25,7 @@ class FileAllocationManager
 	};
 
 public:
-	static constexpr auto noGap = std::numeric_limits<uint64_t>::max();
+	static constexpr auto NoGap = std::numeric_limits<uint64_t>::max();
 
 	inline void registerGap(const uint64_t gapOffset, const uint64_t gapLength) noexcept;
 	inline uint64_t takeSuitableGap(const uint64_t requestedGapLength) noexcept;
@@ -63,7 +63,7 @@ inline uint64_t FileAllocationManager::takeSuitableGap(const uint64_t requestedG
 	if (begin == end)
 	{
 		if (_insertionsSinceLastConsolidation < 1000)
-			return noGap;
+			return NoGap;
 
 		consolidateGaps(); // If no gap is found, consolidate gaps and try again
 		return takeSuitableGap(requestedGapLength); // Recursing once to check if consolidation freed up enough space.

@@ -21,8 +21,8 @@ TEST_CASE("Simple interface test (black box)", "[dbfilegaps]") {
 		CHECK(gaps.takeSuitableGap(gapLength) == 10);
 		freeRegionStart += gapLength;
 
-		CHECK(gaps.takeSuitableGap(gapLength + 1) == FileAllocationManager::noGap);
-		CHECK(gaps.takeSuitableGap(gapLength * 2) == FileAllocationManager::noGap);
+		CHECK(gaps.takeSuitableGap(gapLength + 1) == FileAllocationManager::NoGap);
+		CHECK(gaps.takeSuitableGap(gapLength * 2) == FileAllocationManager::NoGap);
 		CHECK(gaps.size() == n - 3);
 		gaps.consolidateGaps();
 		CHECK(gaps.size() == 1);
@@ -33,7 +33,7 @@ TEST_CASE("Simple interface test (black box)", "[dbfilegaps]") {
 		freeRegionStart += gapLength * 30;
 		CHECK(gaps.size() == 1);
 
-		CHECK(gaps.takeSuitableGap(n * gapLength - freeRegionStart + 1) == FileAllocationManager::noGap);
+		CHECK(gaps.takeSuitableGap(n * gapLength - freeRegionStart + 1) == FileAllocationManager::NoGap);
 		gaps.registerGap(10000, 10000);
 		CHECK(gaps.size() == 2);
 		CHECK(gaps.takeSuitableGap(n * gapLength - freeRegionStart + 1) == 10000);

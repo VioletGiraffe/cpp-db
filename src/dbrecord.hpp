@@ -59,17 +59,26 @@ public:
 	static constexpr bool isRecord() noexcept { return true; }
 	static constexpr bool hasTombstone() noexcept { return TombstoneField::is_valid_v; }
 
+	template <size_t index>
+	using FieldTypeByIndex_t = pack::type_by_index<index, FieldsSequence...>;
+
 public:
 	constexpr DbRecord() = default;
 
+	template <typename... Values>
+	constexpr explicit DbRecord(Values&&... values) : _fields{std::forward<Values>(values)...}
+	{
+		static_assert(sizeof...(Values) == sizeof...(FieldsSequence));
+	}
+
 	template <typename Field>
-	const auto& fieldValue() const & noexcept
+	constexpr const auto& fieldValue() const & noexcept
 	{
 		return std::get<pack::index_for_type_v<Field, FieldsSequence...>>(_fields).value;
 	}
 
 	template <typename Field>
-	auto& fieldValue() & noexcept
+	constexpr auto& fieldValue() & noexcept
 	{
 		return std::get<pack::index_for_type_v<Field, FieldsSequence...>>(_fields).value;
 	}
@@ -124,13 +133,13 @@ public:
 	}
 
 	template <int index>
-	auto& fieldAt() & noexcept
+	constexpr auto& fieldAt() & noexcept
 	{
 		return std::get<index>(_fields);
 	}
 
 	template <int index>
-	const auto& fieldAt() const & noexcept
+	constexpr const auto& fieldAt() const & noexcept
 	{
 		return std::get<index>(_fields);
 	}
