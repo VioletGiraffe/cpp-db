@@ -49,6 +49,45 @@ TEST_CASE("Filling empty DbFileGaps benchmark", "[.benchmark][dbfilegaps]") {
 	}
 }
 
+TEST_CASE("Gap consolidation benchmark", "[.benchmark][dbfilegaps]") {
+	try {
+		BENCHMARK_ADVANCED("Effective gap consolidation")(Catch::Benchmark::Chronometer meter) {
+			FileAllocationManager fam;
+			RandomNumberGenerator<uint64_t> rng(0, 1, 1000000000);
+			constexpr size_t n = 500000;
+			for (uint64_t i = 0, offset = 0, length = rng.rand(); i < n; ++i)
+			{
+				fam.registerGap(offset, length);
+				offset += length;
+				length = rng.rand();
+			}
+
+			meter.measure([&] { fam.consolidateGaps(); return fam.size(); });
+
+			CHECK(fam.size() == 1);
+		};
+
+		BENCHMARK_ADVANCED("Ineffective gap consolidation")(Catch::Benchmark::Chronometer meter) {
+			FileAllocationManager fam;
+			RandomNumberGenerator<uint64_t> rng(0, 1, 1000000000);
+			constexpr size_t n = 500000;
+			for (uint64_t i = 0, offset = 0, length = rng.rand(); i < n; ++i)
+			{
+				fam.registerGap(offset, length);
+				offset += length + 1;
+				length = rng.rand();
+			}
+
+			meter.measure([&] { fam.consolidateGaps(); return fam.size(); });
+
+			CHECK(fam.size() == n);
+		};
+	}
+	catch (...) {
+		FAIL();
+	}
+}
+
 TEST_CASE("Taking 250 out of 10000 equal length gaps", "[.benchmark][dbfilegaps]") {
 	try {
 
