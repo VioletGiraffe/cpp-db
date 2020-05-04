@@ -52,13 +52,12 @@ inline void dbRecord_checks()
 inline void dbField_checks()
 {
 	using F3 = Field<long double, 4>;
-	using F_ull = Field<uint64_t, 4>;
 	using Fs = Field<std::string, 42>;
 
-	constexpr F3 f3 = 3.14;
-	static_assert(f3.value == 3.14);
+	constexpr F3 f3 = 3.14L;
+	static_assert(f3.value == 3.14L);
 	constexpr auto f3_copy = f3;
-	static_assert(f3_copy.value == 3.14);
+	static_assert(f3_copy.value == 3.14L);
 
 	Fs fs{ std::string{"abc"} };
 	const auto copy = fs;
