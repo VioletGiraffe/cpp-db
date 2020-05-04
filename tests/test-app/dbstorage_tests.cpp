@@ -5,7 +5,7 @@
 
 #include <vector>
 
-std::string randomString(size_t n)
+static std::string randomString(size_t n)
 {
 	std::string str;
 	str.reserve(n);

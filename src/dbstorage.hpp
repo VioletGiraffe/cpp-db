@@ -63,7 +63,7 @@ public:
 
 			if constexpr (FieldType::sizeKnownAtCompileTime())
 			{
-				static_assert(is_trivially_serializable_v<FieldType::ValueType>);
+				static_assert(is_trivially_serializable_v<typename FieldType::ValueType>);
 				::memcpy(std::addressof(field.value), buffer.data() + bufferOffset, FieldType::staticSize());
 				bufferOffset += FieldType::staticSize();
 			}
