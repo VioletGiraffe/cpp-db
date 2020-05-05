@@ -66,6 +66,7 @@ SOURCES += tests_main.cpp \
 	dbindices_test.cpp \
 	dbrecord_tests.cpp \
 	dbstorage_tests.cpp \
+	dbwal_tests.cpp \
 	index_test_helpers.cpp
 
 HEADERS += \

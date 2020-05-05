@@ -61,6 +61,7 @@ HEADERS += \
 	src/cppDb_compile_time_sanity_checks.hpp \
 	src/dbfield_size_helpers.hpp \
 	src/dbrecord.hpp \
+	src/dbwal.hpp \
 	src/fileallocationmanager.hpp \
 	src/index/dbindex.hpp \
 	src/index/dbindices.hpp \

@@ -1,10 +1,13 @@
 #pragma once
 
 #include "utility/template_magic.hpp"
+#include "dbfield_size_helpers.hpp"
 
 #include <stddef.h>
 #include <type_traits>
 #include <utility>
+#include <vector>
+
 
 ////////////////////////////////////////////////////////////////////
 //              VALUE SIZE                                        //
@@ -13,8 +16,8 @@
 // Specialize this function for a custom dynamically-sized type
 // to use this type in a Field
 
-template<typename T>
-size_t valueSize(const T& /*value*/);
+//template<typename T>
+//size_t valueSize(const T& /*value*/) noexcept;
 
 // A sample implementation for std::string
 /*
@@ -24,22 +27,27 @@ size_t valueSize(const T& /*value*/);
 	}
 */
 
+////////////////////////////////////////////////////////////////////
 
-template <typename T, auto fieldId>
+
+template <typename T, auto fieldId, bool is_array = false>
 struct Field {
-	using ValueType = T;
+
+	/// Traits
+	using ValueType = std::conditional_t<is_array, std::vector<T>, T>;
+
 	static constexpr auto id = fieldId;
+	static constexpr bool isField() noexcept { return true; }
+	static constexpr bool isArray() noexcept { return is_array; }
+	///
 
 	constexpr Field() noexcept = default;
-	constexpr Field(const Field& other) = default;
-	constexpr Field(Field&& other) noexcept = default;
-
-	constexpr Field(T val) noexcept : value{ std::move(val) }
+	constexpr Field(ValueType val) noexcept : value{ std::move(val) }
 	{}
 
 	static constexpr bool sizeKnownAtCompileTime() noexcept
 	{
-		return std::is_trivial_v<ValueType> && std::is_standard_layout_v<ValueType>;
+		return !isArray() && std::is_trivial_v<ValueType> && std::is_standard_layout_v<ValueType>;
 	}
 
 	static constexpr size_t staticSize() noexcept
@@ -56,14 +64,8 @@ struct Field {
 			return ::valueSize(value);
 	}
 
-	bool operator<(const Field& other) const noexcept
+	static constexpr bool isSuitableForTombstone() noexcept
 	{
-		return value < other.value;
-	}
-
-	static constexpr bool isField() noexcept { return true; }
-
-	static constexpr bool isSuitableForTombstone() noexcept {
 		return std::is_trivial_v<ValueType> && sizeKnownAtCompileTime();
 	}
 
@@ -72,11 +74,21 @@ struct Field {
 		return value == other.value;
 	}
 
+	constexpr bool operator!=(const Field& other) const noexcept
+	{
+		return !operator==(other);
+	}
+
+	constexpr bool operator<(const Field& other) const noexcept
+	{
+		return value < other.value;
+	}
+
 public:
-	T value {};
+	ValueType value {};
 
 private:
-	static_assert(!sizeKnownAtCompileTime() || std::is_trivial_v<T>);
+	static_assert(!sizeKnownAtCompileTime() || std::is_trivial_v<ValueType>);
 };
 
 //
