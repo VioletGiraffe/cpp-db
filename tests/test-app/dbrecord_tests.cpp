@@ -45,6 +45,12 @@ TEST_CASE("DbRecord - construction from a pack of values", "[dbrecord]") {
 			CHECK(singleDynamicField.fieldValue<Fs>() == "def");
 			CHECK(singleDynamicField.fieldAt<0>().value == "def");
 		}
+
+		{
+			DbRecord<NoTombstone, Field<std::string, 564, true>> dynamicFieldArray;
+			dynamicFieldArray.fieldAt<0>().value.emplace_back("def");
+			CHECK(dynamicFieldArray.fieldAt<0>().value == std::vector{ std::string{"def"} });
+		}
 	}
 	catch (...) {
 		FAIL();

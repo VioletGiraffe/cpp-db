@@ -25,5 +25,4 @@ TEST_CASE("Compilation tests", "[cpp-db]") {
 	CHECK(arr.fieldSize() == 4);
 	arr.value.emplace_back(123);
 	CHECK(arr.fieldSize() == 4 + 2);
-	
 }

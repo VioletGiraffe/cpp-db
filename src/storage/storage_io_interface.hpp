@@ -17,18 +17,23 @@ struct StorageIO
 {
 	bool open(std::string filePath, const io::OpenMode mode);
 
-	template <typename T, auto id>
-	bool writeField(const Field<T, id>& field, const std::optional<uint64_t> position = {}) noexcept;
-	template <typename T, auto id>
-	bool readField(Field<T, id>& field, const std::optional<uint64_t> position = {}) noexcept;
+	template<typename T, auto id, bool isArray>
+	bool writeField(const Field<T, id, isArray>& field, const std::optional<uint64_t> position = {}) noexcept;
+	template<typename T, auto id, bool isArray>
+	bool readField(Field<T, id, isArray>& field, const std::optional<uint64_t> position = {}) noexcept;
 
-	template <typename T, typename = std::enable_if_t<!std::is_pointer_v<T>>>
+	template <typename T, typename = std::enable_if_t<!std::is_pointer_v<T> && is_trivially_serializable_v<T>>>
 	bool read(T& value, const std::optional<uint64_t> position = {}) noexcept;
-	template <typename T, typename = std::enable_if_t<!std::is_pointer_v<T>>>
+	template <typename T, typename = std::enable_if_t<!std::is_pointer_v<T> && is_trivially_serializable_v<T>>>
 	bool write(T&& value, const std::optional<uint64_t> position = {}) noexcept;
 
 	bool read(std::string& value, const std::optional<uint64_t> position = {}) noexcept;
 	bool write(const std::string& value, const std::optional<uint64_t> position = {}) noexcept;
+
+	template <typename T>
+	bool read(std::vector<T>& v, const std::optional<uint64_t> position = {}) noexcept;
+	template <typename T>
+	bool write(const std::vector<T>& v, const std::optional<uint64_t> position = {}) noexcept;
 
 	bool read(void* const dataPtr, uint64_t size) noexcept;
 	bool write(const void* const dataPtr, uint64_t size) noexcept;
@@ -65,16 +70,16 @@ bool StorageIO<IOAdapter>::open(std::string filePath, const io::OpenMode mode)
 }
 
 template<typename IOAdapter>
-template<typename T, auto id>
-bool StorageIO<IOAdapter>::writeField(const Field<T, id>& field, const std::optional<uint64_t> position) noexcept
+template<typename T, auto id, bool isArray>
+bool StorageIO<IOAdapter>::writeField(const Field<T, id, isArray>& field, const std::optional<uint64_t> position) noexcept
 {
 	if constexpr (field.sizeKnownAtCompileTime()) static_assert(sizeof(std::remove_reference_t<T>) == field.staticSize());
 	return write(field.value, position);
 }
 
 template<typename IOAdapter>
-template<typename T, auto id>
-bool StorageIO<IOAdapter>::readField(Field<T, id>& field, const std::optional<uint64_t> position) noexcept
+template<typename T, auto id, bool isArray>
+bool StorageIO<IOAdapter>::readField(Field<T, id, isArray>& field, const std::optional<uint64_t> position) noexcept
 {
 	if constexpr (field.sizeKnownAtCompileTime()) static_assert(sizeof(std::remove_reference_t<T>) == field.staticSize());
 	return read(field.value, position);
@@ -123,6 +128,45 @@ bool StorageIO<IOAdapter>::write(const std::string& str, const std::optional<uin
 	assert_and_return_r(checkedWrite(dataSize), false);
 
 	return _io.write(str.data(), dataSize);
+}
+
+template<typename IOAdapter>
+template <typename T>
+bool StorageIO<IOAdapter>::read(std::vector<T>& v, const std::optional<uint64_t> position) noexcept
+{
+	if (position)
+		assert_and_return_r(_io.seek(*position), false);
+
+	uint32_t nItems = 0;
+	assert_and_return_r(checkedRead(nItems), false);
+
+	v.resize(nItems);
+	for (size_t i = 0; i < nItems; ++i)
+	{
+		if (this->read(v[i]) == false)
+			return false;
+	}
+
+	return true;
+}
+
+template<typename IOAdapter>
+template <typename T>
+bool StorageIO<IOAdapter>::write(const std::vector<T>& v, const std::optional<uint64_t> position) noexcept
+{
+	if (position)
+		assert_and_return_r(_io.seek(*position), false);
+
+	const uint32_t nItems = static_cast<uint32_t>(v.size());
+	assert_and_return_r(checkedWrite(nItems), false);
+
+	for (size_t i = 0; i < nItems; ++i)
+	{
+		if (this->write(v[i]) == false)
+			return false;
+	}
+
+	return true;
 }
 
 template<typename IOAdapter>

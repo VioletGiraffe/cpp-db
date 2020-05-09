@@ -8,14 +8,7 @@
 #include <string>
 #include <vector>
 
-// Specialize this function for a custom dynamically-sized type
-// to use this type in a Field
-
-template<typename T>
-size_t valueSize(const T& /*value*/) noexcept;
-
-template<>
-inline size_t valueSize<std::string>(const std::string& value) noexcept
+inline size_t valueSize(const std::string& value) noexcept
 {
 	assert_debug_only(value.size() < std::numeric_limits<uint32_t>::max());
 	return sizeof(uint32_t) /* 4 bytes for storing the string's length */ + value.size();
