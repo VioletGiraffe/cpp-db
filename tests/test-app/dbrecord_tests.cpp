@@ -17,9 +17,9 @@ TEST_CASE("DbRecord - construction from a pack of values", "[dbrecord]") {
 			CHECK(record.fieldValue<Fi>() == 123);
 			CHECK(record.fieldValue<Fs>() == "abc");
 
-			CHECK(record.fieldAt<0>().value == 3.14);
-			CHECK(record.fieldAt<1>().value == 123);
-			CHECK(record.fieldAt<2>().value == "abc");
+			CHECK(record.fieldAtIndex<0>().value == 3.14);
+			CHECK(record.fieldAtIndex<1>().value == 123);
+			CHECK(record.fieldAtIndex<2>().value == "abc");
 		}
 
 		{
@@ -27,8 +27,8 @@ TEST_CASE("DbRecord - construction from a pack of values", "[dbrecord]") {
 			static_assert(record2.fieldValue<Fd>() == 3.14);
 			static_assert(record2.fieldValue<Fi>() == 123);
 
-			static_assert(record2.fieldAt<0>().value == 3.14);
-			static_assert(record2.fieldAt<1>().value == 123);
+			static_assert(record2.fieldAtIndex<0>().value == 3.14);
+			static_assert(record2.fieldAtIndex<1>().value == 123);
 		}
 
 		{
@@ -43,13 +43,13 @@ TEST_CASE("DbRecord - construction from a pack of values", "[dbrecord]") {
 		{
 			const DbRecord<NoTombstone, Fs> singleDynamicField{ "def" };
 			CHECK(singleDynamicField.fieldValue<Fs>() == "def");
-			CHECK(singleDynamicField.fieldAt<0>().value == "def");
+			CHECK(singleDynamicField.fieldAtIndex<0>().value == "def");
 		}
 
 		{
 			DbRecord<NoTombstone, Field<std::string, 564, true>> dynamicFieldArray;
-			dynamicFieldArray.fieldAt<0>().value.emplace_back("def");
-			CHECK(dynamicFieldArray.fieldAt<0>().value == std::vector{ std::string{"def"} });
+			dynamicFieldArray.fieldAtIndex<0>().value.emplace_back("def");
+			CHECK(dynamicFieldArray.fieldAtIndex<0>().value == std::vector{ std::string{"def"} });
 		}
 	}
 	catch (...) {
@@ -124,25 +124,25 @@ TEST_CASE("DbRecord - basic functionality", "[dbrecord]") {
 		record.fieldValue<F3>() = 3.14;
 		record.fieldValue<F_ull>() = 42;
 		CHECK(record.totalSize() == record.staticFieldsSize() + stringCharacterCountFieldSize);
-		CHECK(record.fieldAt<0>().value == 3.14);
+		CHECK(record.fieldAtIndex<0>().value == 3.14);
 		static_assert(record.staticFieldsSize() == sizeof(uint64_t) + sizeof(double));
 
 		record.fieldValue<Fs>() = "abcd";
 		CHECK(record.totalSize() == record.staticFieldsSize() + 4 + stringCharacterCountFieldSize);
-		CHECK(record.fieldAt<0>().value == 3.14);
-		CHECK(record.fieldAt<1>().value == 42);
-		CHECK(record.fieldAt<2>().value == std::string{ "abcd" });
+		CHECK(record.fieldAtIndex<0>().value == 3.14);
+		CHECK(record.fieldAtIndex<1>().value == 42);
+		CHECK(record.fieldAtIndex<2>().value == std::string{ "abcd" });
 
-		record.fieldAt<1>().value = std::numeric_limits<uint64_t>::max() - 5;
-		CHECK(record.fieldAt<0>().value == 3.14);
-		CHECK(record.fieldAt<1>().value == std::numeric_limits<uint64_t>::max() - 5);
-		CHECK(record.fieldAt<2>().value == std::string{ "abcd" });
+		record.fieldAtIndex<1>().value = std::numeric_limits<uint64_t>::max() - 5;
+		CHECK(record.fieldAtIndex<0>().value == 3.14);
+		CHECK(record.fieldAtIndex<1>().value == std::numeric_limits<uint64_t>::max() - 5);
+		CHECK(record.fieldAtIndex<2>().value == std::string{ "abcd" });
 		CHECK(record.totalSize() == record.staticFieldsSize() + 4 + stringCharacterCountFieldSize);
 
 		const auto copy = record;
-		CHECK(copy.fieldAt<0>().value == 3.14);
-		CHECK(copy.fieldAt<1>().value == std::numeric_limits<uint64_t>::max() - 5);
-		CHECK(copy.fieldAt<2>().value == std::string{ "abcd" });
+		CHECK(copy.fieldAtIndex<0>().value == 3.14);
+		CHECK(copy.fieldAtIndex<1>().value == std::numeric_limits<uint64_t>::max() - 5);
+		CHECK(copy.fieldAtIndex<2>().value == std::string{ "abcd" });
 		CHECK(copy.totalSize() == record.staticFieldsSize() + 4 + stringCharacterCountFieldSize);
 
 		DbRecord<Tombstone<F3, std::numeric_limits<uint64_t>::max()>, F3> doubleRecord;

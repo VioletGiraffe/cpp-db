@@ -148,12 +148,12 @@ TEST_CASE("DbStorage - basic functionality, arrays of static items", "[dbstorage
 			auto& newRecord = reference.emplace_back();
 
 			constexpr auto nArrayItems = N / 10;
-			newRecord.fieldAt<0>().value.reserve(nArrayItems);
-			newRecord.fieldAt<1>().value.reserve(nArrayItems);
+			newRecord.fieldAtIndex<0>().value.reserve(nArrayItems);
+			newRecord.fieldAtIndex<1>().value.reserve(nArrayItems);
 			for (size_t k = 0; k < nArrayItems; ++k)
 			{
-				newRecord.fieldAt<0>().value.emplace_back(rand());
-				newRecord.fieldAt<1>().value.emplace_back(static_cast<float>(rand()) / static_cast<float>(rand()));
+				newRecord.fieldAtIndex<0>().value.emplace_back(rand());
+				newRecord.fieldAtIndex<1>().value.emplace_back(static_cast<float>(rand()) / static_cast<float>(rand()));
 			}
 
 			if (!storage.writeRecord(newRecord, offset))
@@ -210,12 +210,12 @@ TEST_CASE("DbStorage - basic functionality, arrays of strings", "[dbstorage]") {
 			auto& newRecord = reference.emplace_back();
 
 			constexpr auto nArrayItems = N / 10;
-			newRecord.fieldAt<0>().value.reserve(nArrayItems);
-			newRecord.fieldAt<1>().value.reserve(nArrayItems);
+			newRecord.fieldAtIndex<0>().value.reserve(nArrayItems);
+			newRecord.fieldAtIndex<1>().value.reserve(nArrayItems);
 			for (size_t k = 0; k < nArrayItems; ++k)
 			{
-				newRecord.fieldAt<0>().value.emplace_back(randomString(2));
-				newRecord.fieldAt<1>().value.emplace_back(randomString(1));
+				newRecord.fieldAtIndex<0>().value.emplace_back(randomString(2));
+				newRecord.fieldAtIndex<1>().value.emplace_back(randomString(1));
 			}
 
 			REQUIRE(newRecord.totalSize() == 4 + nArrayItems * (4 + 2) + 4 + nArrayItems * (4 + 1));

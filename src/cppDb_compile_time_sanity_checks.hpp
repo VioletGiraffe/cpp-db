@@ -45,8 +45,8 @@ inline void dbRecord_checks()
 	static_assert(recordConstexpr.fieldValue<Fd>() == 3.14);
 	static_assert(recordConstexpr.fieldValue<Fi>() == 123);
 
-	static_assert(recordConstexpr.fieldAt<0>().value == 3.14);
-	static_assert(recordConstexpr.fieldAt<1>().value == 123);
+	static_assert(recordConstexpr.fieldAtIndex<0>().value == 3.14);
+	static_assert(recordConstexpr.fieldAtIndex<1>().value == 123);
 }
 
 inline void dbField_checks()

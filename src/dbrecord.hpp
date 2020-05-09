@@ -133,13 +133,13 @@ public:
 	}
 
 	template <int index>
-	constexpr auto& fieldAt() & noexcept
+	constexpr auto& fieldAtIndex() & noexcept
 	{
 		return std::get<index>(_fields);
 	}
 
 	template <int index>
-	constexpr const auto& fieldAt() const & noexcept
+	constexpr const auto& fieldAtIndex() const & noexcept
 	{
 		return std::get<index>(_fields);
 	}
