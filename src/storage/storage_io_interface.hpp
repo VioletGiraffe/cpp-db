@@ -3,10 +3,10 @@
 #include "storage_helpers.hpp"
 #include "../dbfield.hpp"
 #include "assert/advanced_assert.h"
+#include "utility/extra_type_traits.hpp"
 
 #include <optional>
 #include <string>
-#include <type_traits>
 
 namespace io {
 	enum class OpenMode { Read, Write, ReadWrite };
@@ -22,10 +22,10 @@ struct StorageIO
 	template<typename T, auto id, bool isArray>
 	bool readField(Field<T, id, isArray>& field, const std::optional<uint64_t> position = {}) noexcept;
 
-	template <typename T, typename = std::enable_if_t<!std::is_pointer_v<T> && is_trivially_serializable_v<T>>>
+	template <typename T, typename = std::enable_if_t<!std::is_pointer_v<T>&& is_trivially_serializable_v<T>>>
 	bool read(T& value, const std::optional<uint64_t> position = {}) noexcept;
-	template <typename T, typename = std::enable_if_t<!std::is_pointer_v<T> && is_trivially_serializable_v<T>>>
-	bool write(T&& value, const std::optional<uint64_t> position = {}) noexcept;
+	template <typename T, typename = std::enable_if_t<!std::is_pointer_v<T>&& is_trivially_serializable_v<T>>>
+	bool write(const T& value, const std::optional<uint64_t> position = {}) noexcept;
 
 	bool read(std::string& value, const std::optional<uint64_t> position = {}) noexcept;
 	bool write(const std::string& value, const std::optional<uint64_t> position = {}) noexcept;
@@ -97,12 +97,12 @@ bool StorageIO<IOAdapter>::read(T& value, const std::optional<uint64_t> position
 
 template<typename IOAdapter>
 template<typename T, typename>
-bool StorageIO<IOAdapter>::write(T&& value, const std::optional<uint64_t> position) noexcept
+bool StorageIO<IOAdapter>::write(const T& value, const std::optional<uint64_t> position) noexcept
 {
 	if (position)
 		assert_and_return_r(_io.seek(*position), false);
 
-	return checkedWrite(std::forward<T>(value));
+	return checkedWrite(value);
 }
 
 template<typename IOAdapter>

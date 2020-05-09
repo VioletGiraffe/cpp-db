@@ -145,7 +145,7 @@ TEST_CASE("DbStorage - basic functionality, arrays of static items", "[dbstorage
 		bool success = true;
 		for (size_t i = 0; i < N; ++i)
 		{
-			auto& newRecord = reference.emplace_back(randomString(3), randomString(8));
+			auto& newRecord = reference.emplace_back();
 
 			constexpr auto nArrayItems = N / 10;
 			newRecord.fieldAt<0>().value.reserve(nArrayItems);
