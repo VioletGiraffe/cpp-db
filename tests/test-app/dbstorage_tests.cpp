@@ -186,3 +186,67 @@ TEST_CASE("DbStorage - basic functionality, arrays of static items", "[dbstorage
 		FAIL();
 	}
 }
+
+TEST_CASE("DbStorage - basic functionality, arrays of strings", "[dbstorage]") {
+	try {
+		using FS1 = Field<std::string, 1, true>;
+		using FS2 = Field<std::string, 2, true>;
+		using Record = DbRecord<NoTombstone, FS1, FS2>;
+		DBStorage<io::QMemoryDeviceAdapter, Record> storage;
+
+		storage.openStorageFile({});
+
+		constexpr size_t N = 200;
+
+		std::vector<Record> reference;
+		reference.reserve(N);
+
+		StorageLocation offset{ 0 };
+		REQUIRE(offset == 0);
+
+		bool success = true;
+		for (size_t i = 0; i < N; ++i)
+		{
+			auto& newRecord = reference.emplace_back();
+
+			constexpr auto nArrayItems = N / 10;
+			newRecord.fieldAt<0>().value.reserve(nArrayItems);
+			newRecord.fieldAt<1>().value.reserve(nArrayItems);
+			for (size_t k = 0; k < nArrayItems; ++k)
+			{
+				newRecord.fieldAt<0>().value.emplace_back(randomString(2));
+				newRecord.fieldAt<1>().value.emplace_back(randomString(1));
+			}
+
+			REQUIRE(newRecord.totalSize() == 4 + nArrayItems * (4 + 2) + 4 + nArrayItems * (4 + 1));
+
+			if (!storage.writeRecord(newRecord, offset))
+			{
+				success = false;
+				break;
+			}
+
+			offset.location += newRecord.totalSize();
+		}
+
+		REQUIRE(success);
+		offset.location = 0;
+
+		for (size_t i = 0; i < N; ++i)
+		{
+			Record r;
+			if (!storage.readRecord(r, offset) || !(r == reference[i]))
+			{
+				success = false;
+				break;
+			}
+
+			offset.location += r.totalSize();
+		}
+
+		REQUIRE(success);
+	}
+	catch (...) {
+		FAIL();
+	}
+}
