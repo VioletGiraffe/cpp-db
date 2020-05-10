@@ -109,7 +109,6 @@ TEST_CASE("DbRecord - static fields handling", "[dbrecord]") {
 
 
 TEST_CASE("DbRecord - basic functionality", "[dbrecord]") {
-
 	try {
 		using F3 = Field<double, 4>;
 		using F_ull = Field<uint64_t, 5>;
@@ -149,6 +148,28 @@ TEST_CASE("DbRecord - basic functionality", "[dbrecord]") {
 		static_assert(doubleRecord.hasTombstone());
 		CHECK(doubleRecord.isTombstoneValue(std::numeric_limits<uint64_t>::max()));
 		CHECK(!doubleRecord.isTombstoneValue(std::numeric_limits<uint64_t>::max() - 1));
+	}
+	catch (...) {
+		FAIL();
+	}
+}
+
+TEST_CASE("DbRecord - array fields", "[dbrecord]") {
+	try {
+		using F3 = Field<double, 4, true>;
+		using Fs = Field<std::string, 42, true>;
+
+		DbRecord<NoTombstone, F3, Fs> record;
+		static_assert(record.allFieldsHaveStaticSize() == false);
+		static_assert(record.staticFieldsCount() == 0);
+		static_assert(record.staticFieldsSize() == 0);
+
+		REQUIRE(record.totalSize() == 2 * 4);
+		record.fieldValue<F3>().emplace_back(3.14);
+		REQUIRE(record.totalSize() == 2 * 4 + sizeof(double));
+		record.fieldValue<Fs>().emplace_back("a");
+		record.fieldValue<Fs>().emplace_back("bc");
+		REQUIRE(record.totalSize() == 2 * 4 + sizeof(double) + 2 * 4 + 1 + 2);
 	}
 	catch (...) {
 		FAIL();

@@ -16,7 +16,7 @@ TEST_CASE("Compilation tests", "[cpp-db]") {
 	fs.value = "123";
 	CHECK(fs.fieldSize() == 4 + 3);
 
-	using Fa = Field<short, 0, true>;
+	using Fa = Field<int16_t, 0, true>;
 	Fa arr;
 	static_assert(Fa::isSuitableForTombstone() == false);
 	static_assert(Fa::sizeKnownAtCompileTime() == false);
@@ -25,4 +25,15 @@ TEST_CASE("Compilation tests", "[cpp-db]") {
 	CHECK(arr.fieldSize() == 4);
 	arr.value.emplace_back(123);
 	CHECK(arr.fieldSize() == 4 + 2);
+
+	Field<std::string, 42, true> strArray;
+	static_assert(strArray.isSuitableForTombstone() == false);
+	static_assert(strArray.sizeKnownAtCompileTime() == false);
+	static_assert(strArray.isArray() == true);
+
+	CHECK(strArray.fieldSize() == 4);
+	strArray.value.emplace_back("123");
+	CHECK(strArray.fieldSize() == 4 + 4 + 3);
+	strArray.value.emplace_back("a");
+	CHECK(strArray.fieldSize() == 4 + (4 + 3) + (4 + 1));
 }

@@ -218,8 +218,6 @@ TEST_CASE("DbStorage - basic functionality, arrays of strings", "[dbstorage]") {
 				newRecord.fieldAtIndex<1>().value.emplace_back(randomString(1));
 			}
 
-			REQUIRE(newRecord.totalSize() == 4 + nArrayItems * (4 + 2) + 4 + nArrayItems * (4 + 1));
-
 			if (!storage.writeRecord(newRecord, offset))
 			{
 				success = false;
@@ -230,6 +228,8 @@ TEST_CASE("DbStorage - basic functionality, arrays of strings", "[dbstorage]") {
 		}
 
 		REQUIRE(success);
+		REQUIRE(reference.front().totalSize() == 4 + reference.front().fieldValue<FS1>().size() * (4 + 2) + 4 + reference.front().fieldValue<FS2>().size() * (4 + 1));
+
 		offset.location = 0;
 
 		for (size_t i = 0; i < N; ++i)
