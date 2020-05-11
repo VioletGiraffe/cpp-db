@@ -10,6 +10,8 @@ enum class Operation {
 template <auto Op>
 struct DbOperation
 {
+protected:
+
 };
 
 struct OpInsert final : public DbOperation<Operation::Insert>
