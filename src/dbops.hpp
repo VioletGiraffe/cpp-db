@@ -7,26 +7,60 @@ enum class Operation {
 	Delete
 };
 
-template <auto Op>
-struct DbOperation
+struct OpInsert
 {
-protected:
+	static constexpr auto op = Operation::Insert;
 
+	template <class Wal>
+	bool commitToWal(Wal&);
+
+	template <class Index>
+	bool commitToIndex(Index& index);
+
+	template <class Storage>
+	bool commitToStorage(Storage& index);
 };
 
-struct OpInsert final : public DbOperation<Operation::Insert>
+struct OpFind
 {
+	static constexpr auto op = Operation::Find;
+
+	template <class Wal>
+	bool commitToWal(Wal&);
+
+	template <class Index>
+	bool commitToIndex(Index& index);
+
+	template <class Storage>
+	bool commitToStorage(Storage& index);
 };
 
-struct OpFind final : public DbOperation<Operation::Find>
+struct OpUpdate
 {
-};
+	static constexpr auto op = Operation::Update;
 
-struct OpUpdate final : public DbOperation<Operation::Update>
-{
 	bool insertIfNotPresent = false;
+
+	template <class Wal>
+	bool commitToWal(Wal&);
+
+	template <class Index>
+	bool commitToIndex(Index& index);
+
+	template <class Storage>
+	bool commitToStorage(Storage& index);
 };
 
-struct OpDelete final : public DbOperation<Operation::Delete>
+struct OpDelete
 {
+	static constexpr auto op = Operation::Delete;
+
+	template <class Wal>
+	bool commitToWal(Wal&);
+
+	template <class Index>
+	bool commitToIndex(Index& index);
+
+	template <class Storage>
+	bool commitToStorage(Storage& index);
 };
