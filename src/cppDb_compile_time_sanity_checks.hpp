@@ -63,6 +63,17 @@ inline void dbField_checks()
 	const auto copy = fs;
 }
 
+inline void dbWal_checks()
+{
+	using F3 = Field<double, 4>;
+	using F_ull = Field<uint64_t, 5>;
+	using Fs = Field<std::string, 42>;
+
+	using Record = DbRecord<Tombstone<F_ull, std::numeric_limits<uint64_t>::max()>, F3, F_ull, Fs>;
+
+	DbWAL<Record, io::QMemoryDeviceAdapter> wal;
+}
+
 inline void cppDb_compileTimeChecks()
 {
 	volatile int guard = 0;
@@ -165,4 +176,5 @@ inline void cppDb_compileTimeChecks()
 	f1Index1.removeAllValueLocations(5);
 
 	dbRecord_checks();
+	dbWal_checks();
 }

@@ -7,6 +7,7 @@
 #include "index/dbindex.hpp"
 #include "index/dbindices.hpp"
 #include "dbstorage.hpp"
+#include "dbwal.hpp"
 
 #include "parameter_pack/parameter_pack_helpers.hpp"
 #include "assert/advanced_assert.h"
