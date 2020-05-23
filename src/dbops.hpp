@@ -1,66 +1,31 @@
 #pragma once
 
-enum class Operation {
-	Insert,
-	Find,
-	Update,
-	Delete
-};
+namespace Operation {
 
-struct OpInsert
-{
-	static constexpr auto op = Operation::Insert;
+	template <class Record>
+	struct Insert
+	{
+		static constexpr auto op = __LINE__;
+	};
 
-	template <class Wal>
-	bool commitToWal(Wal&);
+	template <class Record>
+	struct Find
+	{
+		static constexpr auto op = __LINE__;
+	};
 
-	template <class Index>
-	bool commitToIndex(Index& index);
+	template <class Record>
+	struct Update
+	{
+		static constexpr auto op = __LINE__;
 
-	template <class Storage>
-	bool commitToStorage(Storage& index);
-};
+		bool insertIfNotPresent = false;
+	};
 
-struct OpFind
-{
-	static constexpr auto op = Operation::Find;
+	template <class Record>
+	struct Delete
+	{
+		static constexpr auto op = __LINE__;
+	};
 
-	template <class Wal>
-	bool commitToWal(Wal&);
-
-	template <class Index>
-	bool commitToIndex(Index& index);
-
-	template <class Storage>
-	bool commitToStorage(Storage& index);
-};
-
-struct OpUpdate
-{
-	static constexpr auto op = Operation::Update;
-
-	bool insertIfNotPresent = false;
-
-	template <class Wal>
-	bool commitToWal(Wal&);
-
-	template <class Index>
-	bool commitToIndex(Index& index);
-
-	template <class Storage>
-	bool commitToStorage(Storage& index);
-};
-
-struct OpDelete
-{
-	static constexpr auto op = Operation::Delete;
-
-	template <class Wal>
-	bool commitToWal(Wal&);
-
-	template <class Index>
-	bool commitToIndex(Index& index);
-
-	template <class Storage>
-	bool commitToStorage(Storage& index);
-};
+}
