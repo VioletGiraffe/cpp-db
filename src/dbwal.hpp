@@ -1,5 +1,6 @@
 #pragma once
 
+#include "dbops.hpp"
 #include "storage/storage_io_interface.hpp"
 
 #include <vector>
