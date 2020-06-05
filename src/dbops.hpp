@@ -49,6 +49,7 @@ namespace Operation {
 		static_assert(Record::isRecord());
 		static_assert(Record::template has_field_v<KeyField>);
 		static_assert(Record::template has_field_v<ArrayField>);
+		static_assert(ArrayField::isArray());
 
 		static constexpr auto op = jenkins_hash("AppendToArray");
 
