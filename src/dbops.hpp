@@ -7,18 +7,13 @@ namespace Operation {
 	template <class Record>
 	struct Insert
 	{
+		static_assert(Record::isRecord());
+
 		static constexpr auto op = jenkins_hash("Insert");
 
 		explicit Insert(Record r) noexcept : _record{ std::move(r) } {}
-		const auto& record() const & noexcept
-		{
-			return _record;
-		}
 
-	private:
 		const Record _record;
-
-		static_assert(Record::isRecord());
 	};
 
 	template <typename... Fields>
@@ -32,12 +27,37 @@ namespace Operation {
 		const std::tuple<Fields...> _fields;
 	};
 
-	template <class Record>
-	struct Update
+	template <class Record, class KeyField, bool InsertIfNotPresent = false>
+	struct UpdateFull
 	{
-		static constexpr auto op = jenkins_hash("Update");
+		static_assert(Record::isRecord());
+		static_assert(Record::template has_field_v<KeyField>);
 
-		bool insertIfNotPresent = false;
+		static constexpr auto op = jenkins_hash("UpdateFull");
+		static constexpr bool insertIfNotPresent = InsertIfNotPresent;
+
+		UpdateFull(Record r, typename KeyField::ValueType key, bool insert = false) noexcept : record{std::move(r)}, keyValue{std::move(key)}, insertIfNotPresent{insert}
+		{}
+
+		const Record record;
+		const typename KeyField::ValueType keyValue;
+	};
+
+	template <class Record, class KeyField, class ArrayField, bool InsertIfNotPresent = false>
+	struct AppendToArray
+	{
+		static_assert(Record::isRecord());
+		static_assert(Record::template has_field_v<KeyField>);
+		static_assert(Record::template has_field_v<ArrayField>);
+
+		static constexpr auto op = jenkins_hash("AppendToArray");
+
+		AppendToArray(KeyField k, ArrayField a, Record r = {}) noexcept : key{std::move(k)}, array{std::move(a)}, record{std::move(r)}
+		{}
+
+		const KeyField key;
+		const ArrayField array;
+		const Record record;
 	};
 
 	template <class Record>

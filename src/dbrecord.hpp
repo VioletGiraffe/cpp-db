@@ -150,7 +150,8 @@ public:
 	}
 
 	template <typename U>
-	static constexpr bool isTombstoneValue(U&& value) noexcept {
+	static constexpr bool isTombstoneValue(U&& value) noexcept
+	{
 		return TombstoneField::isTombstoneValue(std::forward<U>(value));
 	}
 
@@ -158,6 +159,9 @@ public:
 	{
 		return _fields == other._fields;
 	}
+
+	template <typename F>
+	static constexpr bool has_field_v = pack::has_type_v<F, FieldsSequence...>;
 
 //
 // All the junk below is for compile-time correctness validation only.
