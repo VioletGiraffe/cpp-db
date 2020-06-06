@@ -11,7 +11,8 @@ namespace Operation {
 
 		static constexpr auto op = jenkins_hash("Insert");
 
-		explicit Insert(Record r) noexcept : _record{ std::move(r) } {}
+		explicit Insert(Record r) noexcept : _record{ std::move(r) }
+		{}
 
 		const Record _record;
 	};
@@ -21,7 +22,8 @@ namespace Operation {
 	{
 		static constexpr auto op = jenkins_hash("Find");
 		template <typename... V>
-		explicit Find(V&&... values) noexcept : _fields(std::forward<V>(values)...) {}
+		explicit Find(V&&... values) noexcept : _fields(std::forward<V>(values)...)
+		{}
 
 	private:
 		const std::tuple<Fields...> _fields;
@@ -36,7 +38,7 @@ namespace Operation {
 		static constexpr auto op = jenkins_hash("UpdateFull");
 		static constexpr bool insertIfNotPresent = InsertIfNotPresent;
 
-		UpdateFull(Record r, typename KeyField::ValueType key, bool insert = false) noexcept : record{std::move(r)}, keyValue{std::move(key)}, insertIfNotPresent{insert}
+		explicit UpdateFull(typename KeyField::ValueType key, Record r = {}) noexcept : record{ std::move(r) }, keyValue{ std::move(key) }
 		{}
 
 		const Record record;
@@ -61,10 +63,18 @@ namespace Operation {
 		const Record record;
 	};
 
-	template <class Record>
+	template <class Record, class KeyField>
 	struct Delete
 	{
+		static_assert(Record::isRecord());
+		static_assert(Record::template has_field_v<KeyField>);
+
 		static constexpr auto op = jenkins_hash("Delete");
+
+		explicit Delete(typename KeyField::ValueType k) noexcept : key{ std::move(k) }
+		{}
+
+		const KeyField key;
 	};
 
 }
