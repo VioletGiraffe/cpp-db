@@ -10,6 +10,7 @@ class DbWAL
 
 public:
 	[[nodiscard]] bool openLogFile(const std::string& filePath);
+	[[nodiscard]] bool verifyLog(const std::string& filePath);
 
 	template <class Operation, sfinae<Operation::op == Operation::Insert::op> = true>
 	[[nodiscard]] bool registerOp(const Operation& op);

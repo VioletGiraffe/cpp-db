@@ -1,6 +1,14 @@
 #pragma once
 
-#include "hash/jenkins_hash.hpp"
+#include <stdint.h>
+
+enum class OpCode : uint8_t {
+	Insert,
+	Find,
+	UpdateFull,
+	AppendToArray,
+	Delete
+};
 
 namespace Operation {
 
@@ -9,7 +17,7 @@ namespace Operation {
 	{
 		static_assert(Record::isRecord());
 
-		static constexpr auto op = jenkins_hash("Insert");
+		static constexpr auto op = OpCode::Insert;
 
 		explicit Insert(Record r) noexcept : _record{ std::move(r) }
 		{}
@@ -20,7 +28,7 @@ namespace Operation {
 	template <typename... Fields>
 	struct Find
 	{
-		static constexpr auto op = jenkins_hash("Find");
+		static constexpr auto op = OpCode::Find;
 		template <typename... V>
 		explicit Find(V&&... values) noexcept : _fields(std::forward<V>(values)...)
 		{}
@@ -35,7 +43,7 @@ namespace Operation {
 		static_assert(Record::isRecord());
 		static_assert(Record::template has_field_v<KeyField>);
 
-		static constexpr auto op = jenkins_hash("UpdateFull");
+		static constexpr auto op = OpCode::UpdateFull;
 		static constexpr bool insertIfNotPresent = InsertIfNotPresent;
 
 		explicit UpdateFull(typename KeyField::ValueType key, Record r = {}) noexcept : record{ std::move(r) }, keyValue{ std::move(key) }
@@ -53,7 +61,7 @@ namespace Operation {
 		static_assert(Record::template has_field_v<ArrayField>);
 		static_assert(ArrayField::isArray());
 
-		static constexpr auto op = jenkins_hash("AppendToArray");
+		static constexpr auto op = OpCode::AppendToArray;
 
 		AppendToArray(KeyField k, ArrayField a, Record r = {}) noexcept : key{std::move(k)}, array{std::move(a)}, record{std::move(r)}
 		{}
@@ -69,7 +77,7 @@ namespace Operation {
 		static_assert(Record::isRecord());
 		static_assert(Record::template has_field_v<KeyField>);
 
-		static constexpr auto op = jenkins_hash("Delete");
+		static constexpr auto op = OpCode::Delete;
 
 		explicit Delete(typename KeyField::ValueType k) noexcept : key{ std::move(k) }
 		{}
