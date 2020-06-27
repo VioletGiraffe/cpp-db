@@ -38,6 +38,12 @@ inline bool DbWAL<Record, StorageAdapter>::openLogFile(const std::string& filePa
 }
 
 template<class Record, class StorageAdapter>
+inline bool DbWAL<Record, StorageAdapter>::verifyLog(const std::string& filePath)
+{
+	return false;
+}
+
+template<class Record, class StorageAdapter>
 template<class Operation, sfinae<Operation::op == Operation::Insert::op>>
 inline bool DbWAL<Record, StorageAdapter>::registerOp(const Operation& op)
 {

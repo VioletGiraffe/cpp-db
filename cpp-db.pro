@@ -70,6 +70,11 @@ HEADERS += \
 	src/index_helpers.hpp \
 	src/dbfield.hpp \
 	src/dbstorage.hpp \
+	src/ops/op_append.hpp \
+	src/ops/op_delete.hpp \
+	src/ops/op_find.hpp \
+	src/ops/op_insert.hpp \
+	src/ops/op_update.hpp \
 	src/storage/storage_helpers.hpp \
 	src/storage/storage_io_interface.hpp \
 	src/storage/storage_qt.hpp
