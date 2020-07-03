@@ -7,7 +7,7 @@ win*{
 CONFIG += staticlib
 QT = core
 
-CONFIG += strict_c++ c++1z
+CONFIG += strict_c++ c++2a
 
 mac* | linux*{
 	CONFIG(release, debug|release):CONFIG *= Release optimize_full
@@ -30,7 +30,7 @@ RCC_DIR     = ../build/$${OUTPUT_DIR}/$${TARGET}
 
 win*{
 	QMAKE_CXXFLAGS += /MP /Zi /FS
-	QMAKE_CXXFLAGS += /std:c++latest /permissive- /Zc:__cplusplus
+	QMAKE_CXXFLAGS += /std:c++latest /permissive- /Zc:__cplusplus /Zc:char8_t
 	DEFINES += WIN32_LEAN_AND_MEAN NOMINMAX
 	QMAKE_CXXFLAGS += /wd4251
 	QMAKE_CXXFLAGS_WARN_ON = /W4
@@ -62,6 +62,7 @@ HEADERS += \
 	src/dbfield_size_helpers.hpp \
 	src/dbops.hpp \
 	src/dbrecord.hpp \
+	src/dbschema.hpp \
 	src/dbwal.hpp \
 	src/fileallocationmanager.hpp \
 	src/index/dbindex.hpp \
@@ -75,6 +76,7 @@ HEADERS += \
 	src/ops/op_find.hpp \
 	src/ops/op_insert.hpp \
 	src/ops/op_update.hpp \
+	src/ops/operation_serializer.hpp \
 	src/storage/storage_helpers.hpp \
 	src/storage/storage_io_interface.hpp \
 	src/storage/storage_qt.hpp

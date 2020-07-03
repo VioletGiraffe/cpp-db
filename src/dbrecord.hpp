@@ -62,6 +62,11 @@ public:
 	template <size_t index>
 	using FieldTypeByIndex_t = pack::type_by_index<index, FieldsSequence...>;
 
+	template <auto id>
+	using FieldById_t = ::FieldById_t<id, FieldsSequence...>;
+
+	using Fields = type_pack<FieldsSequence...>;
+
 public:
 	constexpr DbRecord() = default;
 

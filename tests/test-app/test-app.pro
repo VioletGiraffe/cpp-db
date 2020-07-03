@@ -24,7 +24,7 @@ Release:OUTPUT_DIR=bin/release/$${ARCHITECTURE}
 Debug:OUTPUT_DIR=bin/debug/$${ARCHITECTURE}
 
 win*{
-	QMAKE_CXXFLAGS += /std:c++latest /permissive- /Zc:__cplusplus
+	QMAKE_CXXFLAGS += /std:c++latest /permissive- /Zc:__cplusplus /Zc:char8_t
 
 	QMAKE_CXXFLAGS += /MP /Zi /FS
 	QMAKE_CXXFLAGS += /wd4251

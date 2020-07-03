@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <stdint.h>
 #include <utility>
 
@@ -20,7 +21,7 @@ namespace Operation {
 
 		static constexpr auto op = OpCode::Insert;
 
-		explicit Insert(Record r) noexcept : _record{ std::move(r) }
+		explicit constexpr Insert(Record r) noexcept : _record{ std::move(r) }
 		{}
 
 		const Record _record;
@@ -31,7 +32,7 @@ namespace Operation {
 	{
 		static constexpr auto op = OpCode::Find;
 		template <typename... V>
-		explicit Find(V&&... values) noexcept : _fields(std::forward<V>(values)...)
+		explicit constexpr Find(V&&... values) noexcept : _fields(std::forward<V>(values)...)
 		{}
 
 	private:
@@ -47,7 +48,7 @@ namespace Operation {
 		static constexpr auto op = OpCode::UpdateFull;
 		static constexpr bool insertIfNotPresent = InsertIfNotPresent;
 
-		explicit UpdateFull(typename KeyField::ValueType key, Record r = {}) noexcept : record{ std::move(r) }, keyValue{ std::move(key) }
+		explicit constexpr UpdateFull(typename KeyField::ValueType key, Record r = {}) noexcept : record{ std::move(r) }, keyValue{ std::move(key) }
 		{}
 
 		const Record record;
@@ -80,7 +81,7 @@ namespace Operation {
 
 		static constexpr auto op = OpCode::Delete;
 
-		explicit Delete(typename KeyField::ValueType k) noexcept : key{ std::move(k) }
+		explicit constexpr Delete(typename KeyField::ValueType k) noexcept : key{ std::move(k) }
 		{}
 
 		const KeyField key;
