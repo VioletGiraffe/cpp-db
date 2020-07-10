@@ -18,31 +18,33 @@ struct StorageIO
 	bool open(std::string filePath, const io::OpenMode mode);
 
 	template<typename T, auto id, bool isArray>
-	bool writeField(const Field<T, id, isArray>& field, const std::optional<uint64_t> position = {}) noexcept;
+	[[nodiscard]] bool writeField(const Field<T, id, isArray>& field, const std::optional<uint64_t> position = {}) noexcept;
 	template<typename T, auto id, bool isArray>
-	bool readField(Field<T, id, isArray>& field, const std::optional<uint64_t> position = {}) noexcept;
+	[[nodiscard]] bool readField(Field<T, id, isArray>& field, const std::optional<uint64_t> position = {}) noexcept;
 
 	template <typename T, typename = std::enable_if_t<!std::is_pointer_v<T>&& is_trivially_serializable_v<T>>>
-	bool read(T& value, const std::optional<uint64_t> position = {}) noexcept;
+	[[nodiscard]] bool read(T& value, const std::optional<uint64_t> position = {}) noexcept;
 	template <typename T, typename = std::enable_if_t<!std::is_pointer_v<T>&& is_trivially_serializable_v<T>>>
-	bool write(const T& value, const std::optional<uint64_t> position = {}) noexcept;
+	[[nodiscard]] bool write(const T& value, const std::optional<uint64_t> position = {}) noexcept;
 
-	bool read(std::string& value, const std::optional<uint64_t> position = {}) noexcept;
-	bool write(const std::string& value, const std::optional<uint64_t> position = {}) noexcept;
+	[[nodiscard]] bool read(std::string& value, const std::optional<uint64_t> position = {}) noexcept;
+	[[nodiscard]] bool write(const std::string& value, const std::optional<uint64_t> position = {}) noexcept;
 
 	template <typename T>
-	bool read(std::vector<T>& v, const std::optional<uint64_t> position = {}) noexcept;
+	[[nodiscard]] bool read(std::vector<T>& v, const std::optional<uint64_t> position = {}) noexcept;
 	template <typename T>
-	bool write(const std::vector<T>& v, const std::optional<uint64_t> position = {}) noexcept;
+	[[nodiscard]] bool write(const std::vector<T>& v, const std::optional<uint64_t> position = {}) noexcept;
 
-	bool read(void* const dataPtr, uint64_t size) noexcept;
-	bool write(const void* const dataPtr, uint64_t size) noexcept;
+	[[nodiscard]] bool read(void* const dataPtr, uint64_t size) noexcept;
+	[[nodiscard]] bool write(const void* const dataPtr, uint64_t size) noexcept;
 
 	bool flush() noexcept;
-	bool seek(uint64_t location) noexcept;
+	[[nodiscard]] bool seek(uint64_t location) noexcept;
 
-	uint64_t pos() const noexcept;
-	uint64_t size() const noexcept;
+	[[nodiscard]] uint64_t pos() const noexcept;
+	[[nodiscard]] uint64_t size() const noexcept;
+
+	[[nodiscard]] bool clear() noexcept;
 
 private:
 	template <typename T>
@@ -203,4 +205,10 @@ template<typename IOAdapter>
 uint64_t StorageIO<IOAdapter>::size() const noexcept
 {
 	return _io.size();
+}
+
+template<typename IOAdapter>
+inline bool StorageIO<IOAdapter>::clear() noexcept
+{
+	return _io.clear();
 }

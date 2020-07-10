@@ -1,7 +1,9 @@
 #pragma once
 
+#include "dbschema.hpp"
 #include "dbops.hpp"
 #include "storage/storage_io_interface.hpp"
+#include "ops/operation_serializer.hpp"
 
 template <class Record, class StorageAdapter>
 class DbWAL
@@ -10,22 +12,11 @@ class DbWAL
 
 public:
 	[[nodiscard]] bool openLogFile(const std::string& filePath);
-	[[nodiscard]] bool verifyLog(const std::string& filePath);
+	[[nodiscard]] bool verifyLog();
+	[[nodiscard]] bool clearLog();
 
-	template <class Operation, sfinae<Operation::op == Operation::Insert::op> = true>
-	[[nodiscard]] bool registerOp(const Operation& op);
-
-	template <class Operation, sfinae<Operation::op == Operation::Find::op> = true>
-	[[nodiscard]] bool registerOp(const Operation& op);
-
-	template <class Operation, sfinae<Operation::op == Operation::UpdateFull::op> = true>
-	[[nodiscard]] bool registerOp(const Operation& op);
-
-	template <class Operation, sfinae<Operation::op == Operation::AppendToArray::op> = true>
-	[[nodiscard]] bool registerOp(const Operation& op);
-
-	template <class Operation, sfinae<Operation::op == Operation::Delete::op> = true>
-	[[nodiscard]] bool registerOp(const Operation& op);
+	template <class OpType>
+	[[nodiscard]] bool registerOperation(OpType&& op);
 
 private:
 	StorageIO<StorageAdapter> _storage;
@@ -38,39 +29,23 @@ inline bool DbWAL<Record, StorageAdapter>::openLogFile(const std::string& filePa
 }
 
 template<class Record, class StorageAdapter>
-inline bool DbWAL<Record, StorageAdapter>::verifyLog(const std::string& filePath)
+inline bool DbWAL<Record, StorageAdapter>::verifyLog()
 {
+
 	return false;
 }
 
 template<class Record, class StorageAdapter>
-template<class Operation, sfinae<Operation::op == Operation::Insert::op>>
-inline bool DbWAL<Record, StorageAdapter>::registerOp(const Operation& op)
+bool DbWAL<Record, StorageAdapter>::clearLog()
 {
-	return false;
+	return _storage.clear();
 }
 
 template<class Record, class StorageAdapter>
-template<class Operation, sfinae<Operation::op == Operation::Find::op>>
-inline bool DbWAL<Record, StorageAdapter>::registerOp(const Operation& op)
+template<class OpType>
+bool DbWAL<Record, StorageAdapter>::registerOperation(OpType&& op)
 {
-	return false;
-}
-template<class Record, class StorageAdapter>
-template<class Operation, sfinae<Operation::op == Operation::UpdateFull::op>>
-inline bool DbWAL<Record, StorageAdapter>::registerOp(const Operation& op)
-{
-	return false;
-}
-template<class Record, class StorageAdapter>
-template<class Operation, sfinae<Operation::op == Operation::AppendToArray::op>>
-inline bool DbWAL<Record, StorageAdapter>::registerOp(const Operation& op)
-{
-	return false;
-}
-template<class Record, class StorageAdapter>
-template<class Operation, sfinae<Operation::op == Operation::Delete::op>>
-inline bool DbWAL<Record, StorageAdapter>::registerOp(const Operation& op)
-{
+	using Serializer = Operation::Serializer<DbSchema<Record>>;
+	const auto binaryData = Serializer::serialize(std::forward<OpType>(op));
 	return false;
 }
