@@ -38,6 +38,7 @@ template <class RecordType>
 template<class Operation, typename StorageImplementation, sfinae<Operation::op == OpCode::Insert>>
 bool Serializer<DbSchema<RecordType>>::serialize(const Operation& op)
 {
+
 	return false;
 }
 

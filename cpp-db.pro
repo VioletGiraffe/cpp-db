@@ -77,6 +77,7 @@ HEADERS += \
 	src/ops/op_insert.hpp \
 	src/ops/op_update.hpp \
 	src/ops/operation_serializer.hpp \
+	src/serialization/dbrecord-serializer.hpp \
 	src/storage/storage_helpers.hpp \
 	src/storage/storage_io_interface.hpp \
 	src/storage/storage_qt.hpp
