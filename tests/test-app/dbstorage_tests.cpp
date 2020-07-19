@@ -25,7 +25,7 @@ TEST_CASE("DbStorage - basic functionality, static record size", "[dbstorage]") 
 		using RNG64 = RNG<uint64_t>;
 		using RNG16s = RNG<int16_t>;
 
-		storage.openStorageFile({});
+		REQUIRE(storage.openStorageFile({}));
 
 		constexpr size_t N = 100000;
 
@@ -80,7 +80,7 @@ TEST_CASE("DbStorage - basic functionality, dynamic record sizes", "[dbstorage]"
 		using Record = DbRecord<NoTombstone, FS1, FS2>;
 		DBStorage<io::QMemoryDeviceAdapter, Record> storage;
 
-		storage.openStorageFile({});
+		REQUIRE(storage.openStorageFile({}));
 
 		constexpr size_t N = 10000;
 
@@ -132,7 +132,7 @@ TEST_CASE("DbStorage - basic functionality, arrays of static items", "[dbstorage
 		using Record = DbRecord<NoTombstone, Fi1, Fi2>;
 		DBStorage<io::QMemoryDeviceAdapter, Record> storage;
 
-		storage.openStorageFile({});
+		REQUIRE(storage.openStorageFile({}));
 
 		constexpr size_t N = 1000;
 
@@ -194,7 +194,7 @@ TEST_CASE("DbStorage - basic functionality, arrays of strings", "[dbstorage]") {
 		using Record = DbRecord<NoTombstone, FS1, FS2>;
 		DBStorage<io::QMemoryDeviceAdapter, Record> storage;
 
-		storage.openStorageFile({});
+		REQUIRE(storage.openStorageFile({}));
 
 		constexpr size_t N = 200;
 
