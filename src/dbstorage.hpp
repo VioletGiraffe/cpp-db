@@ -45,7 +45,7 @@ public:
 		std::lock_guard locker(_storageMutex);
 
 		assert_and_return_r(_storageFile.seek(recordStartLocation.location), false);
-		return deserializeRecord(record, _storageFile);
+		return RecordSerializer<Record>::deserialize(record, _storageFile);
 	}
 
 	[[nodiscard]] bool writeRecord(const Record& record, const StorageLocation recordStartLocation)
@@ -53,7 +53,7 @@ public:
 		std::lock_guard locker(_storageMutex);
 
 		assert_and_return_r(_storageFile.seek(recordStartLocation.location), false);
-		return serializeRecord(record, _storageFile);
+		return RecordSerializer<Record>::serialize(record, _storageFile);
 	}
 
 private:
