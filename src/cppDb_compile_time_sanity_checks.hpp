@@ -2,8 +2,9 @@
 
 #include "cpp-db.hpp"
 #include "storage/storage_qt.hpp"
+#include "ops/operation_serializer.hpp"
+#include "assert/advanced_assert.h"
 
-#include <assert.h>
 #include <string>
 #include <type_traits>
 
@@ -20,7 +21,7 @@ inline void dbRecord_checks()
 	static_assert(record.allFieldsHaveStaticSize() == false);
 	static_assert(record.fieldCount() == 3);
 
-	assert(record.totalSize() == record.staticFieldsSize());
+	assert_r(record.totalSize() == record.staticFieldsSize());
 
 	DbRecord<NoTombstone, F3, F_ull, Fs> record_no_tombstone;
 	static_assert(record.hasTombstone());
@@ -33,8 +34,8 @@ inline void dbRecord_checks()
 
 	DbRecord<Tombstone<F3, std::numeric_limits<uint64_t>::max()>, F3> doubleRecord;
 	static_assert(doubleRecord.hasTombstone());
-	assert(doubleRecord.isTombstoneValue(std::numeric_limits<uint64_t>::max()));
-	assert(!doubleRecord.isTombstoneValue(std::numeric_limits<uint64_t>::max() - 1));
+	assert_r(doubleRecord.isTombstoneValue(std::numeric_limits<uint64_t>::max()));
+	assert_r(!doubleRecord.isTombstoneValue(std::numeric_limits<uint64_t>::max() - 1));
 
 	using Fd = Field<double, 10>;
 	using Fi = Field<uint64_t, 40>;
@@ -72,6 +73,27 @@ inline void dbWal_checks()
 	using Record = DbRecord<Tombstone<F_ull, std::numeric_limits<uint64_t>::max()>, F3, F_ull, Fs>;
 
 	DbWAL<Record, io::QMemoryDeviceAdapter> wal;
+}
+
+inline void operations_checks()
+{
+	using F3 = Field<double, 4>;
+	using F_ull = Field<uint64_t, 5>;
+	using Fs = Field<std::string, 42>;
+
+	using Record = DbRecord<Tombstone<F_ull, std::numeric_limits<uint64_t>::max()>, F3, F_ull, Fs>;
+
+	Operation::Insert<Record> op{ Record{3.14, 15, "Hello World!"} };
+	Operation::Serializer<Record> serializer;
+
+	StorageIO<io::QMemoryDeviceAdapter> buffer;
+
+	assert_r(serializer.serialize(op, buffer));
+
+	assert_r(buffer.seek(0));
+	assert_r(serializer.deserialize(buffer, [&](auto&& newOp) {
+		assert_r(newOp._record == op._record);
+	}));
 }
 
 inline void cppDb_compileTimeChecks()
@@ -177,4 +199,5 @@ inline void cppDb_compileTimeChecks()
 
 	dbRecord_checks();
 	dbWal_checks();
+	operations_checks();
 }

@@ -5,11 +5,14 @@
 
 #include "assert/advanced_assert.h"
 #include "utility/constexpr_algorithms.hpp"
+#include "utility/template_magic.hpp"
 
 #include <string.h> // memcpy
 
 template <typename T>
-struct RecordSerializer;
+struct RecordSerializer {
+	static_assert(false_v<T>, "This shouldn't be instantiated - check the template parameter list for errors!");
+};
 
 template <typename... Args>
 struct RecordSerializer<DbRecord<Args...>>
@@ -101,4 +104,3 @@ struct RecordSerializer<DbRecord<Args...>>
 		return success;
 	}
 };
-
