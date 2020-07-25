@@ -5,6 +5,7 @@
 #include "../storage/storage_io_interface.hpp"
 #include "../serialization/dbrecord-serializer.hpp"
 
+#include "tuple/tuple_helpers.hpp"
 #include "utility/template_magic.hpp"
 
 namespace Operation {
@@ -37,6 +38,9 @@ public:
 
 	template <typename Receiver, typename StorageImplementation>
 	static [[nodiscard]] bool deserialize(StorageIO<StorageImplementation>& io, Receiver&& receiver) noexcept;
+
+private:
+	using OpSerializer = RecordSerializer<Record>;
 };
 
 template <typename... RecordParams>
@@ -47,7 +51,6 @@ bool Serializer<DbRecord<RecordParams...>>::serialize(const Operation& op, Stora
 		return false;
 
 	static_assert(std::is_same_v<Record, remove_cv_and_reference_t<decltype(op._record)>>);
-	using OpSerializer = RecordSerializer<Record>;
 	return OpSerializer::serialize(op._record, io);
 }
 
@@ -55,7 +58,25 @@ template <typename... RecordParams>
 template<class Operation, typename StorageImplementation, sfinae<Operation::op == OpCode::Find>>
 bool Serializer<DbRecord<RecordParams...>>::serialize(const Operation& op, StorageIO<StorageImplementation>& io) noexcept
 {
-	return false;
+	if (!io.write(Operation::op))
+		return false;
+
+	// This op holds a bunch of fields to search on.
+
+	// First, write the # of fields.
+	constexpr auto nFields = std::tuple_size_v<decltype(op._fields)>;
+	static_assert(nFields <= 255);
+	if (!io.write(static_cast<uint8_t>(nFields)))
+		return false;
+
+	// Now writing IDs of each the field in order.
+	constexpr_for<0, nFields>([&](auto&& i) {
+		const auto& field = std::get<i>(op._fields);
+		using FieldType = remove_cv_and_reference_t<decltype(field)>;
+		static_assert(FieldType::id <= 255);
+	});
+
+	//return OpSerializer::serialize(op._record, io);
 }
 
 template <typename... RecordParams>

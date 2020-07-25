@@ -34,10 +34,10 @@ namespace Operation {
 	{
 		static constexpr auto op = OpCode::Find;
 		template <typename... V>
-		explicit constexpr Find(V&&... values) noexcept : _fields(std::forward<V>(values)...)
+		explicit constexpr Find(V&&... values) noexcept : _fields{ std::forward<V>(values)... }
 		{}
 
-	private:
+		// TODO: static_assert that all the fields are different (unique)
 		const std::tuple<Fields...> _fields;
 	};
 
