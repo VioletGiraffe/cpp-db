@@ -96,7 +96,7 @@ bool Serializer<DbRecord<RecordParams...>>::deserialize(StorageIO<StorageImpleme
 		if (!RecordSerializer<Record>::deserialize(r, io))
 			return false;
 
-		receiver(Op{ std::move(r) });
+		receiver.operator()(Op{ std::move(r) });
 		return true;
 	}
 	case OpCode::Find:

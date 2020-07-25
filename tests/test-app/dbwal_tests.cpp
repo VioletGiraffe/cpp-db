@@ -2,7 +2,6 @@
 #include "dbwal.hpp"
 #include "storage/storage_qt.hpp"
 
-
 TEST_CASE("DbOps - basic serialization", "[dbops]") {
 	using F3 = Field<double, 4>;
 	using F_ull = Field<uint64_t, 5>;
@@ -14,6 +13,7 @@ TEST_CASE("DbOps - basic serialization", "[dbops]") {
 	Operation::Serializer<Record> serializer;
 
 	StorageIO<io::QMemoryDeviceAdapter> buffer;
+	REQUIRE(buffer.open(".", io::OpenMode::ReadWrite));
 
 	REQUIRE(serializer.serialize(op, buffer));
 
