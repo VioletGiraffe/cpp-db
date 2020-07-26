@@ -43,20 +43,23 @@ public:
 private:
 	using OpSerializer = RecordSerializer<Record>;
 
-	template <size_t First, size_t Last, typename Functor, typename ArgsList>
-	static constexpr void constructFindOperationType([[maybe_unused]] Functor&& f, const size_t nFields, ArgsList) noexcept
+	template <size_t currentFieldIndex = 0, typename Functor, typename FieldTypesPack = type_pack<>>
+	static constexpr void constructFindOperationType([[maybe_unused]] Functor&& receiver, const uint8_t(&fieldIds)[256], const size_t nFields, FieldTypesPack = {}) noexcept
 	{
-		if constexpr (First < Last)
+		if (currentFieldIndex == nFields)
 		{
-			using FieldType = typename DbSchema<Record>::template FieldById_t<First>;
-			using List = typename ArgsList::template Append<FieldType>;
-			f(value_as_type<First>{});
-			if (First == nFields - 1)
-			{
-			}
-			else
-				constructFindOperationType<First + 1, Last, Functor>(std::forward<Functor>(f), nFields, List{});
+			using OpType = typename FieldTypesPack::template Construct<Operation::Find>;
+			receiver(OpType{});
+			return; // Terminate iteration - all IDs processed
 		}
+
+		using Schema = DbSchema<Record>;
+		// Get the compile-time ID of the current field
+		constexpr_for<0, Schema::fieldsCount_v>([&](auto i) {
+			using FieldType = typename Schema::template FieldByIndex_t<i>;
+			if (fieldIds[currentFieldIndex] == FieldType::id)
+				constructFindOperationType<currentFieldIndex + 1, Functor, FieldTypesPack::template Append<FieldType>>(std::forward<Functor>(receiver), fieldIds, nFields);
+		});
 	}
 };
 
@@ -160,12 +163,10 @@ bool Serializer<DbRecord<RecordParams...>>::deserialize(StorageIO<StorageImpleme
 				return false;
 		}
 
-		constexpr_for<0, 255>([&](auto index) -> bool {
-			constexpr const int i = index;
-			using FieldType = typename DbSchema<Record>::template FieldById_t<i>;
-			using List = ArgumentsList<>::Append<FieldType>;
-			return i < nFields;
-		});
+		constructFindOperationType([&](auto opPrototype) {
+			using OpType = decltype(opPrototype);
+			receiver.operator()(OpType{});
+		}, ids, nFields);
 
 		return true;
 	}

@@ -37,6 +37,8 @@ namespace Operation {
 		explicit constexpr Find(V&&... values) noexcept : _fields{ std::forward<V>(values)... }
 		{}
 
+		constexpr Find() noexcept = default; // TODO: remove - this is for debugging only
+
 		// TODO: static_assert that all the fields are different (unique)
 		const std::tuple<Fields...> _fields;
 	};

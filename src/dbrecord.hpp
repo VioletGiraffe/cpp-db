@@ -65,7 +65,7 @@ public:
 	template <auto id>
 	using FieldById_t = ::FieldById_t<id, FieldsSequence...>;
 
-	using Fields = type_pack<FieldsSequence...>;
+	using FieldTypesPack = type_pack<FieldsSequence...>;
 
 public:
 	constexpr DbRecord() = default;
