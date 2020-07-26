@@ -2,6 +2,7 @@
 
 #include "../dbrecord.hpp"
 #include "../dbops.hpp"
+#include "../dbschema.hpp"
 #include "../storage/storage_io_interface.hpp"
 #include "../serialization/dbrecord-serializer.hpp"
 
@@ -41,6 +42,22 @@ public:
 
 private:
 	using OpSerializer = RecordSerializer<Record>;
+
+	template <size_t First, size_t Last, typename Functor, typename ArgsList>
+	static constexpr void constructFindOperationType([[maybe_unused]] Functor&& f, const size_t nFields, ArgsList) noexcept
+	{
+		if constexpr (First < Last)
+		{
+			using FieldType = typename DbSchema<Record>::template FieldById_t<First>;
+			using List = typename ArgsList::template Append<FieldType>;
+			f(value_as_type<First>{});
+			if (First == nFields - 1)
+			{
+			}
+			else
+				constructFindOperationType<First + 1, Last, Functor>(std::forward<Functor>(f), nFields, List{});
+		}
+	}
 };
 
 template <typename... RecordParams>
@@ -74,9 +91,19 @@ bool Serializer<DbRecord<RecordParams...>>::serialize(const Operation& op, Stora
 		const auto& field = std::get<i>(op._fields);
 		using FieldType = remove_cv_and_reference_t<decltype(field)>;
 		static_assert(FieldType::id <= 255);
+
+		if (!io.write(static_cast<uint8_t>(FieldType::id)))
+			return false;
 	});
 
-	//return OpSerializer::serialize(op._record, io);
+	// And now the values
+	constexpr_for<0, nFields>([&](auto&& i) {
+		const auto& field = std::get<i>(op._fields);
+		if (!io.writeField(field))
+			return false;
+	});
+
+	return true;
 }
 
 template <typename... RecordParams>
@@ -121,7 +148,27 @@ bool Serializer<DbRecord<RecordParams...>>::deserialize(StorageIO<StorageImpleme
 		return true;
 	}
 	case OpCode::Find:
-		break;
+	{
+		uint8_t nFields = 0;
+		if (!io.read(nFields))
+			return false;
+
+		uint8_t ids[256] = { 0 };
+		for (size_t i = 0; i < nFields; ++i)
+		{
+			if (!io.read(ids[i]))
+				return false;
+		}
+
+		constexpr_for<0, 255>([&](auto index) -> bool {
+			constexpr const int i = index;
+			using FieldType = typename DbSchema<Record>::template FieldById_t<i>;
+			using List = ArgumentsList<>::Append<FieldType>;
+			return i < nFields;
+		});
+
+		return true;
+	}
 	case OpCode::UpdateFull:
 		break;
 	case OpCode::AppendToArray:
