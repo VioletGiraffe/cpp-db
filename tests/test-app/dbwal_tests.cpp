@@ -20,8 +20,11 @@ TEST_CASE("Operation::Insert serialization", "[dbops]") {
 
 	REQUIRE(buffer.seek(0));
 	const bool success = serializer.deserialize(buffer, [&](auto&& newOp) {
-		Record r = newOp._record;
-		REQUIRE(r == op._record);
+		if constexpr (remove_cv_and_reference_t<decltype(newOp)>::op == OpCode::Insert)
+		{
+			Record r = newOp._record;
+			REQUIRE(r == op._record);
+		}
 	});
 	REQUIRE(success);
 }
@@ -35,7 +38,7 @@ TEST_CASE("Operation::Find serialization", "[dbops]") {
 
 	Operation::Serializer<Record> serializer;
 
-	Operation::Find op{ F3{3.14}, F_ull{15}, Fs{"Hello World!"} };
+	Operation::Find<F3, F_ull, Fs> op{ F3{3.14}, F_ull{15}, Fs{"Hello World!"} };
 
 	StorageIO<io::QMemoryDeviceAdapter> buffer;
 	REQUIRE(buffer.open(".", io::OpenMode::ReadWrite));
@@ -44,7 +47,12 @@ TEST_CASE("Operation::Find serialization", "[dbops]") {
 
 	REQUIRE(buffer.seek(0));
 	const bool success = serializer.deserialize(buffer, [&](auto&& newOp) {
-		REQUIRE(newOp._fields == op._fields);
+		if constexpr (remove_cv_and_reference_t<decltype(newOp)>::op == OpCode::Find)
+		{
+			REQUIRE(std::tuple_size_v<decltype(newOp._fields)> == std::tuple_size_v<decltype(op._fields)>);
+			if constexpr (std::tuple_size_v<decltype(newOp._fields)> == std::tuple_size_v<decltype(op._fields)>)
+				REQUIRE(newOp._fields == op._fields);
+		}
 	});
 	REQUIRE(success);
 }

@@ -43,14 +43,17 @@ public:
 private:
 	using OpSerializer = RecordSerializer<Record>;
 
-	template <size_t currentFieldIndex = 0, typename Functor, typename FieldTypesPack = type_pack<>>
-	static constexpr void constructFindOperationType([[maybe_unused]] Functor&& receiver, const uint8_t(&fieldIds)[256], const size_t nFields, FieldTypesPack = {}) noexcept
+	template <size_t currentFieldIndex = 0, typename Functor, typename TypesPack = type_pack<>>
+	static constexpr void constructFindOperationType([[maybe_unused]] Functor&& receiver, const uint8_t(&fieldIds)[256], const size_t nFields, TypesPack = {}) noexcept
 	{
-		if (currentFieldIndex == nFields)
+		if constexpr (TypesPack::type_count > 0)
 		{
-			using OpType = typename FieldTypesPack::template Construct<Operation::Find>;
-			receiver(OpType{});
-			return; // Terminate iteration - all IDs processed
+			if (currentFieldIndex == nFields)
+			{
+				using OpType = typename TypesPack::template Construct<Operation::Find>;
+				receiver(OpType{});
+				return; // Terminate iteration - all IDs processed
+			}
 		}
 
 		using Schema = DbSchema<Record>;
@@ -58,7 +61,7 @@ private:
 		constexpr_for<0, Schema::fieldsCount_v>([&](auto i) {
 			using FieldType = typename Schema::template FieldByIndex_t<i>;
 			if (fieldIds[currentFieldIndex] == FieldType::id)
-				constructFindOperationType<currentFieldIndex + 1, Functor, FieldTypesPack::template Append<FieldType>>(std::forward<Functor>(receiver), fieldIds, nFields);
+				constructFindOperationType<currentFieldIndex + 1, Functor, TypesPack::template Append<FieldType>>(std::forward<Functor>(receiver), fieldIds, nFields);
 		});
 	}
 };
@@ -90,8 +93,8 @@ bool Serializer<DbRecord<RecordParams...>>::serialize(const Operation& op, Stora
 		return false;
 
 	// Now writing IDs of each the field in order.
-	constexpr_for<0, nFields>([&](auto&& i) {
-		const auto& field = std::get<i>(op._fields);
+	constexpr_for<0, nFields>([&](auto i) {
+		const auto& field = std::get<i.to_value()>(op._fields);
 		using FieldType = remove_cv_and_reference_t<decltype(field)>;
 		static_assert(FieldType::id <= 255);
 
@@ -100,8 +103,8 @@ bool Serializer<DbRecord<RecordParams...>>::serialize(const Operation& op, Stora
 	});
 
 	// And now the values
-	constexpr_for<0, nFields>([&](auto&& i) {
-		const auto& field = std::get<i>(op._fields);
+	constexpr_for<0, nFields>([&](auto i) {
+		const auto& field = std::get<i.to_value()>(op._fields);
 		if (!io.writeField(field))
 			return false;
 	});

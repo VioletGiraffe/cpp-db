@@ -92,7 +92,8 @@ inline void operations_checks()
 
 	assert_r(buffer.seek(0));
 	assert_r(serializer.deserialize(buffer, [&](auto&& newOp) {
-		assert_r(newOp._record == op._record);
+		if constexpr (remove_cv_and_reference_t<decltype(newOp)>::op == OpCode::Insert)
+			assert_r(newOp._record == op._record);
 	}));
 }
 

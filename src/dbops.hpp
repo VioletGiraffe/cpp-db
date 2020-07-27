@@ -2,6 +2,7 @@
 
 #include <optional>
 #include <stdint.h>
+#include <tuple>
 #include <utility>
 
 enum class OpCode : uint8_t {
