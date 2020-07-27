@@ -23,37 +23,34 @@ class Serializer<DbRecord<RecordParams...>>
 
 public:
 	template <class Operation, typename StorageImplementation, sfinae<Operation::op == OpCode::Insert> = true>
-	static [[nodiscard]] bool serialize(const Operation& op, StorageIO<StorageImplementation>& io) noexcept;
+	[[nodiscard]] static bool serialize(const Operation& op, StorageIO<StorageImplementation>& io) noexcept;
 
 	template <class Operation, typename StorageImplementation, sfinae<Operation::op == OpCode::Find> = true>
-	static [[nodiscard]] bool serialize(const Operation& op, StorageIO<StorageImplementation>& io) noexcept;
+	[[nodiscard]] static bool serialize(const Operation& op, StorageIO<StorageImplementation>& io) noexcept;
 
 	template <class Operation, typename StorageImplementation, sfinae<Operation::op == OpCode::UpdateFull> = true>
-	static [[nodiscard]] bool serialize(const Operation& op, StorageIO<StorageImplementation>& io) noexcept;
+	[[nodiscard]] static bool serialize(const Operation& op, StorageIO<StorageImplementation>& io) noexcept;
 
 	template <class Operation, typename StorageImplementation, sfinae<Operation::op == OpCode::AppendToArray> = true>
-	static [[nodiscard]] bool serialize(const Operation& op, StorageIO<StorageImplementation>& io) noexcept;
+	[[nodiscard]] static bool serialize(const Operation& op, StorageIO<StorageImplementation>& io) noexcept;
 
 	template <class Operation, typename StorageImplementation, sfinae<Operation::op == OpCode::Delete> = true>
-	static [[nodiscard]] bool serialize(const Operation& op, StorageIO<StorageImplementation>& io) noexcept;
+	[[nodiscard]] static bool serialize(const Operation& op, StorageIO<StorageImplementation>& io) noexcept;
 
 	template <typename Receiver, typename StorageImplementation>
-	static [[nodiscard]] bool deserialize(StorageIO<StorageImplementation>& io, Receiver&& receiver) noexcept;
+	[[nodiscard]] static bool deserialize(StorageIO<StorageImplementation>& io, Receiver&& receiver) noexcept;
 
 private:
 	using OpSerializer = RecordSerializer<Record>;
 
-	template <size_t currentFieldIndex = 0, typename Functor, typename TypesPack = type_pack<>>
-	static constexpr void constructFindOperationType([[maybe_unused]] Functor&& receiver, const uint8_t(&fieldIds)[256], const size_t nFields, TypesPack = {}) noexcept
+	template <size_t fieldsCount, size_t currentFieldIndex = 0, typename Functor, typename TypesPack = type_pack<>>
+	static constexpr void constructFindOperationType([[maybe_unused]] Functor&& receiver, const uint8_t(&fieldIds)[256]) noexcept
 	{
-		if constexpr (TypesPack::type_count > 0)
+		if constexpr (currentFieldIndex == fieldsCount)
 		{
-			if (currentFieldIndex == nFields)
-			{
-				using OpType = typename TypesPack::template Construct<Operation::Find>;
-				receiver(OpType{});
-				return; // Terminate iteration - all IDs processed
-			}
+			using OpType = typename TypesPack::template Construct<Operation::Find>;
+			receiver(OpType{});
+			return; // Terminate iteration - all IDs processed
 		}
 
 		using Schema = DbSchema<Record>;
@@ -61,7 +58,7 @@ private:
 		constexpr_for<0, Schema::fieldsCount_v>([&](auto i) {
 			using FieldType = typename Schema::template FieldByIndex_t<i>;
 			if (fieldIds[currentFieldIndex] == FieldType::id)
-				constructFindOperationType<currentFieldIndex + 1, Functor, TypesPack::template Append<FieldType>>(std::forward<Functor>(receiver), fieldIds, nFields);
+				constructFindOperationType<fieldsCount, currentFieldIndex + 1, Functor, typename TypesPack::template Append<FieldType>>(std::forward<Functor>(receiver), fieldIds);
 		});
 	}
 };
@@ -159,6 +156,8 @@ bool Serializer<DbRecord<RecordParams...>>::deserialize(StorageIO<StorageImpleme
 		if (!io.read(nFields))
 			return false;
 
+		assert_and_return_r(nFields > 0 && nFields <= Operation::Find<>::maxFieldCount, false);
+
 		uint8_t ids[256] = { 0 };
 		for (size_t i = 0; i < nFields; ++i)
 		{
@@ -166,10 +165,12 @@ bool Serializer<DbRecord<RecordParams...>>::deserialize(StorageIO<StorageImpleme
 				return false;
 		}
 
-		constructFindOperationType([&](auto opPrototype) {
-			using OpType = decltype(opPrototype);
-			receiver.operator()(OpType{});
-		}, ids, nFields);
+		constexpr_from_runtime_value<1, Operation::Find<>::maxFieldCount>(nFields, [&](auto nFieldsConstexpr){
+			constructFindOperationType<nFieldsConstexpr.to_value()>([&](auto opPrototype) {
+				using OpType = decltype(opPrototype);
+				receiver.operator()(OpType{});
+			}, ids);
+		});
 
 		return true;
 	}
@@ -178,6 +179,8 @@ bool Serializer<DbRecord<RecordParams...>>::deserialize(StorageIO<StorageImpleme
 	case OpCode::AppendToArray:
 		break;
 	case OpCode::Delete:
+		break;
+	case OpCode::Invalid:
 		break;
 	}
 

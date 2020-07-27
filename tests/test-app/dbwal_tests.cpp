@@ -49,10 +49,15 @@ TEST_CASE("Operation::Find serialization", "[dbops]") {
 	const bool success = serializer.deserialize(buffer, [&](auto&& newOp) {
 		if constexpr (remove_cv_and_reference_t<decltype(newOp)>::op == OpCode::Find)
 		{
-			REQUIRE(std::tuple_size_v<decltype(newOp._fields)> == std::tuple_size_v<decltype(op._fields)>);
-			if constexpr (std::tuple_size_v<decltype(newOp._fields)> == std::tuple_size_v<decltype(op._fields)>)
+			if constexpr (std::is_same_v<remove_cv_and_reference_t<decltype(op._fields)>, remove_cv_and_reference_t<decltype(newOp._fields)>>)
+			{
 				REQUIRE(newOp._fields == op._fields);
+				return;
+			}
 		}
+		REQUIRE(false);
 	});
+
+
 	REQUIRE(success);
 }

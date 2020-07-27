@@ -34,6 +34,10 @@ namespace Operation {
 	struct Find
 	{
 		static constexpr auto op = OpCode::Find;
+
+		static constexpr size_t maxFieldCount = 8;
+		static_assert(sizeof...(Fields) < maxFieldCount);
+
 		template <typename... V>
 		explicit constexpr Find(V&&... values) noexcept : _fields{ std::forward<V>(values)... }
 		{}

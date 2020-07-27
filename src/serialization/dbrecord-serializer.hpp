@@ -20,7 +20,7 @@ struct RecordSerializer<DbRecord<Args...>>
 	using Record = DbRecord<Args...>;
 
 	template <typename StorageImplementation>
-	static [[nodiscard]] bool serialize(const Record& record, StorageIO<StorageImplementation>& io) noexcept
+	[[nodiscard]] static bool serialize(const Record& record, StorageIO<StorageImplementation>& io) noexcept
 	{
 		static_assert (Record::isRecord());
 
@@ -66,7 +66,7 @@ struct RecordSerializer<DbRecord<Args...>>
 	}
 
 	template <typename StorageImplementation>
-	static [[nodiscard]] bool deserialize(Record& record, StorageIO<StorageImplementation>& io) noexcept
+	[[nodiscard]] static bool deserialize(Record& record, StorageIO<StorageImplementation>& io) noexcept
 	{
 		// Statically sized fields are grouped before others and can be read or written in a single block.
 		static constexpr size_t staticFieldsSize = record.staticFieldsSize();
