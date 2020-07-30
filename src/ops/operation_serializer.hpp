@@ -150,30 +150,30 @@ bool Serializer<DbRecord<RecordParams...>>::deserialize(StorageIO<StorageImpleme
 		receiver.operator()(Op{ std::move(r) });
 		return true;
 	}
-	case OpCode::Find:
-	{
-		uint8_t nFields = 0;
-		if (!io.read(nFields))
-			return false;
+//	case OpCode::Find:
+//	{
+//		uint8_t nFields = 0;
+//		if (!io.read(nFields))
+//			return false;
 
-		assert_and_return_r(nFields > 0 && nFields <= Operation::Find<>::maxFieldCount, false);
+//		assert_and_return_r(nFields > 0 && nFields <= Operation::Find<>::maxFieldCount, false);
 
-		uint8_t ids[256] = { 0 };
-		for (size_t i = 0; i < nFields; ++i)
-		{
-			if (!io.read(ids[i]))
-				return false;
-		}
+//		uint8_t ids[256] = { 0 };
+//		for (size_t i = 0; i < nFields; ++i)
+//		{
+//			if (!io.read(ids[i]))
+//				return false;
+//		}
 
-		constexpr_from_runtime_value<1, Operation::Find<>::maxFieldCount>(nFields, [&](auto nFieldsConstexpr){
-			constructFindOperationType<nFieldsConstexpr.to_value()>([&](auto opPrototype) {
-				using OpType = decltype(opPrototype);
-				receiver.operator()(OpType{});
-			}, ids);
-		});
+//		//constexpr_from_runtime_value<1, Operation::Find<>::maxFieldCount>(nFields, [&](auto nFieldsConstexpr){
+//			constructFindOperationType<3>([&](auto opPrototype) {
+//				using OpType = decltype(opPrototype);
+//				receiver.operator()(OpType{});
+//			}, ids);
+//		//});
 
-		return true;
-	}
+//		return true;
+//	}
 	case OpCode::UpdateFull:
 		break;
 	case OpCode::AppendToArray:
