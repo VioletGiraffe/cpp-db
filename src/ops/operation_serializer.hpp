@@ -20,6 +20,7 @@ template <typename... RecordParams>
 class Serializer<DbRecord<RecordParams...>>
 {
 	using Record = DbRecord<RecordParams...>;
+	using Schema = DbSchema<Record>;
 
 public:
 	template <class Operation, typename StorageImplementation, sfinae<Operation::op == OpCode::Insert> = true>
@@ -53,7 +54,6 @@ private:
 			return; // Terminate iteration - all IDs processed
 		}
 
-		using Schema = DbSchema<Record>;
 		// Get the compile-time ID of the current field
 		constexpr_for<0, Schema::fieldsCount_v>([&](auto i) {
 			using FieldType = typename Schema::template FieldByIndex_t<i>;
@@ -113,7 +113,22 @@ template <typename... RecordParams>
 template<class Operation, typename StorageImplementation, sfinae<Operation::op == OpCode::UpdateFull>>
 bool Serializer<DbRecord<RecordParams...>>::serialize(const Operation& op, StorageIO<StorageImplementation>& io) noexcept
 {
-	return false;
+	if (!io.write(Operation::op))
+		return false;
+
+	constexpr auto keyFieldId = Operation::KeyField::id;
+	static_assert (keyFieldId >= 0 && keyFieldId <= 255);
+	if (!io.write(static_cast<uint8_t>(keyFieldId)))
+		return false;
+
+	if (!io.write(op.insertIfNotPresent))
+		return false;
+
+	static_assert(std::is_same_v<Record, remove_cv_and_reference_t<decltype(op.record)>>);
+	if (!OpSerializer::serialize(op.record, io))
+		return false;
+
+	return io.write(op.keyValue);
 }
 
 template <typename... RecordParams>
@@ -175,7 +190,44 @@ bool Serializer<DbRecord<RecordParams...>>::deserialize(StorageIO<StorageImpleme
 //		return true;
 //	}
 	case OpCode::UpdateFull:
-		break;
+	{
+		uint8_t keyFieldId;
+		if (!io.read(keyFieldId))
+			return false;
+
+		bool insertIfNotPresent;
+		if (!io.read(insertIfNotPresent))
+			return false;
+
+		Record r;
+		if (!RecordSerializer<Record>::deserialize(r, io))
+			return false;
+
+		bool success = false;
+		constexpr_for_fold<0, Schema::fieldsCount_v>([&]<auto I>() {
+			using KeyField = typename Schema::template FieldByIndex_t<I>;
+			if (KeyField::id == keyFieldId)
+			{
+				typename KeyField::ValueType keyFieldValue;
+				if (!io.read(keyFieldValue))
+					return;
+
+				if (insertIfNotPresent)
+				{
+					using Op = Operation::UpdateFull<Record, KeyField, true>;
+					receiver.operator()(Op{ std::move(r), std::move(keyFieldValue) });
+				}
+				else
+				{
+					using Op = Operation::UpdateFull<Record, KeyField, false>;
+					receiver.operator()(Op{ std::move(r), std::move(keyFieldValue) });
+				}
+				success = true;
+			}
+		});
+
+		return success;
+	}
 	case OpCode::AppendToArray:
 		break;
 	case OpCode::Delete:

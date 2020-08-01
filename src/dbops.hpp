@@ -48,20 +48,23 @@ namespace Operation {
 		const std::tuple<Fields...> _fields;
 	};
 
-	template <class Record, class KeyField, bool InsertIfNotPresent = false>
+	template <class Record, class K, bool InsertIfNotPresent = false>
 	struct UpdateFull
 	{
-		static_assert(Record::isRecord());
-		static_assert(Record::template has_field_v<KeyField>);
+		using KeyField = K;
 
 		static constexpr auto op = OpCode::UpdateFull;
 		static constexpr bool insertIfNotPresent = InsertIfNotPresent;
 
-		explicit constexpr UpdateFull(typename KeyField::ValueType key, Record r = {}) noexcept : record{ std::move(r) }, keyValue{ std::move(key) }
+		explicit constexpr UpdateFull(Record r, typename KeyField::ValueType key) noexcept : record{ std::move(r) }, keyValue{ std::move(key) }
 		{}
 
 		const Record record;
 		const typename KeyField::ValueType keyValue;
+
+	private:
+		static_assert(Record::isRecord());
+		static_assert(Record::template has_field_v<KeyField>);
 	};
 
 	template <class Record, class KeyField, class ArrayField, bool InsertIfNotPresent = false>
