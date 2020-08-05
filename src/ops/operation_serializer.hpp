@@ -142,7 +142,15 @@ template <typename... RecordParams>
 template<class Operation, typename StorageImplementation, sfinae<Operation::op == OpCode::Delete>>
 bool Serializer<DbRecord<RecordParams...>>::serialize(const Operation& op, StorageIO<StorageImplementation>& io) noexcept
 {
-	return false;
+	if (!io.write(Operation::op))
+		return false;
+
+	constexpr auto keyFieldId = Operation::KeyField::id;
+	static_assert (keyFieldId >= 0 && keyFieldId <= 255);
+	if (!io.write(static_cast<uint8_t>(keyFieldId)))
+		return false;
+
+	return io.write(op.keyValue);
 }
 
 template <typename... RecordParams>
@@ -231,7 +239,28 @@ bool Serializer<DbRecord<RecordParams...>>::deserialize(StorageIO<StorageImpleme
 	case OpCode::AppendToArray:
 		break;
 	case OpCode::Delete:
-		break;
+	{
+		uint8_t keyFieldId;
+		if (!io.read(keyFieldId))
+			return false;
+
+		bool success = false;
+		constexpr_for_fold<0, Schema::fieldsCount_v>([&]<auto I>() {
+			using KeyField = typename Schema::template FieldByIndex_t<I>;
+			if (KeyField::id == keyFieldId)
+			{
+				typename KeyField::ValueType keyFieldValue;
+				if (!io.read(keyFieldValue))
+					return;
+
+				using Op = Operation::Delete<Record, KeyField>;
+				receiver.operator()(Op{ std::move(keyFieldValue) });
+				success = true;
+			}
+		});
+
+		return success;
+	}
 	case OpCode::Invalid:
 		break;
 	}

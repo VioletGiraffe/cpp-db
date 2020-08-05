@@ -102,3 +102,39 @@ TEST_CASE("Operation::UpdateFull serialization", "[dbops]") {
 
 	REQUIRE(success);
 }
+
+TEST_CASE("Operation::Delete serialization", "[dbops]") {
+	using F3 = Field<double, 4>;
+	using F_ull = Field<uint64_t, 5>;
+	using Fs = Field<std::string, 42>;
+
+	using Record = DbRecord<Tombstone<F_ull, std::numeric_limits<uint64_t>::max()>, F3, F_ull, Fs>;
+
+	Operation::Serializer<Record> serializer;
+
+	using KeyField = Fs;
+	Operation::Delete<Record, KeyField> op{ "123" };
+
+	StorageIO<io::QMemoryDeviceAdapter> buffer;
+	REQUIRE(buffer.open(".", io::OpenMode::ReadWrite));
+
+	REQUIRE(serializer.serialize(op, buffer));
+
+	REQUIRE(buffer.seek(0));
+	const bool success = serializer.deserialize(buffer, [&](auto&& newOp) {
+		using OpType = remove_cv_and_reference_t<decltype(newOp)>;
+		if constexpr (OpType::op == OpCode::Delete)
+		{
+			if constexpr (std::is_same_v<KeyField, OpType::KeyField>)
+			{
+				REQUIRE(newOp.keyValue == op.keyValue);
+			}
+			else
+				FAIL();
+		}
+		else
+			FAIL();
+		});
+
+	REQUIRE(success);
+}

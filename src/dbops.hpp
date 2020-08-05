@@ -85,18 +85,20 @@ namespace Operation {
 		const Record record;
 	};
 
-	template <class Record, class KeyField>
+	template <class Record, class K>
 	struct Delete
 	{
+		using KeyField = K;
+
 		static_assert(Record::isRecord());
 		static_assert(Record::template has_field_v<KeyField>);
 
 		static constexpr auto op = OpCode::Delete;
 
-		explicit constexpr Delete(typename KeyField::ValueType k) noexcept : key{ std::move(k) }
+		explicit constexpr Delete(typename KeyField::ValueType k) noexcept : keyValue{ std::move(k) }
 		{}
 
-		const KeyField key;
+		const typename KeyField::ValueType keyValue;
 	};
 
 }
