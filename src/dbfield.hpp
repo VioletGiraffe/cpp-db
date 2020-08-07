@@ -58,7 +58,7 @@ struct Field {
 		return !operator==(other);
 	}
 
-	constexpr bool operator<(const Field& other) const noexcept
+	constexpr bool operator<(const Field& other) const noexcept requires(!is_array)
 	{
 		return value < other.value;
 	}
@@ -67,7 +67,7 @@ public:
 	ValueType value {};
 
 private:
-	static_assert(!sizeKnownAtCompileTime() || std::is_trivial_v<ValueType>);
+	static_assert(sizeKnownAtCompileTime() == std::is_trivial_v<ValueType>);
 };
 
 //

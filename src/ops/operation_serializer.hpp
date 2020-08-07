@@ -121,7 +121,7 @@ bool Serializer<DbRecord<RecordParams...>>::serialize(const Operation& op, Stora
 	if (!io.write(static_cast<uint8_t>(keyFieldId)))
 		return false;
 
-	if (!io.write(op.insertIfNotPresent))
+	if (!io.write(op.insertIfNotPresent()))
 		return false;
 
 	static_assert(std::is_same_v<Record, remove_cv_and_reference_t<decltype(op.record)>>);

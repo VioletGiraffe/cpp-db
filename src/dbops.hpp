@@ -17,6 +17,28 @@ enum class OpCode : uint8_t {
 
 namespace Operation {
 
+	namespace detail {
+		template <class Record>
+		struct RecordMember {
+			static_assert(Record::isRecord());
+			explicit constexpr RecordMember(Record r) :
+				record{ std::move(r) }
+			{}
+
+			const Record record;
+		};
+
+		template <class ArrayField>
+		struct ArrayMember {
+			static_assert(ArrayField::isArray());
+			explicit constexpr ArrayMember(ArrayField a) :
+				array{ std::move(a) }
+			{}
+
+			const ArrayField array;
+		};
+	}
+
 	template <class Record>
 	struct Insert
 	{
@@ -54,7 +76,7 @@ namespace Operation {
 		using KeyField = K;
 
 		static constexpr auto op = OpCode::UpdateFull;
-		static constexpr bool insertIfNotPresent = InsertIfNotPresent;
+		static constexpr bool insertIfNotPresent() noexcept { return InsertIfNotPresent; };
 
 		explicit constexpr UpdateFull(Record r, typename KeyField::ValueType key) noexcept : record{ std::move(r) }, keyValue{ std::move(key) }
 		{}
@@ -68,21 +90,30 @@ namespace Operation {
 	};
 
 	template <class Record, class KeyField, class ArrayField, bool InsertIfNotPresent = false>
-	struct AppendToArray
+	struct AppendToArray final : public std::conditional_t<InsertIfNotPresent, detail::RecordMember<Record>, detail::ArrayMember<ArrayField>>
 	{
-		static_assert(Record::isRecord());
 		static_assert(Record::template has_field_v<KeyField>);
-		static_assert(Record::template has_field_v<ArrayField>);
-		static_assert(ArrayField::isArray());
 
 		static constexpr auto op = OpCode::AppendToArray;
 
-		AppendToArray(KeyField k, ArrayField a, Record r = {}) noexcept : key{std::move(k)}, array{std::move(a)}, record{std::move(r)}
+		static constexpr bool insertIfNotPresent() noexcept { return InsertIfNotPresent; };
+
+		AppendToArray(KeyField k, ArrayField a) noexcept requires(InsertIfNotPresent == false) :
+			detail::ArrayMember{std::move(a)}, key{ std::move(k) }
 		{}
 
+		AppendToArray(KeyField k, Record r) noexcept requires(InsertIfNotPresent == true) :
+			detail::RecordMember{ std::move(r) }, key{ std::move(k) }
+		{}
+
+		constexpr const ArrayField& array() const noexcept {
+			if constexpr (!InsertIfNotPresent)
+				return this->array.value;
+			else
+				return this->record.template fieldValue<ArrayField>();
+		}
+
 		const KeyField key;
-		const ArrayField array;
-		const Record record;
 	};
 
 	template <class Record, class K>
