@@ -89,21 +89,25 @@ namespace Operation {
 		static_assert(Record::template has_field_v<KeyField>);
 	};
 
-	template <class Record, class KeyField, class ArrayField, bool InsertIfNotPresent = false>
-	struct AppendToArray final : public std::conditional_t<InsertIfNotPresent, detail::RecordMember<Record>, detail::ArrayMember<ArrayField>>
+	template <class Record, class K, class A, bool InsertIfNotPresent = false>
+	struct AppendToArray final : public std::conditional_t<InsertIfNotPresent, detail::RecordMember<Record>, detail::ArrayMember<A>>
 	{
+		using KeyField = K;
+		using ArrayField = A;
+		using KeyValueType = typename KeyField::ValueType;
+
 		static_assert(Record::template has_field_v<KeyField>);
 
 		static constexpr auto op = OpCode::AppendToArray;
 
 		static constexpr bool insertIfNotPresent() noexcept { return InsertIfNotPresent; };
 
-		AppendToArray(KeyField k, ArrayField a) noexcept requires(InsertIfNotPresent == false) :
-			detail::ArrayMember{std::move(a)}, key{ std::move(k) }
+		AppendToArray(KeyValueType k, ArrayField a) noexcept requires(InsertIfNotPresent == false) :
+			detail::ArrayMember{std::move(a)}, keyValue{ std::move(k) }
 		{}
 
-		AppendToArray(KeyField k, Record r) noexcept requires(InsertIfNotPresent == true) :
-			detail::RecordMember{ std::move(r) }, key{ std::move(k) }
+		AppendToArray(KeyValueType k, Record r) noexcept requires(InsertIfNotPresent == true) :
+			detail::RecordMember{ std::move(r) }, keyValue{ std::move(k) }
 		{}
 
 		constexpr const ArrayField& array() const noexcept {
@@ -113,7 +117,7 @@ namespace Operation {
 				return this->record.template fieldValue<ArrayField>();
 		}
 
-		const KeyField key;
+		const KeyValueType keyValue;
 	};
 
 	template <class Record, class K>

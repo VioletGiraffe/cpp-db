@@ -135,7 +135,33 @@ template <typename... RecordParams>
 template<class Operation, typename StorageImplementation, sfinae<Operation::op == OpCode::AppendToArray>>
 bool Serializer<DbRecord<RecordParams...>>::serialize(const Operation& op, StorageIO<StorageImplementation>& io) noexcept
 {
-	return false;
+	if (!io.write(Operation::op))
+		return false;
+
+	constexpr auto keyFieldId = Operation::KeyField::id;
+	static_assert (keyFieldId >= 0 && keyFieldId <= 255);
+	if (!io.write(static_cast<uint8_t>(keyFieldId)))
+		return false;
+
+	constexpr auto arrayFieldId = Operation::ArrayField::id;
+	static_assert (arrayFieldId >= 0 && arrayFieldId <= 255);
+	if (!io.write(static_cast<uint8_t>(arrayFieldId)))
+		return false;
+
+	if (!io.write(op.insertIfNotPresent()))
+		return false;
+
+	static_assert(std::is_same_v<Record, remove_cv_and_reference_t<decltype(op.record)>>);
+	if (!OpSerializer::serialize(op.record, io))
+		return false;
+
+	if (!io.write(op.keyValue))
+		return false;
+
+	if constexpr (op.insertIfNotPresent())
+		return io.write(op.record);
+	else
+		return io.write(op.array);
 }
 
 template <typename... RecordParams>
