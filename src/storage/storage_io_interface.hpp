@@ -40,9 +40,10 @@ struct StorageIO
 
 	bool flush() noexcept;
 	[[nodiscard]] bool seek(uint64_t location) noexcept;
-
 	[[nodiscard]] uint64_t pos() const noexcept;
+
 	[[nodiscard]] uint64_t size() const noexcept;
+	[[nodiscard]] bool atEnd() const noexcept;
 
 	[[nodiscard]] bool clear() noexcept;
 
@@ -205,6 +206,12 @@ template<typename IOAdapter>
 uint64_t StorageIO<IOAdapter>::size() const noexcept
 {
 	return _io.size();
+}
+
+template<typename IOAdapter>
+bool StorageIO<IOAdapter>::atEnd() const noexcept
+{
+	return _io.atEnd();
 }
 
 template<typename IOAdapter>

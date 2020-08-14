@@ -30,6 +30,7 @@ TEST_CASE("Operation::Insert serialization", "[dbops]") {
 	});
 
 	REQUIRE(success);
+	REQUIRE(buffer.atEnd());
 }
 
 //TEST_CASE("Operation::Find serialization", "[dbops]") {
@@ -102,6 +103,7 @@ TEST_CASE("Operation::UpdateFull serialization", "[dbops]") {
 			});
 
 		REQUIRE(success);
+		REQUIRE(buffer.atEnd());
 	}
 
 	{
@@ -136,6 +138,7 @@ TEST_CASE("Operation::UpdateFull serialization", "[dbops]") {
 			});
 
 		REQUIRE(success);
+		REQUIRE(buffer.atEnd());
 	}
 }
 
@@ -173,4 +176,5 @@ TEST_CASE("Operation::Delete serialization", "[dbops]") {
 		});
 
 	REQUIRE(success);
+	REQUIRE(buffer.atEnd());
 }

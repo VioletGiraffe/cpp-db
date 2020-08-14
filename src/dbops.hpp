@@ -35,7 +35,7 @@ namespace Operation {
 				array{ std::move(a) }
 			{}
 
-			const ArrayField array;
+			const typename ArrayField::ValueType array;
 		};
 	}
 
@@ -95,6 +95,7 @@ namespace Operation {
 		using KeyField = K;
 		using ArrayField = A;
 		using KeyValueType = typename KeyField::ValueType;
+		using ArrayValueType = typename ArrayField::ValueType;
 
 		static_assert(Record::template has_field_v<KeyField>);
 
@@ -102,7 +103,7 @@ namespace Operation {
 
 		static constexpr bool insertIfNotPresent() noexcept { return InsertIfNotPresent; };
 
-		AppendToArray(KeyValueType k, ArrayField a) noexcept requires(InsertIfNotPresent == false) :
+		AppendToArray(KeyValueType k, ArrayValueType a) noexcept requires(InsertIfNotPresent == false) :
 			detail::ArrayMember{std::move(a)}, keyValue{ std::move(k) }
 		{}
 
@@ -110,9 +111,9 @@ namespace Operation {
 			detail::RecordMember{ std::move(r) }, keyValue{ std::move(k) }
 		{}
 
-		constexpr const ArrayField& array() const noexcept {
+		constexpr const ArrayValueType& array() const noexcept {
 			if constexpr (!InsertIfNotPresent)
-				return this->array.value;
+				return this->array;
 			else
 				return this->record.template fieldValue<ArrayField>();
 		}

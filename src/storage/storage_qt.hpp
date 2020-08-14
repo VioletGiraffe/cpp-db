@@ -61,6 +61,11 @@ public:
 		return static_cast<uint64_t>(_file.size());
 	}
 
+	[[nodiscard]] bool atEnd() const noexcept
+	{
+		return _file.atEnd();
+	}
+
 	bool flush() noexcept
 	{
 		return _file.flush();
@@ -129,6 +134,11 @@ public:
 	[[nodiscard]] uint64_t size() const noexcept
 	{
 		return static_cast<uint64_t>(_ioDevice.size());
+	}
+
+	[[nodiscard]] bool atEnd() const noexcept
+	{
+		return _ioDevice.atEnd();
 	}
 
 	bool flush() noexcept

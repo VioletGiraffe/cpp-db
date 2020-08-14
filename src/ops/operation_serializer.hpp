@@ -42,7 +42,7 @@ public:
 	[[nodiscard]] static bool deserialize(StorageIO<StorageImplementation>& io, Receiver&& receiver) noexcept;
 
 private:
-	using OpSerializer = RecordSerializer<Record>;
+	using RecordSerializer = DbRecordSerializer<Record>;
 
 	template <size_t fieldsCount, size_t currentFieldIndex = 0, typename Functor, typename TypesPack = type_pack<>>
 	static constexpr void constructFindOperationType([[maybe_unused]] Functor&& receiver, const uint8_t(&fieldIds)[256]) noexcept
@@ -71,7 +71,7 @@ bool Serializer<DbRecord<RecordParams...>>::serialize(const Operation& op, Stora
 		return false;
 
 	static_assert(std::is_same_v<Record, remove_cv_and_reference_t<decltype(op._record)>>);
-	return OpSerializer::serialize(op._record, io);
+	return RecordSerializer::serialize(op._record, io);
 }
 
 template <typename... RecordParams>
@@ -125,7 +125,7 @@ bool Serializer<DbRecord<RecordParams...>>::serialize(const Operation& op, Stora
 		return false;
 
 	static_assert(std::is_same_v<Record, remove_cv_and_reference_t<decltype(op.record)>>);
-	if (!OpSerializer::serialize(op.record, io))
+	if (!RecordSerializer::serialize(op.record, io))
 		return false;
 
 	return io.write(op.keyValue);
@@ -151,15 +151,11 @@ bool Serializer<DbRecord<RecordParams...>>::serialize(const Operation& op, Stora
 	if (!io.write(op.insertIfNotPresent()))
 		return false;
 
-	static_assert(std::is_same_v<Record, remove_cv_and_reference_t<decltype(op.record)>>);
-	if (!OpSerializer::serialize(op.record, io))
-		return false;
-
 	if (!io.write(op.keyValue))
 		return false;
 
 	if constexpr (op.insertIfNotPresent())
-		return io.write(op.record);
+		return RecordSerializer::serialize(op.record, io);
 	else
 		return io.write(op.array);
 }
@@ -193,7 +189,7 @@ bool Serializer<DbRecord<RecordParams...>>::deserialize(StorageIO<StorageImpleme
 	{
 		using Op = Operation::Insert<Record>;
 		Record r;
-		if (!RecordSerializer<Record>::deserialize(r, io))
+		if (!RecordSerializer::deserialize(r, io))
 			return false;
 
 		receiver.operator()(Op{ std::move(r) });
@@ -234,7 +230,7 @@ bool Serializer<DbRecord<RecordParams...>>::deserialize(StorageIO<StorageImpleme
 			return false;
 
 		Record r;
-		if (!RecordSerializer<Record>::deserialize(r, io))
+		if (!RecordSerializer::deserialize(r, io))
 			return false;
 
 		bool success = false;
@@ -263,7 +259,67 @@ bool Serializer<DbRecord<RecordParams...>>::deserialize(StorageIO<StorageImpleme
 		return success;
 	}
 	case OpCode::AppendToArray:
-		break;
+	{
+		uint8_t keyFieldId;
+		if (!io.read(keyFieldId))
+			return false;
+
+		uint8_t arrayFieldId;
+		if (!io.read(arrayFieldId))
+			return false;
+
+		bool insertIfNotPresent;
+		if (!io.read(insertIfNotPresent))
+			return false;
+
+		bool success = false;
+		// Searching the compile-time value for keyFieldId
+		constexpr_for_fold<0, Schema::fieldsCount_v>([&]<auto KeyFieldIndex>() {
+			using KeyField = typename Schema::template FieldByIndex_t<KeyFieldIndex>;
+			if (KeyField::id == keyFieldId)
+			{
+				typename KeyField::ValueType keyFieldValue;
+				if (!io.read(keyFieldValue))
+					return;
+
+				// Searching the compile-time value for arrayFieldId
+				constexpr_for_fold<0, Schema::fieldsCount_v>([&]<auto ArrayFieldIndex>() {
+					//if constexpr (ArrayFieldIndex != KeyFieldIndexLocal)
+					{
+						using ArrayField = typename Schema::template FieldByIndex_t<ArrayFieldIndex>;
+						if constexpr (ArrayField::isArray())
+						{
+							if (ArrayField::id == arrayFieldId)
+							{
+								if (insertIfNotPresent)
+								{
+									Record r;
+									if (!RecordSerializer::deserialize(r, io))
+										return;
+
+									using Op = Operation::AppendToArray<Record, KeyField, ArrayField, true>;
+									receiver.operator()(Op{ std::move(keyFieldValue), std::move(r) });
+								}
+								else
+								{
+									typename ArrayField::ValueType array;
+									if (!io.read(array))
+										return;
+
+									using Op = Operation::AppendToArray<Record, KeyField, ArrayField, false>;
+									receiver.operator()(Op{ std::move(keyFieldValue), std::move(array) });
+								}
+
+								success = true;
+							}
+						}
+					}
+				});
+			}
+		});
+
+		return success;
+	}
 	case OpCode::Delete:
 	{
 		uint8_t keyFieldId;

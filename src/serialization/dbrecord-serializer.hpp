@@ -10,12 +10,12 @@
 #include <string.h> // memcpy
 
 template <typename T>
-struct RecordSerializer {
+struct DbRecordSerializer {
 	static_assert(false_v<T>, "This shouldn't be instantiated - check the template parameter list for errors!");
 };
 
 template <typename... Args>
-struct RecordSerializer<DbRecord<Args...>>
+struct DbRecordSerializer<DbRecord<Args...>>
 {
 	using Record = DbRecord<Args...>;
 
