@@ -21,7 +21,7 @@ namespace Operation {
 		template <class Record>
 		struct RecordMember {
 			static_assert(Record::isRecord());
-			explicit constexpr RecordMember(Record r) :
+			explicit constexpr RecordMember(Record r) noexcept :
 				record{ std::move(r) }
 			{}
 
@@ -31,7 +31,7 @@ namespace Operation {
 		template <class ArrayField>
 		struct ArrayMember {
 			static_assert(ArrayField::isArray());
-			explicit constexpr ArrayMember(ArrayField a) :
+			explicit constexpr ArrayMember(typename ArrayField::ValueType a) noexcept :
 				array{ std::move(a) }
 			{}
 
@@ -89,11 +89,11 @@ namespace Operation {
 		static_assert(Record::template has_field_v<KeyField>);
 	};
 
-	template <class Record, class K, class A, bool InsertIfNotPresent = false>
-	struct AppendToArray final : public std::conditional_t<InsertIfNotPresent, detail::RecordMember<Record>, detail::ArrayMember<A>>
+	template <class Record, class Key, class Array, bool InsertIfNotPresent = false>
+	struct AppendToArray final : public std::conditional_t<InsertIfNotPresent, detail::RecordMember<Record>, detail::ArrayMember<Array>>
 	{
-		using KeyField = K;
-		using ArrayField = A;
+		using KeyField = Key;
+		using ArrayField = Array;
 		using KeyValueType = typename KeyField::ValueType;
 		using ArrayValueType = typename ArrayField::ValueType;
 
@@ -104,14 +104,14 @@ namespace Operation {
 		static constexpr bool insertIfNotPresent() noexcept { return InsertIfNotPresent; };
 
 		AppendToArray(KeyValueType k, ArrayValueType a) noexcept requires(InsertIfNotPresent == false) :
-			detail::ArrayMember{std::move(a)}, keyValue{ std::move(k) }
+			detail::ArrayMember<Array>{std::move(a)}, keyValue{ std::move(k) }
 		{}
 
 		AppendToArray(KeyValueType k, Record r) noexcept requires(InsertIfNotPresent == true) :
-			detail::RecordMember{ std::move(r) }, keyValue{ std::move(k) }
+			detail::RecordMember<Record>{ std::move(r) }, keyValue{ std::move(k) }
 		{}
 
-		constexpr const ArrayValueType& array() const noexcept {
+		constexpr const ArrayValueType& updatedArray() const noexcept {
 			if constexpr (!InsertIfNotPresent)
 				return this->array;
 			else

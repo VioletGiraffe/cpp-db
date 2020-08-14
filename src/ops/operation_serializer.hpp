@@ -284,34 +284,31 @@ bool Serializer<DbRecord<RecordParams...>>::deserialize(StorageIO<StorageImpleme
 
 				// Searching the compile-time value for arrayFieldId
 				constexpr_for_fold<0, Schema::fieldsCount_v>([&]<auto ArrayFieldIndex>() {
-					//if constexpr (ArrayFieldIndex != KeyFieldIndexLocal)
+					using ArrayField = typename Schema::template FieldByIndex_t<ArrayFieldIndex>;
+					if constexpr (ArrayField::isArray())
 					{
-						using ArrayField = typename Schema::template FieldByIndex_t<ArrayFieldIndex>;
-						if constexpr (ArrayField::isArray())
+						if (ArrayField::id == arrayFieldId)
 						{
-							if (ArrayField::id == arrayFieldId)
+							if (insertIfNotPresent)
 							{
-								if (insertIfNotPresent)
-								{
-									Record r;
-									if (!RecordSerializer::deserialize(r, io))
-										return;
+								Record r;
+								if (!RecordSerializer::deserialize(r, io))
+									return;
 
-									using Op = Operation::AppendToArray<Record, KeyField, ArrayField, true>;
-									receiver.operator()(Op{ std::move(keyFieldValue), std::move(r) });
-								}
-								else
-								{
-									typename ArrayField::ValueType array;
-									if (!io.read(array))
-										return;
-
-									using Op = Operation::AppendToArray<Record, KeyField, ArrayField, false>;
-									receiver.operator()(Op{ std::move(keyFieldValue), std::move(array) });
-								}
-
-								success = true;
+								using Op = Operation::AppendToArray<Record, KeyField, ArrayField, true>;
+								receiver.operator()(Op{ std::move(keyFieldValue), std::move(r) });
 							}
+							else
+							{
+								typename ArrayField::ValueType array;
+								if (!io.read(array))
+									return;
+
+								using Op = Operation::AppendToArray<Record, KeyField, ArrayField, false>;
+								receiver.operator()(Op{ std::move(keyFieldValue), std::move(array) });
+							}
+
+							success = true;
 						}
 					}
 				});

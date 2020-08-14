@@ -178,3 +178,103 @@ TEST_CASE("Operation::Delete serialization", "[dbops]") {
 	REQUIRE(success);
 	REQUIRE(buffer.atEnd());
 }
+
+TEST_CASE("Operation::AppendToArray serialization", "[dbops]") {
+
+	using FKey = Field<double, 4>;
+	using FArray = Field<uint64_t, 5, true>;
+	using Fc = Field<char, 0>;
+	using Fs = Field<std::string, 42>;
+	using FSecondArray = Field<std::string, 45, true>;
+
+	using Record = DbRecord<NoTombstone, Fc, FKey, Fs, FArray, FSecondArray>;
+
+	Operation::Serializer<Record> serializer;
+
+	{
+		const std::vector<uint64_t> newArray{ 1, 2, 0 };
+		Operation::AppendToArray<Record, FKey, FArray, false> op{ 3.14, newArray };
+
+		StorageIO<io::QMemoryDeviceAdapter> buffer;
+		REQUIRE(buffer.open(".", io::OpenMode::ReadWrite));
+
+		REQUIRE(serializer.serialize(op, buffer));
+
+		REQUIRE(buffer.seek(0));
+		bool deserializationOccurred = false;
+		const bool success = serializer.deserialize(buffer, [&](auto&& newOp) {
+			using OpType = remove_cv_and_reference_t<decltype(newOp)>;
+			if constexpr (OpType::op == OpCode::AppendToArray)
+			{
+				if constexpr (std::is_same_v<FKey, typename OpType::KeyField> && std::is_same_v<FArray, typename OpType::ArrayField>)
+				{
+					deserializationOccurred = true;
+
+					REQUIRE(newOp.insertIfNotPresent() == op.insertIfNotPresent());
+					REQUIRE(newOp.keyValue == op.keyValue);
+					if constexpr (newOp.insertIfNotPresent() && op.insertIfNotPresent())
+						REQUIRE(newOp.record == op.record);
+					else if constexpr (!newOp.insertIfNotPresent() && !op.insertIfNotPresent())
+						REQUIRE(newOp.array == op.array);
+					else
+						FAIL();
+
+					REQUIRE(newOp.updatedArray() == op.updatedArray());
+					REQUIRE(newOp.updatedArray() == newArray);
+				}
+				else
+					FAIL();
+			}
+			else
+				FAIL();
+			});
+
+		REQUIRE(success);
+		REQUIRE(deserializationOccurred);
+		REQUIRE(buffer.atEnd());
+	}
+
+	{
+		const std::vector<std::string> newArray{ "a", "bc", "def" };
+		const Record r{ 'a', -100e35, "Hello!", std::vector<uint64_t>{51, 16}, newArray };
+		Operation::AppendToArray<Record, FKey, FSecondArray, true> op{ 3.14, r };
+
+		StorageIO<io::QMemoryDeviceAdapter> buffer;
+		REQUIRE(buffer.open(".", io::OpenMode::ReadWrite));
+
+		REQUIRE(serializer.serialize(op, buffer));
+
+		REQUIRE(buffer.seek(0));
+		bool deserializationOccurred = false;
+		const bool success = serializer.deserialize(buffer, [&](auto&& newOp) {
+			using OpType = remove_cv_and_reference_t<decltype(newOp)>;
+			if constexpr (OpType::op == OpCode::AppendToArray)
+			{
+				if constexpr (std::is_same_v<FKey, typename OpType::KeyField> && std::is_same_v<FSecondArray, typename OpType::ArrayField>)
+				{
+					deserializationOccurred = true;
+
+					REQUIRE(newOp.insertIfNotPresent() == op.insertIfNotPresent());
+					REQUIRE(newOp.keyValue == op.keyValue);
+					if constexpr (newOp.insertIfNotPresent() && op.insertIfNotPresent())
+						REQUIRE(newOp.record == op.record);
+					else if constexpr (!newOp.insertIfNotPresent() && !op.insertIfNotPresent())
+						REQUIRE(newOp.array == op.array);
+					else
+						FAIL();
+
+					REQUIRE(newOp.updatedArray() == op.updatedArray());
+					REQUIRE(newOp.updatedArray() == newArray);
+				}
+				else
+					FAIL();
+			}
+			else
+				FAIL();
+			});
+
+		REQUIRE(success);
+		REQUIRE(deserializationOccurred);
+		REQUIRE(buffer.atEnd());
+	}
+}
