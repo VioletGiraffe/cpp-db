@@ -179,6 +179,17 @@ TEST_CASE("Operation::Delete serialization", "[dbops]") {
 	REQUIRE(buffer.atEnd());
 }
 
+template<class A, class B>
+bool compareAppendToArrayOps(A&& a, B&& b)
+{
+	if constexpr (a.insertIfNotPresent() && b.insertIfNotPresent())
+		return a.record == b.record;
+	else if constexpr (!a.insertIfNotPresent() && !b.insertIfNotPresent())
+		return a.array == b.array;
+	else
+		return false;
+}
+
 TEST_CASE("Operation::AppendToArray serialization", "[dbops]") {
 
 	using FKey = Field<double, 4>;
@@ -200,25 +211,21 @@ TEST_CASE("Operation::AppendToArray serialization", "[dbops]") {
 
 		REQUIRE(serializer.serialize(op, buffer));
 
+		Operation::AppendToArray<Record, FKey, FArray, true> newop{ 3.14, Record{} };
+
 		REQUIRE(buffer.seek(0));
 		bool deserializationOccurred = false;
 		const bool success = serializer.deserialize(buffer, [&](auto&& newOp) {
 			using OpType = remove_cv_and_reference_t<decltype(newOp)>;
 			if constexpr (OpType::op == OpCode::AppendToArray)
 			{
+				REQUIRE(newOp.insertIfNotPresent() == op.insertIfNotPresent());
 				if constexpr (std::is_same_v<FKey, typename OpType::KeyField> && std::is_same_v<FArray, typename OpType::ArrayField>)
 				{
 					deserializationOccurred = true;
 
-					REQUIRE(newOp.insertIfNotPresent() == op.insertIfNotPresent());
 					REQUIRE(newOp.keyValue == op.keyValue);
-					if constexpr (newOp.insertIfNotPresent() && op.insertIfNotPresent())
-						REQUIRE(newOp.record == op.record);
-					else if constexpr (!newOp.insertIfNotPresent() && !op.insertIfNotPresent())
-						REQUIRE(newOp.array == op.array);
-					else
-						FAIL();
-
+					REQUIRE(compareAppendToArrayOps(newOp, op));
 					REQUIRE(newOp.updatedArray() == op.updatedArray());
 					REQUIRE(newOp.updatedArray() == newArray);
 				}
@@ -227,7 +234,7 @@ TEST_CASE("Operation::AppendToArray serialization", "[dbops]") {
 			}
 			else
 				FAIL();
-			});
+		});
 
 		REQUIRE(success);
 		REQUIRE(deserializationOccurred);
@@ -256,12 +263,7 @@ TEST_CASE("Operation::AppendToArray serialization", "[dbops]") {
 
 					REQUIRE(newOp.insertIfNotPresent() == op.insertIfNotPresent());
 					REQUIRE(newOp.keyValue == op.keyValue);
-					if constexpr (newOp.insertIfNotPresent() && op.insertIfNotPresent())
-						REQUIRE(newOp.record == op.record);
-					else if constexpr (!newOp.insertIfNotPresent() && !op.insertIfNotPresent())
-						REQUIRE(newOp.array == op.array);
-					else
-						FAIL();
+					REQUIRE(compareAppendToArrayOps(newOp, op));
 
 					REQUIRE(newOp.updatedArray() == op.updatedArray());
 					REQUIRE(newOp.updatedArray() == newArray);

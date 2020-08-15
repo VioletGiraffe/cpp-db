@@ -16,7 +16,7 @@ struct StorageLocation {
 
 	static constexpr auto noLocation = std::numeric_limits<decltype(location)>::max();
 
-	[[nodiscard]] inline constexpr StorageLocation(uint64_t loc) noexcept : location{ loc } {}
+	inline constexpr StorageLocation(uint64_t loc) noexcept : location{ loc } {}
 
 	[[nodiscard]] inline constexpr bool operator==(const StorageLocation& other) const noexcept {
 		return location == other.location;
