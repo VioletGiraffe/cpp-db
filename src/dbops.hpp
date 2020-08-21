@@ -17,28 +17,6 @@ enum class OpCode : uint8_t {
 
 namespace Operation {
 
-	namespace detail {
-		template <class Record>
-		struct RecordMember {
-			static_assert(Record::isRecord());
-			explicit constexpr RecordMember(Record r) noexcept :
-				record{ std::move(r) }
-			{}
-
-			const Record record;
-		};
-
-		template <class ArrayField>
-		struct ArrayMember {
-			static_assert(ArrayField::isArray());
-			explicit constexpr ArrayMember(typename ArrayField::ValueType a) noexcept :
-				array{ std::move(a) }
-			{}
-
-			const typename ArrayField::ValueType array;
-		};
-	}
-
 	template <class Record>
 	struct Insert
 	{
@@ -57,8 +35,8 @@ namespace Operation {
 	{
 		static constexpr auto op = OpCode::Find;
 
-		static constexpr size_t maxFieldCount = 8;
-		static_assert(sizeof...(Fields) < maxFieldCount);
+		static constexpr size_t maxFieldCount = 2;
+		static_assert(sizeof...(Fields) <= maxFieldCount);
 
 		template <typename... V>
 		explicit constexpr Find(V&&... values) noexcept : _fields{ std::forward<V>(values)... }
@@ -88,6 +66,28 @@ namespace Operation {
 		static_assert(Record::isRecord());
 		static_assert(Record::template has_field_v<KeyField>);
 	};
+
+	namespace detail {
+		template <class Record>
+		struct RecordMember {
+			static_assert(Record::isRecord());
+			explicit constexpr RecordMember(Record r) noexcept :
+				record{ std::move(r) }
+			{}
+
+			const Record record;
+		};
+
+		template <class ArrayField>
+		struct ArrayMember {
+			static_assert(ArrayField::isArray());
+			explicit constexpr ArrayMember(typename ArrayField::ValueType a) noexcept :
+				array{ std::move(a) }
+			{}
+
+			const typename ArrayField::ValueType array;
+		};
+	}
 
 	template <class Record, class Key, class Array, bool InsertIfNotPresent = false>
 	struct AppendToArray final : public std::conditional_t<InsertIfNotPresent, detail::RecordMember<Record>, detail::ArrayMember<Array>>

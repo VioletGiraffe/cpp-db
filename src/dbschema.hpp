@@ -1,7 +1,5 @@
 #pragma once
 
-#include "parameter_pack/parameter_pack_helpers.hpp"
-
 template <class RecordType>
 struct DbSchema
 {

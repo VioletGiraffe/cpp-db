@@ -44,21 +44,27 @@ public:
 private:
 	using RecordSerializer = DbRecordSerializer<Record>;
 
-	template <size_t fieldsCount, size_t currentFieldIndex = 0, typename Functor, typename TypesPack = type_pack<>>
-	static constexpr void constructFindOperationType([[maybe_unused]] Functor&& receiver, const uint8_t(&fieldIds)[256]) noexcept
+	template <typename Functor, size_t currentIndex = 0, typename TypesPack = type_pack<>>
+	static constexpr void constructFindOperationType([[maybe_unused]] Functor&& receiver, const uint8_t(&fieldIds)[256], const size_t nFieldIds) noexcept
 	{
-		if constexpr (currentFieldIndex == fieldsCount)
-		{
-			using OpType = typename TypesPack::template Construct<Operation::Find>;
-			receiver(OpType{});
-			return; // Terminate iteration - all IDs processed
-		}
-
-		// Get the compile-time ID of the current field
-		constexpr_for<0, Schema::fieldsCount_v>([&](auto i) {
-			using FieldType = typename Schema::template FieldByIndex_t<i>;
-			if (fieldIds[currentFieldIndex] == FieldType::id)
-				constructFindOperationType<fieldsCount, currentFieldIndex + 1, Functor, typename TypesPack::template Append<FieldType>>(std::forward<Functor>(receiver), fieldIds);
+		// Get the compile-time ID of the current type
+		constexpr_for_fold<0, Schema::Fields::type_count>([&]<auto I>() {
+			using Type = typename Schema::template FieldByIndex_t<I>;
+			if (Type::id == fieldIds[currentIndex])
+			{
+				using UpdatedTypesPack = typename TypesPack::template Append<Type>;
+				if ((currentIndex + 1) == nFieldIds)
+				{
+					// All done - compose the final type and exit.
+					using FindOpType = typename UpdatedTypesPack::template Construct<Operation::Find>;
+					receiver.template operator()<FindOpType>();
+				}
+				else
+				{
+					if constexpr (currentIndex + 1 < Operation::Find<>::maxFieldCount) // Keep recursing
+						constructFindOperationType<Functor, currentIndex + 1, UpdatedTypesPack>(std::forward<Functor>(receiver), fieldIds, nFieldIds);
+				}
+			}
 		});
 	}
 };
@@ -90,9 +96,10 @@ bool Serializer<DbRecord<RecordParams...>>::serialize(const Operation& op, Stora
 		return false;
 
 	// Now writing IDs of each the field in order.
-	constexpr_for<0, nFields>([&](auto i) {
-		const auto& field = std::get<i.to_value()>(op._fields);
+	constexpr_for_fold<0, nFields>([&]<auto I>() {
+		const auto& field = std::get<I>(op._fields);
 		using FieldType = remove_cv_and_reference_t<decltype(field)>;
+		static_assert(!FieldType::isArray(), "Does this make sense?");
 		static_assert(FieldType::id <= 255);
 
 		if (!io.write(static_cast<uint8_t>(FieldType::id)))
@@ -100,8 +107,8 @@ bool Serializer<DbRecord<RecordParams...>>::serialize(const Operation& op, Stora
 	});
 
 	// And now the values
-	constexpr_for<0, nFields>([&](auto i) {
-		const auto& field = std::get<i.to_value()>(op._fields);
+	constexpr_for_fold<0, nFields>([&]<auto I>() {
+		const auto& field = std::get<I>(op._fields);
 		if (!io.writeField(field))
 			return false;
 	});
@@ -195,30 +202,28 @@ bool Serializer<DbRecord<RecordParams...>>::deserialize(StorageIO<StorageImpleme
 		receiver.operator()(Op{ std::move(r) });
 		return true;
 	}
-//	case OpCode::Find:
-//	{
-//		uint8_t nFields = 0;
-//		if (!io.read(nFields))
-//			return false;
+	case OpCode::Find:
+	{
+		uint8_t nFields = 0;
+		if (!io.read(nFields))
+			return false;
 
-//		assert_and_return_r(nFields > 0 && nFields <= Operation::Find<>::maxFieldCount, false);
+		assert_and_return_r(nFields > 0 && nFields <= Operation::Find<>::maxFieldCount, false);
 
-//		uint8_t ids[256] = { 0 };
-//		for (size_t i = 0; i < nFields; ++i)
-//		{
-//			if (!io.read(ids[i]))
-//				return false;
-//		}
+		uint8_t ids[256] = { 0 };
+		for (size_t i = 0; i < nFields; ++i)
+		{
+			if (!io.read(ids[i]))
+				return false;
+		}
 
-//		//constexpr_from_runtime_value<1, Operation::Find<>::maxFieldCount>(nFields, [&](auto nFieldsConstexpr){
-//			constructFindOperationType<3>([&](auto opPrototype) {
-//				using OpType = decltype(opPrototype);
-//				receiver.operator()(OpType{});
-//			}, ids);
-//		//});
+		constructFindOperationType([&]<class OpType>() {
+			pack::
+			receiver.operator()(OpType{});
+		}, ids, nFields);
 
-//		return true;
-//	}
+		return true;
+	}
 	case OpCode::UpdateFull:
 	{
 		uint8_t keyFieldId;
