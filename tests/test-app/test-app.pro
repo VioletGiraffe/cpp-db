@@ -65,6 +65,7 @@ SOURCES += tests_main.cpp \
 	dbfilegaps_test.cpp \
 	dbindex_test.cpp \
 	dbindices_test.cpp \
+	dbops_test.cpp \
 	dbrecord_tests.cpp \
 	dbstorage_tests.cpp \
 	dbwal_tests.cpp \
