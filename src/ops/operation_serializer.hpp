@@ -217,12 +217,24 @@ bool Serializer<DbRecord<RecordParams...>>::deserialize(StorageIO<StorageImpleme
 				return false;
 		}
 
-		constructFindOperationType([&]<class OpType>() {
-			pack::
-			receiver.operator()(OpType{});
+		bool success = true;
+		constructFindOperationType([&]<class OpFindType>() {
+			typename OpFindType::TupleOfFields fieldsTuple;
+			constexpr_for_fold<0, std::tuple_size_v<typename OpFindType::TupleOfFields>>([&]<auto I>() {
+				const auto& field = std::get<I>(fieldsTuple);
+				if (success && !io.readField(field))
+				{
+					success = false;
+					return;
+				}
+			});
+
+			if (success)
+				receiver(OpFindType{std::move(fieldsTuple)});
+
 		}, ids, nFields);
 
-		return true;
+		return success;
 	}
 	case OpCode::UpdateFull:
 	{
