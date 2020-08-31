@@ -57,7 +57,7 @@ private:
 				{
 					// All done - compose the final type and exit.
 					using FindOpType = typename UpdatedTypesPack::template Construct<Operation::Find>;
-					receiver.template operator()<FindOpType>();
+					receiver(type_wrapper<FindOpType>{});
 				}
 				else
 				{
@@ -95,6 +95,7 @@ bool Serializer<DbRecord<RecordParams...>>::serialize(const Operation& op, Stora
 	if (!io.write(static_cast<uint8_t>(nFields)))
 		return false;
 
+	bool success = true;
 	// Now writing IDs of each the field in order.
 	constexpr_for_fold<0, nFields>([&]<auto I>() {
 		const auto& field = std::get<I>(op._fields);
@@ -102,18 +103,21 @@ bool Serializer<DbRecord<RecordParams...>>::serialize(const Operation& op, Stora
 		static_assert(!FieldType::isArray(), "Does this make sense?");
 		static_assert(FieldType::id <= 255);
 
-		if (!io.write(static_cast<uint8_t>(FieldType::id)))
-			return false;
+		if (success && !io.write(static_cast<uint8_t>(FieldType::id)))
+			success = false;
 	});
+
+	if (!success)
+		return false;
 
 	// And now the values
 	constexpr_for_fold<0, nFields>([&]<auto I>() {
 		const auto& field = std::get<I>(op._fields);
-		if (!io.writeField(field))
-			return false;
+		if (success && !io.writeField(field))
+			success = false;
 	});
 
-	return true;
+	return success;
 }
 
 template <typename... RecordParams>
@@ -218,10 +222,11 @@ bool Serializer<DbRecord<RecordParams...>>::deserialize(StorageIO<StorageImpleme
 		}
 
 		bool success = true;
-		constructFindOperationType([&]<class OpFindType>() {
-			typename OpFindType::TupleOfFields fieldsTuple;
-			constexpr_for_fold<0, std::tuple_size_v<typename OpFindType::TupleOfFields>>([&]<auto I>() {
-				const auto& field = std::get<I>(fieldsTuple);
+		constructFindOperationType([&](auto OpTypeWrapper) {
+			using OpType = typename decltype(OpTypeWrapper)::type;
+			typename OpType::TupleOfFields fieldsTuple;
+			constexpr_for_fold<0, std::tuple_size_v<typename OpType::TupleOfFields>>([&]<auto I>() {
+				auto& field = std::get<I>(fieldsTuple);
 				if (success && !io.readField(field))
 				{
 					success = false;
@@ -230,7 +235,7 @@ bool Serializer<DbRecord<RecordParams...>>::deserialize(StorageIO<StorageImpleme
 			});
 
 			if (success)
-				receiver(OpFindType{std::move(fieldsTuple)});
+				receiver(OpType{std::move(fieldsTuple)});
 
 		}, ids, nFields);
 
