@@ -49,6 +49,11 @@ public:
 		return _file.seek(static_cast<qint64>(position));
 	}
 
+	[[nodiscard]] bool seekToEnd() noexcept
+	{
+		return _file.seek(_file.size());
+	}
+
 	[[nodiscard]] uint64_t pos() const noexcept
 	{
 		const auto position = _file.pos();
@@ -122,6 +127,11 @@ public:
 	[[nodiscard]] bool seek(const uint64_t position) noexcept
 	{
 		return _ioDevice.seek(static_cast<qint64>(position));
+	}
+
+	[[nodiscard]] bool seekToEnd() noexcept
+	{
+		return _ioDevice.seek(_ioDevice.size());
 	}
 
 	[[nodiscard]] uint64_t pos() const noexcept

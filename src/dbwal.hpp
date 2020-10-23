@@ -19,31 +19,31 @@ public:
 	[[nodiscard]] bool registerOperation(OpType&& op);
 
 private:
-	StorageIO<StorageAdapter> _storage;
+	StorageIO<StorageAdapter> _logFile;
 };
 
 template<class Record, class StorageAdapter>
-inline bool DbWAL<Record, StorageAdapter>::openLogFile(const std::string& filePath)
+[[nodiscard]] inline bool DbWAL<Record, StorageAdapter>::openLogFile(const std::string& filePath)
 {
-	return _storage.open(filePath, io::OpenMode::ReadWrite);
+	return _logFile.open(filePath, io::OpenMode::ReadWrite);
 }
 
 template<class Record, class StorageAdapter>
-inline bool DbWAL<Record, StorageAdapter>::verifyLog()
+[[nodiscard]] inline bool DbWAL<Record, StorageAdapter>::verifyLog()
 {
 
 	return false;
 }
 
 template<class Record, class StorageAdapter>
-bool DbWAL<Record, StorageAdapter>::clearLog()
+[[nodiscard]] bool DbWAL<Record, StorageAdapter>::clearLog()
 {
-	return _storage.clear();
+	return _logFile.clear();
 }
 
 template<class Record, class StorageAdapter>
 template<class OpType>
-bool DbWAL<Record, StorageAdapter>::registerOperation(OpType&& op)
+[[nodiscard]] bool DbWAL<Record, StorageAdapter>::registerOperation(OpType&& op)
 {
 	using Serializer = Operation::Serializer<DbSchema<Record>>;
 	const auto binaryData = Serializer::serialize(std::forward<OpType>(op));

@@ -19,7 +19,7 @@ TEST_CASE("DbStorage - basic functionality, static record size", "[dbstorage]") 
 	try {
 		using F64 = Field<uint64_t, 1>;
 		using F16 = Field<int16_t, 2>;
-		using Record = DbRecord<NoTombstone, F64, F16>;
+		using Record = DbRecord < Tombstone < F16, uint16_t{ 0xDEAD } > , F64, F16 > ;
 		DBStorage<io::QMemoryDeviceAdapter, Record> storage;
 
 		using RNG64 = RNG<uint64_t>;
@@ -42,7 +42,7 @@ TEST_CASE("DbStorage - basic functionality, static record size", "[dbstorage]") 
 		for (size_t i = 0; i < N; ++i)
 		{
 			const auto& newRecord = reference.emplace_back(RNG64::next(), RNG16s::next());
-			if (!storage.writeRecord(newRecord, offset))
+			if (!storage.writeRecord(newRecord))
 			{
 				success = false;
 				break;
@@ -77,7 +77,7 @@ TEST_CASE("DbStorage - basic functionality, dynamic record sizes", "[dbstorage]"
 	try {
 		using FS1 = Field<std::string, 1>;
 		using FS2 = Field<std::string, 2>;
-		using Record = DbRecord<NoTombstone, FS1, FS2>;
+		using Record = DbRecord<Tombstone<FS2, 0>, FS1, FS2>;
 		DBStorage<io::QMemoryDeviceAdapter, Record> storage;
 
 		REQUIRE(storage.openStorageFile({}));
@@ -94,7 +94,7 @@ TEST_CASE("DbStorage - basic functionality, dynamic record sizes", "[dbstorage]"
 		for (size_t i = 0; i < N; ++i)
 		{
 			const auto& newRecord = reference.emplace_back(randomString(3), randomString(8));
-			if (!storage.writeRecord(newRecord, offset))
+			if (!storage.writeRecord(newRecord))
 			{
 				success = false;
 				break;
@@ -156,7 +156,7 @@ TEST_CASE("DbStorage - basic functionality, arrays of static items", "[dbstorage
 				newRecord.fieldAtIndex<1>().value.emplace_back(static_cast<float>(rand()) / static_cast<float>(rand()));
 			}
 
-			if (!storage.writeRecord(newRecord, offset))
+			if (!storage.writeRecord(newRecord))
 			{
 				success = false;
 				break;
@@ -191,7 +191,7 @@ TEST_CASE("DbStorage - basic functionality, arrays of strings", "[dbstorage]") {
 	try {
 		using FS1 = Field<std::string, 1, true>;
 		using FS2 = Field<std::string, 2, true>;
-		using Record = DbRecord<NoTombstone, FS1, FS2>;
+		using Record = DbRecord<Tombstone<FS2, 0>, FS1, FS2>;
 		DBStorage<io::QMemoryDeviceAdapter, Record> storage;
 
 		REQUIRE(storage.openStorageFile({}));
@@ -218,7 +218,7 @@ TEST_CASE("DbStorage - basic functionality, arrays of strings", "[dbstorage]") {
 				newRecord.fieldAtIndex<1>().value.emplace_back(randomString(1));
 			}
 
-			if (!storage.writeRecord(newRecord, offset))
+			if (!storage.writeRecord(newRecord))
 			{
 				success = false;
 				break;

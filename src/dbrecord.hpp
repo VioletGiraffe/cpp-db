@@ -10,21 +10,27 @@
 
 #include <array>
 #include <limits>
+#include <string_view>
 #include <tuple>
 
 
 template <typename T, auto bitPattern>
 struct Tombstone {
-	using Field = T;
+	using FieldType = T;
 
-	static constexpr auto id = Field::id;
+	static constexpr auto id = FieldType::id;
 	static constexpr bool is_valid_v = true;
 
-	static_assert(Field::staticSize() == sizeof(bitPattern));
-	static_assert(Field::isField());
+	static_assert(FieldType::staticSize() == sizeof(bitPattern));
+	static_assert(FieldType::isField());
+
+	[[nodiscard]] constexpr static auto tombstoneValue() noexcept
+	{
+		return bitPattern;
+	}
 
 	template <typename U>
-	constexpr static bool isTombstoneValue(U&& value) noexcept
+	[[nodiscard]] constexpr static bool isTombstoneValue(U&& value) noexcept
 	{
 		static_assert(sizeof(value) == sizeof(bitPattern));
 		if constexpr (is_equal_comparable_v<remove_cv_and_reference_t<U>, decltype(bitPattern)>)
@@ -37,9 +43,32 @@ struct Tombstone {
 	}
 };
 
+template <auto fieldId, bool is_array>
+struct Tombstone<Field<std::string, fieldId, is_array>, 0>
+{
+	using FieldType = Field<std::string, fieldId, is_array>;
+
+	static constexpr auto id = fieldId;
+	static constexpr bool is_valid_v = true;
+
+	[[nodiscard]] constexpr static std::string_view tombstoneValue() noexcept
+	{
+		return std::string_view(tombstoneString, std::size(tombstoneString) - 1);
+	}
+
+	template <typename U>
+	[[nodiscard]] constexpr static bool isTombstoneValue(const std::string& value) noexcept
+	{
+		return value == tombstoneValue();
+	}
+
+private:
+	static constexpr const char tombstoneString[] = "#1IcX~|";
+};
+
 template<>
 struct Tombstone<void, 0> {
-	using Field = void;
+	using FieldType = void;
 	static constexpr auto id = -1;
 	static constexpr bool is_valid_v = false;
 
@@ -49,8 +78,9 @@ struct Tombstone<void, 0> {
 	}
 };
 
-using NoTombstone = Tombstone<void, 0>;
+using NoTombstone = Tombstone<void, 0>; // For the purposes of testing DbRecord only
 
+// The first of the fields is always the primary key
 template <class TombstoneField /* TODO: concept */, typename... FieldsSequence>
 class DbRecord
 {
@@ -66,6 +96,8 @@ public:
 	using FieldById_t = ::FieldById_t<id, FieldsSequence...>;
 
 	using FieldTypesPack = type_pack<FieldsSequence...>;
+
+	using KeyField = typename FieldTypesPack::template Type<0>;
 
 public:
 	constexpr DbRecord() = default;
@@ -177,7 +209,7 @@ private:
 		static_assert(sizeof...(FieldsSequence) > 0);
 		static_assert((FieldsSequence::isField() && ...), "All template parameter types must be Fields!");
 		static_assert(TombstoneField::is_valid_v == true || TombstoneField::is_valid_v == false, "The first template parameter must beither Tombstone<FieldType>, or NoTombstone.");
-		static_assert(!TombstoneField::is_valid_v || pack::has_type_v<typename TombstoneField::Field, FieldsSequence...>);
+		static_assert(!TombstoneField::is_valid_v || pack::has_type_v<typename TombstoneField::FieldType, FieldsSequence...>, "The tombstone field must be one of the fields in this DbRecord");
 
 		static_assert(std::is_same_v<typename pack::type_by_index<0, FieldsSequence...>, std::tuple_element_t<0, std::tuple<FieldsSequence...>>>);
 
@@ -196,6 +228,7 @@ private:
 
 	static_assert(checkAssertions());
 	static_assert(std::numeric_limits<unsigned char>::digits == 8, "No funny business!");
+	static_assert(sizeof...(FieldsSequence) > 0);
 
 private:
 	std::tuple<FieldsSequence...> _fields;

@@ -2,6 +2,8 @@
 
 #include "storage_helpers.hpp"
 #include "../dbfield.hpp"
+
+#include "hash/fnv_1a.h"
 #include "assert/advanced_assert.h"
 #include "utility/extra_type_traits.hpp"
 
@@ -40,6 +42,7 @@ struct StorageIO
 
 	bool flush() noexcept;
 	[[nodiscard]] bool seek(uint64_t location) noexcept;
+	[[nodiscard]] bool seekToEnd() noexcept;
 	[[nodiscard]] uint64_t pos() const noexcept;
 
 	[[nodiscard]] uint64_t size() const noexcept;
@@ -64,6 +67,7 @@ private:
 
 private:
 	IOAdapter _io;
+	FNV
 };
 
 template<typename IOAdapter>
@@ -188,6 +192,12 @@ template<typename IOAdapter>
 bool StorageIO<IOAdapter>::seek(uint64_t location) noexcept
 {
 	return _io.seek(location);
+}
+
+template<typename IOAdapter>
+bool StorageIO<IOAdapter>::seekToEnd() noexcept
+{
+	return _io.seekToEnd();
 }
 
 template<typename IOAdapter>

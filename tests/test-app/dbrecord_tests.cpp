@@ -12,7 +12,7 @@ TEST_CASE("DbRecord - construction from a pack of values", "[dbrecord]") {
 		using Fs = Field<std::string, 42>;
 
 		{
-			const DbRecord<NoTombstone, Fd, Fi, Fs> record{ 3.14, 123, "abc" };
+			const DbRecord<Tombstone<Fi, 0ULL>, Fd, Fi, Fs> record{ 3.14, 123, "abc" };
 			CHECK(record.fieldValue<Fd>() == 3.14);
 			CHECK(record.fieldValue<Fi>() == 123);
 			CHECK(record.fieldValue<Fs>() == "abc");
@@ -23,7 +23,7 @@ TEST_CASE("DbRecord - construction from a pack of values", "[dbrecord]") {
 		}
 
 		{
-			constexpr DbRecord<NoTombstone, Fd, Fi> record2{ 3.14, 123 };
+			constexpr DbRecord<Tombstone<Fi, 0ULL>, Fd, Fi> record2{ 3.14, 123 };
 			static_assert(record2.fieldValue<Fd>() == 3.14);
 			static_assert(record2.fieldValue<Fi>() == 123);
 
@@ -41,7 +41,8 @@ TEST_CASE("DbRecord - construction from a pack of values", "[dbrecord]") {
 		}
 
 		{
-			const DbRecord<NoTombstone, Fs> singleDynamicField{ "def" };
+			
+			const DbRecord<Tombstone<Fs, 0>, Fs> singleDynamicField{ "def" };
 			CHECK(singleDynamicField.fieldValue<Fs>() == "def");
 			CHECK(singleDynamicField.fieldAtIndex<0>().value == "def");
 		}
