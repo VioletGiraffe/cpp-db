@@ -67,7 +67,6 @@ private:
 
 private:
 	IOAdapter _io;
-	FNV
 };
 
 template<typename IOAdapter>
