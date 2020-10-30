@@ -4,6 +4,7 @@
 #include "dbops.hpp"
 #include "storage/storage_io_interface.hpp"
 #include "ops/operation_serializer.hpp"
+#include "storage/io_with_hashing.hpp"
 
 template <class Record, class StorageAdapter>
 class DbWAL
@@ -19,7 +20,7 @@ public:
 	[[nodiscard]] bool registerOperation(OpType&& op);
 
 private:
-	StorageIO<StorageAdapter> _logFile;
+	StorageIO<io::HashingAdapter<StorageAdapter>> _logFile;
 };
 
 template<class Record, class StorageAdapter>

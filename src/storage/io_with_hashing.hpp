@@ -5,7 +5,7 @@
 namespace io {
 
 template <class IOAdapter>
-class HashingIo final : public IOAdapter {
+class HashingAdapter final : public IOAdapter {
 public:
 	[[nodiscard]] bool read(void* targetBuffer, const size_t dataSize) noexcept
 	{
