@@ -60,9 +60,9 @@ SOURCES += tests_main.cpp \
 	dbfield_tests.cpp \
 	dbfilegaps_tester.cpp \
 	cpp-db_sanity_checks.cpp \
-	dbfilegaps_load-store_test.cpp \
-	dbfilegaps_operations_test.cpp \
-	dbfilegaps_test.cpp \
+#	dbfilegaps_load-store_test.cpp \
+#	dbfilegaps_operations_test.cpp \
+#	dbfilegaps_test.cpp \
 	dbindex_test.cpp \
 	dbindices_test.cpp \
 	dbops_test.cpp \
