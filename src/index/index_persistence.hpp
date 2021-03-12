@@ -94,8 +94,8 @@ std::optional<std::string> load(IndexType& index, const std::string indexStorage
 		hasher.update(field);
 		hasher.update(offset);
 
-		const bool emplacementSiccess = index.addLocationForValue(std::move(field), std::move(offset));
-		assert_r(emplacementSiccess);
+		const bool emplacementSuccess = index.addLocationForValue(std::move(field), std::move(offset));
+		assert_r(emplacementSuccess);
 	}
 
 	uint64_t hash = 0;

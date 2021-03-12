@@ -146,7 +146,7 @@ inline void cppDb_compileTimeChecks()
 	static_assert(decltype(record)::allFieldsHaveStaticSize() == false);
 	static_assert(DbRecord<Tombstone<F1, -1>, F1, F3>::allFieldsHaveStaticSize() == true);
 
-	static_assert(pack::index_for_type<F1, F2, Fs, F1>() == 2);
+	static_assert(pack::index_for_type<F1, F2, Fs, F1>() == 2U);
 	static_assert(pack::index_for_type<F3, F2, Fs, F1>().has_value() == false);
 	static_assert(pack::has_type_v<F3, F2, Fs, F1> == false);
 	constexpr size_t i = pack::index_for_type_v<Fs, F2, Fs, F1>;
