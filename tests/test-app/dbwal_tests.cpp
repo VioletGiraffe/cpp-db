@@ -10,4 +10,5 @@ TEST_CASE("DbWAL basics", "[dbwal]")
 
 	DbWAL<Record, io::QFileAdapter> wal;
 	REQUIRE(wal.openLogFile("wal.dat"));
+	REQUIRE(wal.verifyLog());
 }

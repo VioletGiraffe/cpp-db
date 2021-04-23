@@ -24,16 +24,15 @@ private:
 };
 
 template<class Record, class StorageAdapter>
-[[nodiscard]] inline bool DbWAL<Record, StorageAdapter>::openLogFile(const std::string& filePath) noexcept
+[[nodiscard]] bool DbWAL<Record, StorageAdapter>::openLogFile(const std::string& filePath) noexcept
 {
 	return _logFile.open(filePath, io::OpenMode::ReadWrite);
 }
 
 template<class Record, class StorageAdapter>
-[[nodiscard]] inline bool DbWAL<Record, StorageAdapter>::verifyLog() noexcept
+[[nodiscard]] bool DbWAL<Record, StorageAdapter>::verifyLog() noexcept
 {
 	assert_r(_logFile.pos() == 0);
-
 	return false;
 }
 
@@ -48,6 +47,6 @@ template<class OpType>
 [[nodiscard]] bool DbWAL<Record, StorageAdapter>::registerOperation(OpType&& op) noexcept
 {
 	using Serializer = Operation::Serializer<DbSchema<Record>>;
-	const auto binaryData = Serializer::serialize(std::forward<OpType>(op));
+	const auto binaryData = Serializer::serialize(std::forward<OpType>(op), _logFile);
 	return false;
 }
