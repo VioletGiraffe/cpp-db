@@ -213,7 +213,7 @@ private:
 
 		static_assert(std::is_same_v<typename pack::type_by_index<0, FieldsSequence...>, std::tuple_element_t<0, std::tuple<FieldsSequence...>>>);
 
-		constexpr_for<1, sizeof...(FieldsSequence)>([](auto index) {
+		constexpr_for_z<1, sizeof...(FieldsSequence)>([](auto index) {
 			using Field1 = typename pack::type_by_index<index - 1, FieldsSequence...>;
 			using Field2 = typename pack::type_by_index<index, FieldsSequence...>;
 			static_assert(!(Field1::sizeKnownAtCompileTime() == false && Field2::sizeKnownAtCompileTime() == true), "All the fields with compile-time size must be grouped before fields with dynamic size.");
