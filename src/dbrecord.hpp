@@ -227,7 +227,7 @@ private:
 	}
 
 	static_assert(checkAssertions());
-	static_assert(std::numeric_limits<unsigned char>::digits == 8, "No funny business!");
+	static_assert(std::numeric_limits<unsigned char>::digits == 8 && CHAR_BIT == 8, "No funny business!");
 	static_assert(sizeof...(FieldsSequence) > 0);
 
 private:
