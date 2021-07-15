@@ -24,10 +24,10 @@ enum class TestCollectionFields {
 template <class Index, class... Fields>
 class Collection
 {
-	static constexpr size_t dynamicFieldCount()
+	static consteval size_t dynamicFieldCount()
 	{
 		size_t dynamicFieldCount = 0;
-		static_for<0, sizeof...(Fields)>([&dynamicFieldCount](auto i) {
+		consteval_for_z<0, sizeof...(Fields)>([&dynamicFieldCount](auto i) {
 			using FieldType = pack::type_by_index<decltype(i)::value, Fields...>;
 			if constexpr (FieldType::sizeKnownAtCompileTime() == false)
 				++dynamicFieldCount;

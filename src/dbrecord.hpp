@@ -120,7 +120,7 @@ public:
 		return std::get<pack::index_for_type_v<Field, FieldsSequence...>>(_fields).value;
 	}
 
-	static constexpr bool allFieldsHaveStaticSize() noexcept
+	static consteval bool allFieldsHaveStaticSize() noexcept
 	{
 		bool nonStaticSizeFieldDetected = false;
 		pack::for_type<FieldsSequence...>([&nonStaticSizeFieldDetected](auto type) {
@@ -131,7 +131,7 @@ public:
 		return nonStaticSizeFieldDetected == false;
 	}
 
-	static constexpr size_t staticFieldsCount() noexcept
+	static consteval size_t staticFieldsCount() noexcept
 	{
 		size_t count = 0;
 		static_for<0, sizeof...(FieldsSequence)>([&count](auto i) {
@@ -143,7 +143,7 @@ public:
 		return count;
 	}
 
-	static constexpr size_t staticFieldsSize() noexcept
+	static consteval size_t staticFieldsSize() noexcept
 	{
 		size_t totalSize = 0;
 		static_for<0, staticFieldsCount()>([&totalSize](auto i) {
@@ -204,7 +204,7 @@ public:
 // All the junk below is for compile-time correctness validation only.
 //
 private:
-	static constexpr bool checkAssertions() noexcept
+	static consteval bool checkAssertions() noexcept
 	{
 		static_assert(sizeof...(FieldsSequence) > 0);
 		static_assert((FieldsSequence::isField() && ...), "All template parameter types must be Fields!");

@@ -48,13 +48,13 @@ public:
 	}
 
 	template <auto id>
-	static constexpr bool hasIndex()
+	static consteval bool hasIndex()
 	{
 		return ((IndexedFields::id == id) || ...);
 	}
 
 	template <typename FieldType>
-	static constexpr bool hasIndex()
+	static consteval bool hasIndex()
 	{
 		return hasIndex<FieldType::id>();
 	}
@@ -77,11 +77,11 @@ public:
 	bool store(const std::string& indexStorageFolder);
 
 private:
-	static constexpr bool sanityCheck()
+	static consteval bool sanityCheck()
 	{
 		bool success = true;
 		pack::for_type<IndexedFields...>([&](auto type_wrapper) {
-			if (pack::type_count<typename decltype(type_wrapper)::type, IndexedFields...>() != 1)
+			if constexpr (pack::type_count<typename decltype(type_wrapper)::type, IndexedFields...>() != 1)
 				success = false;
 		});
 
