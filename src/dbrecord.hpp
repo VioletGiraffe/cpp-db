@@ -24,7 +24,7 @@ struct Tombstone {
 	static_assert(FieldType::staticSize() == sizeof(bitPattern));
 	static_assert(FieldType::isField());
 
-	[[nodiscard]] constexpr static auto tombstoneValue() noexcept
+	[[nodiscard]] consteval static auto tombstoneValue() noexcept
 	{
 		return bitPattern;
 	}
@@ -51,7 +51,7 @@ struct Tombstone<Field<std::string, fieldId, is_array>, 0>
 	static constexpr auto id = fieldId;
 	static constexpr bool is_valid_v = true;
 
-	[[nodiscard]] constexpr static std::string_view tombstoneValue() noexcept
+	[[nodiscard]] consteval static std::string_view tombstoneValue() noexcept
 	{
 		return std::string_view(tombstoneString, std::size(tombstoneString) - 1);
 	}
@@ -86,8 +86,8 @@ class DbRecord
 {
 public:
 // Traits
-	static constexpr bool isRecord() noexcept { return true; }
-	static constexpr bool hasTombstone() noexcept { return TombstoneField::is_valid_v; }
+	static consteval bool isRecord() noexcept { return true; }
+	static consteval bool hasTombstone() noexcept { return TombstoneField::is_valid_v; }
 
 	template <size_t index>
 	using FieldTypeByIndex_t = pack::type_by_index<index, FieldsSequence...>;
@@ -181,7 +181,7 @@ public:
 		return std::get<index>(_fields);
 	}
 
-	static constexpr size_t fieldCount() noexcept
+	static consteval size_t fieldCount() noexcept
 	{
 		return sizeof...(FieldsSequence);
 	}

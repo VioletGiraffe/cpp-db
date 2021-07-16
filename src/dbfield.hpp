@@ -16,20 +16,20 @@ struct Field {
 	using ValueType = std::conditional_t<is_array, std::vector<T>, T>;
 
 	static constexpr auto id = fieldId;
-	static constexpr bool isField() noexcept { return true; }
-	static constexpr bool isArray() noexcept { return is_array; }
+	static consteval bool isField() noexcept { return true; }
+	static consteval bool isArray() noexcept { return is_array; }
 	///
 
 	constexpr Field() noexcept = default;
 	constexpr Field(ValueType val) noexcept : value{ std::move(val) }
 	{}
 
-	static constexpr bool sizeKnownAtCompileTime() noexcept
+	static consteval bool sizeKnownAtCompileTime() noexcept
 	{
 		return !isArray() && std::is_trivial_v<ValueType> && std::is_standard_layout_v<ValueType>;
 	}
 
-	static constexpr size_t staticSize() noexcept
+	static consteval size_t staticSize() noexcept
 	{
 		static_assert(sizeKnownAtCompileTime(), "This field type does not have compile-time-static size.");
 		return sizeof(ValueType);
@@ -43,7 +43,7 @@ struct Field {
 			return ::valueSize(value);
 	}
 
-	static constexpr bool isSuitableForTombstone() noexcept
+	static consteval bool isSuitableForTombstone() noexcept
 	{
 		return std::is_trivial_v<ValueType> && sizeKnownAtCompileTime();
 	}
