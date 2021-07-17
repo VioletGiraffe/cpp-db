@@ -45,7 +45,11 @@ linux*|mac*{
 	Debug:DEFINES += _DEBUG
 }
 
-*g++*:QMAKE_CXXFLAGS += -fconcepts
+*g++*{
+	QMAKE_CXXFLAGS += -fconcepts
+
+	LIBS += -lstdc++ -lm
+}
 
 INCLUDEPATH += \
 	$${PWD}/../../src \
