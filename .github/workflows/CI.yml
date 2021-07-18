@@ -49,6 +49,8 @@ jobs:
         chmod a+x linuxdeployqt-7-x86_64.AppImage
         unset QTDIR; unset QT_PLUGIN_PATH ; unset LD_LIBRARY_PATH
         pushd tests
+        git clone --depth 1 https://github.com/VioletGiraffe/cpp-template-utils
+        git clone --depth 1 https://github.com/VioletGiraffe/cpputils
         $Qt5_DIR/bin/qmake -r CONFIG+=release
         make -j
         popd
