@@ -54,17 +54,17 @@ jobs:
         $Qt5_DIR/bin/qmake -r CONFIG+=release
         make -j
         popd
-        ./linuxdeployqt-7-x86_64.AppImage ./bin_tests/test-app -unsupported-allow-new-glibc -bundle-non-qt-libs
+        ./linuxdeployqt-7-x86_64.AppImage ./tests/bin_tests/test-app -unsupported-allow-new-glibc -bundle-non-qt-libs
 
     - name: Tests - Linux
       if: startsWith(matrix.os, 'ubuntu')
       run: |
-        ./bin_tests/test-app
-        ./bin_tests/test-app [benchmark]
+        ./tests/bin_tests/test-app
+        ./tests/bin_tests/test-app [benchmark]
 
     - name: Tests - Windows
       if: startsWith(matrix.os, 'windows')
       shell: cmd
       run: |
-        bin_tests\test-app.exe
-        bin_tests\test-app.exe [benchmark]
+        tests\bin_tests\test-app.exe
+        tests\bin_tests\test-app.exe [benchmark]
