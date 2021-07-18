@@ -59,10 +59,10 @@ INCLUDEPATH += \
 	$${PWD}/../../../cpputils
 
 SOURCES += tests_main.cpp \
-	benchmarks/dbfilegaps_benchmarks.cpp \
+#	benchmarks/dbfilegaps_benchmarks.cpp \
 	benchmarks/dbindex_benchmarks.cpp \
 	dbfield_tests.cpp \
-	dbfilegaps_tester.cpp \
+#	dbfilegaps_tester.cpp \
 	cpp-db_sanity_checks.cpp \
 #	dbfilegaps_load-store_test.cpp \
 #	dbfilegaps_operations_test.cpp \
