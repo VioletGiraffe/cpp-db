@@ -1,0 +1,68 @@
+name: CI
+
+on: [push]
+
+jobs:
+  build:
+    name: Build & test on ${{ matrix.os }} with ${{ matrix.compiler }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v2
+
+    - name: Windows - setup MSBuild
+      if: startsWith(matrix.os, 'windows')
+      uses: microsoft/setup-msbuild@v1.0.2
+
+    - name: Windows - building tests
+      if: startsWith(matrix.os, 'windows')
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+      shell: cmd
+      run: |
+        pushd tests
+        git clone --depth 1 https://github.com/VioletGiraffe/cpp-template-utils
+        git clone --depth 1 https://github.com/VioletGiraffe/cpputils
+        set PATH=%Qt5_DIR%;%PATH%;
+        %Qt5_DIR%\bin\qmake.exe -v
+        call "%programfiles(x86)%\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" amd64 && "%Qt5_DIR%\bin\qmake.exe" -tp vc -r
+        msbuild tests.sln /t:Build /p:Configuration=Release;PlatformToolset=v142
+        popd
+
+    - name: Linux
+      if: startsWith(matrix.os, 'ubuntu')
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+      run: |
+        sudo apt install gcc-10 g++-10
+        sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-10 50
+        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 50
+        g++ --version
+        export PATH=$Qt5_DIR/bin/:$PATH
+        wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/7/linuxdeployqt-7-x86_64.AppImage"
+        chmod a+x linuxdeployqt-7-x86_64.AppImage
+        unset QTDIR; unset QT_PLUGIN_PATH ; unset LD_LIBRARY_PATH
+        pushd tests
+        $Qt5_DIR/bin/qmake -r CONFIG+=release
+        make -j
+        popd
+        ./linuxdeployqt-7-x86_64.AppImage ./bin_tests/test-app -unsupported-allow-new-glibc -bundle-non-qt-libs
+
+    - name: Tests - Linux
+      if: startsWith(matrix.os, 'ubuntu')
+      run: |
+        ./bin_tests/test-app
+        ./bin_tests/test-app [benchmark]
+
+    - name: Tests - Windows
+      if: startsWith(matrix.os, 'windows')
+      shell: cmd
+      run: |
+        bin_tests\test-app.exe
+        bin_tests\test-app.exe [benchmark]
