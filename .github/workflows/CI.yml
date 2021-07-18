@@ -64,7 +64,6 @@ jobs:
 
     - name: Tests - Windows
       if: startsWith(matrix.os, 'windows')
-      shell: cmd
       run: |
-        tests\bin_tests\test-app.exe
-        tests\bin_tests\test-app.exe [benchmark]
+        .\tests\bin_tests\test-app.exe
+        .\tests\bin_tests\test-app.exe [benchmark]
