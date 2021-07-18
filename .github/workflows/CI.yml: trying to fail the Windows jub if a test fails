@@ -64,6 +64,8 @@ jobs:
 
     - name: Tests - Windows
       if: startsWith(matrix.os, 'windows')
+      shell: cmd
       run: |
         .\tests\bin_tests\test-app.exe
+        IF NOT %ERRORLEVEL% == 0 EXIT /B 1
         .\tests\bin_tests\test-app.exe [benchmark]
