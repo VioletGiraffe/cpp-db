@@ -136,5 +136,4 @@ namespace Operation {
 
 		const typename KeyField::ValueType keyValue;
 	};
-
 }

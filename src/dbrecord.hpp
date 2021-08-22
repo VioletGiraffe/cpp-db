@@ -135,7 +135,7 @@ public:
 	{
 		size_t count = 0;
 		static_for<0, sizeof...(FieldsSequence)>([&count](auto i) {
-			using FieldType = pack::type_by_index<decltype(i)::value, FieldsSequence...>;
+			using FieldType = pack::type_by_index<i, FieldsSequence...>;
 			if constexpr (FieldType::sizeKnownAtCompileTime() == true)
 				++count;
 		});
@@ -147,7 +147,7 @@ public:
 	{
 		size_t totalSize = 0;
 		static_for<0, staticFieldsCount()>([&totalSize](auto i) {
-			using FieldType = pack::type_by_index<decltype(i)::value, FieldsSequence...>;
+			using FieldType = pack::type_by_index<i, FieldsSequence...>;
 			static_assert(FieldType::sizeKnownAtCompileTime() == true);
 
 			totalSize += FieldType::staticSize();
@@ -160,7 +160,7 @@ public:
 	{
 		size_t totalSize = staticFieldsSize();
 		static_for<staticFieldsCount(), sizeof...(FieldsSequence)>([&totalSize, this](auto i) {
-			using FieldType = pack::type_by_index<decltype(i)::value, FieldsSequence...>;
+			using FieldType = pack::type_by_index<i, FieldsSequence...>;
 			static_assert(FieldType::sizeKnownAtCompileTime() == false);
 
 			totalSize += std::get<i>(_fields).fieldSize();

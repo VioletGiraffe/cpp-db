@@ -18,17 +18,7 @@ struct StorageLocation {
 
 	inline constexpr StorageLocation(uint64_t loc) noexcept : location{ loc } {}
 
-	[[nodiscard]] inline constexpr bool operator==(const StorageLocation& other) const noexcept {
-		return location == other.location;
-	}
-
-	[[nodiscard]] inline constexpr bool operator!=(const StorageLocation& other) const noexcept {
-		return !operator==(other);
-	}
-
-	[[nodiscard]] inline constexpr bool operator<(const StorageLocation& other) const noexcept {
-		return location < other.location;
-	}
+	[[nodiscard]] constexpr auto operator<=>(const StorageLocation&) const = default;
 };
 
 template <typename StorageAdapter, typename Record>
