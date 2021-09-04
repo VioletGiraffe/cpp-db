@@ -103,6 +103,8 @@ namespace Operation {
 
 		static consteval bool insertIfNotPresent() noexcept { return InsertIfNotPresent; };
 
+		AppendToArray(AppendToArray&) = delete;
+
 		constexpr AppendToArray(KeyValueType k, ArrayValueType a) noexcept requires(InsertIfNotPresent == false) :
 			detail::ArrayMember<Array>{std::move(a)}, keyValue{ std::move(k) }
 		{}
