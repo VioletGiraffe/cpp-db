@@ -101,13 +101,13 @@ namespace Operation {
 
 		static constexpr auto op = OpCode::AppendToArray;
 
-		static constexpr bool insertIfNotPresent() noexcept { return InsertIfNotPresent; };
+		static consteval bool insertIfNotPresent() noexcept { return InsertIfNotPresent; };
 
-		AppendToArray(KeyValueType k, ArrayValueType a) noexcept requires(InsertIfNotPresent == false) :
+		constexpr AppendToArray(KeyValueType k, ArrayValueType a) noexcept requires(InsertIfNotPresent == false) :
 			detail::ArrayMember<Array>{std::move(a)}, keyValue{ std::move(k) }
 		{}
 
-		AppendToArray(KeyValueType k, Record r) noexcept requires(InsertIfNotPresent == true) :
+		constexpr AppendToArray(KeyValueType k, Record r) noexcept requires(InsertIfNotPresent == true) :
 			detail::RecordMember<Record>{ std::move(r) }, keyValue{ std::move(k) }
 		{}
 
