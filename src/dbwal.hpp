@@ -54,7 +54,7 @@ template<class OpType>
 {
 	assert_debug_only(std::this_thread::get_id() == _ownerThreadId);
 
-	using Serializer = Operation::Serializer<StorageAdapter, DbSchema<Record>>;
+	using Serializer = Operation::Serializer<Record>;
 	const auto binaryData = Serializer::serialize(std::forward<OpType>(op), _logFile);
 	return false;
 }

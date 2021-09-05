@@ -16,29 +16,29 @@ class Serializer {
 	static_assert(false_v<T...>, "This shouldn't be instantiated - check the template parameter list for errors!");
 };
 
-template <class StorageAdapter, typename... RecordParams>
-class Serializer<StorageAdapter, DbRecord<RecordParams...>>
+template <typename... RecordParams>
+class Serializer<DbRecord<RecordParams...>>
 {
 	using Record = DbRecord<RecordParams...>;
 	using Schema = DbSchema<Record>;
 
 public:
-	template <class Operation, sfinae<Operation::op == OpCode::Insert> = true>
+	template <class Operation, class StorageAdapter, sfinae<Operation::op == OpCode::Insert> = true>
 	[[nodiscard]] static bool serialize(const Operation& op, StorageIO<StorageAdapter>& io) noexcept;
 
-	template <class Operation, sfinae<Operation::op == OpCode::Find> = true>
+	template <class Operation, class StorageAdapter, sfinae<Operation::op == OpCode::Find> = true>
 	[[nodiscard]] static bool serialize(const Operation& op, StorageIO<StorageAdapter>& io) noexcept;
 
-	template <class Operation, sfinae<Operation::op == OpCode::UpdateFull> = true>
+	template <class Operation, class StorageAdapter, sfinae<Operation::op == OpCode::UpdateFull> = true>
 	[[nodiscard]] static bool serialize(const Operation& op, StorageIO<StorageAdapter>& io) noexcept;
 
-	template <class Operation, sfinae<Operation::op == OpCode::AppendToArray> = true>
+	template <class Operation, class StorageAdapter, sfinae<Operation::op == OpCode::AppendToArray> = true>
 	[[nodiscard]] static bool serialize(const Operation& op, StorageIO<StorageAdapter>& io) noexcept;
 
-	template <class Operation, sfinae<Operation::op == OpCode::Delete> = true>
+	template <class Operation, class StorageAdapter, sfinae<Operation::op == OpCode::Delete> = true>
 	[[nodiscard]] static bool serialize(const Operation& op, StorageIO<StorageAdapter>& io) noexcept;
 
-	template <typename Receiver>
+	template <class StorageAdapter, typename Receiver>
 	[[nodiscard]] static bool deserialize(StorageIO<StorageAdapter>& io, Receiver&& receiver) noexcept;
 
 private:
@@ -69,9 +69,9 @@ private:
 	}
 };
 
-template <class StorageAdapter, typename... RecordParams>
-template<class Operation, sfinae<Operation::op == OpCode::Insert>>
-bool Serializer<StorageAdapter, DbRecord<RecordParams...>>::serialize(const Operation& op, StorageIO<StorageAdapter>& io) noexcept
+template <typename... RecordParams>
+template<class Operation, class StorageAdapter, sfinae<Operation::op == OpCode::Insert>>
+bool Serializer<DbRecord<RecordParams...>>::serialize(const Operation& op, StorageIO<StorageAdapter>& io) noexcept
 {
 	if (!io.write(Operation::op))
 		return false;
@@ -80,9 +80,9 @@ bool Serializer<StorageAdapter, DbRecord<RecordParams...>>::serialize(const Oper
 	return RecordSerializer::serialize(op._record, io);
 }
 
-template <class StorageAdapter, typename... RecordParams>
-template<class Operation, sfinae<Operation::op == OpCode::Find>>
-bool Serializer<StorageAdapter, DbRecord<RecordParams...>>::serialize(const Operation& op, StorageIO<StorageAdapter>& io) noexcept
+template <typename... RecordParams>
+template<class Operation, class StorageAdapter, sfinae<Operation::op == OpCode::Find>>
+bool Serializer<DbRecord<RecordParams...>>::serialize(const Operation& op, StorageIO<StorageAdapter>& io) noexcept
 {
 	if (!io.write(Operation::op))
 		return false;
@@ -120,9 +120,9 @@ bool Serializer<StorageAdapter, DbRecord<RecordParams...>>::serialize(const Oper
 	return success;
 }
 
-template <class StorageAdapter, typename... RecordParams>
-template<class Operation, sfinae<Operation::op == OpCode::UpdateFull>>
-bool Serializer<StorageAdapter, DbRecord<RecordParams...>>::serialize(const Operation& op, StorageIO<StorageAdapter>& io) noexcept
+template <typename... RecordParams>
+template<class Operation, class StorageAdapter, sfinae<Operation::op == OpCode::UpdateFull>>
+bool Serializer<DbRecord<RecordParams...>>::serialize(const Operation& op, StorageIO<StorageAdapter>& io) noexcept
 {
 	if (!io.write(Operation::op))
 		return false;
@@ -142,9 +142,9 @@ bool Serializer<StorageAdapter, DbRecord<RecordParams...>>::serialize(const Oper
 	return io.write(op.keyValue);
 }
 
-template <class StorageAdapter, typename... RecordParams>
-template<class Operation, sfinae<Operation::op == OpCode::AppendToArray>>
-bool Serializer<StorageAdapter, DbRecord<RecordParams...>>::serialize(const Operation& op, StorageIO<StorageAdapter>& io) noexcept
+template <typename... RecordParams>
+template<class Operation, class StorageAdapter, sfinae<Operation::op == OpCode::AppendToArray>>
+bool Serializer<DbRecord<RecordParams...>>::serialize(const Operation& op, StorageIO<StorageAdapter>& io) noexcept
 {
 	if (!io.write(Operation::op))
 		return false;
@@ -171,9 +171,9 @@ bool Serializer<StorageAdapter, DbRecord<RecordParams...>>::serialize(const Oper
 		return io.write(op.array);
 }
 
-template <class StorageAdapter, typename... RecordParams>
-template<class Operation, sfinae<Operation::op == OpCode::Delete>>
-bool Serializer<StorageAdapter, DbRecord<RecordParams...>>::serialize(const Operation& op, StorageIO<StorageAdapter>& io) noexcept
+template <typename... RecordParams>
+template<class Operation, class StorageAdapter, sfinae<Operation::op == OpCode::Delete>>
+bool Serializer<DbRecord<RecordParams...>>::serialize(const Operation& op, StorageIO<StorageAdapter>& io) noexcept
 {
 	if (!io.write(Operation::op))
 		return false;
@@ -186,9 +186,9 @@ bool Serializer<StorageAdapter, DbRecord<RecordParams...>>::serialize(const Oper
 	return io.write(op.keyValue);
 }
 
-template <class StorageAdapter, typename... RecordParams>
-template<typename Receiver>
-bool Serializer<StorageAdapter, DbRecord<RecordParams...>>::deserialize(StorageIO<StorageAdapter>& io, Receiver&& receiver) noexcept
+template <typename... RecordParams>
+template< class StorageAdapter, typename Receiver>
+bool Serializer<DbRecord<RecordParams...>>::deserialize(StorageIO<StorageAdapter>& io, Receiver&& receiver) noexcept
 {
 	OpCode opCode = OpCode::Invalid;
 	if (!io.read(opCode))
