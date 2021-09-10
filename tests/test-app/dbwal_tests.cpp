@@ -17,5 +17,5 @@ TEST_CASE("DbWAL basics", "[dbwal]")
 	//REQUIRE(wal.verifyLog());
 
 	Operation::AppendToArray<RecordWithArray, F16, FArray, false> opAppend(uint16_t{0}, std::vector{uint32_t{42}});
-	REQUIRE(wal.registerOperation(opAppend));
+	REQUIRE(wal.registerOperation(0 /* op ID */, opAppend));
 }

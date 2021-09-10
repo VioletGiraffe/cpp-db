@@ -24,7 +24,8 @@ namespace Operation {
 
 		static constexpr auto op = OpCode::Insert;
 
-		explicit constexpr Insert(Record r) noexcept : _record{ std::move(r) }
+		explicit constexpr Insert(Record r) noexcept :
+			_record{ std::move(r) }
 		{}
 
 		const Record _record;
@@ -41,7 +42,8 @@ namespace Operation {
 		static_assert(sizeof...(Fields) <= maxFieldCount);
 
 		template <typename... V>
-		explicit constexpr Find(V&&... values) noexcept : _fields{ std::forward<V>(values)... }
+		explicit constexpr Find(V&&... values) noexcept :
+			_fields{ std::forward<V>(values)... }
 		{}
 
 		// TODO: static_assert that all the fields are different (unique)
@@ -56,7 +58,9 @@ namespace Operation {
 		static constexpr auto op = OpCode::UpdateFull;
 		static constexpr bool insertIfNotPresent() noexcept { return InsertIfNotPresent; };
 
-		explicit constexpr UpdateFull(Record r, typename KeyField::ValueType key) noexcept : record{ std::move(r) }, keyValue{ std::move(key) }
+		explicit constexpr UpdateFull(Record r, typename KeyField::ValueType key) noexcept :
+			record{ std::move(r) },
+			keyValue{ std::move(key) }
 		{}
 
 		const Record record;
@@ -103,14 +107,14 @@ namespace Operation {
 
 		static consteval bool insertIfNotPresent() noexcept { return InsertIfNotPresent; };
 
-		AppendToArray(AppendToArray&) = delete;
-
 		constexpr AppendToArray(KeyValueType k, ArrayValueType a) noexcept requires(InsertIfNotPresent == false) :
-			detail::ArrayMember<Array>{std::move(a)}, keyValue{ std::move(k) }
+			detail::ArrayMember<Array>{std::move(a)},
+			keyValue{ std::move(k) }
 		{}
 
 		constexpr AppendToArray(KeyValueType k, Record r) noexcept requires(InsertIfNotPresent == true) :
-			detail::RecordMember<Record>{ std::move(r) }, keyValue{ std::move(k) }
+			detail::RecordMember<Record>{ std::move(r) },
+			keyValue{ std::move(k) }
 		{}
 
 		constexpr const ArrayValueType& updatedArray() const noexcept {
@@ -133,7 +137,8 @@ namespace Operation {
 
 		static constexpr auto op = OpCode::Delete;
 
-		explicit constexpr Delete(typename KeyField::ValueType k) noexcept : keyValue{ std::move(k) }
+		explicit constexpr Delete(typename KeyField::ValueType k) noexcept :
+			keyValue{ std::move(k) }
 		{}
 
 		const typename KeyField::ValueType keyValue;
