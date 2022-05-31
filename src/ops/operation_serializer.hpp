@@ -13,7 +13,7 @@ namespace Operation {
 
 template <class... T>
 class Serializer {
-	static_assert(false_v<T...>, "This shouldn't be instantiated - check the template parameter list for errors!");
+	FAIL_WITH_MSG("This shouldn't be instantiated - check the template parameter list for errors!");
 };
 
 template <typename... RecordParams>
