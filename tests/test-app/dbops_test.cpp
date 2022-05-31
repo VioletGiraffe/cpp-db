@@ -20,17 +20,20 @@ TEST_CASE("Operation::Insert serialization", "[dbops]") {
 	REQUIRE(serializer.serialize(op, buffer));
 
 	REQUIRE(buffer.seek(0));
-	const bool success = serializer.deserialize(buffer, [&](auto&& newOp) {
-		if constexpr (remove_cv_and_reference_t<decltype(newOp)>::op == OpCode::Insert)
+	bool deserializationOccurred = false;
+	const bool success = serializer.deserialize(buffer, [&]<class Op>(Op&& newOp) {
+		if constexpr (Op::op == OpCode::Insert)
 		{
 			Record r = newOp._record;
 			REQUIRE(r == op._record);
+			deserializationOccurred = true;
 		}
 		else
 			FAIL();
 	});
 
 	REQUIRE(success);
+	REQUIRE(deserializationOccurred);
 	REQUIRE(buffer.atEnd());
 }
 
@@ -52,8 +55,8 @@ TEST_CASE("Operation::Find serialization", "[dbops]") {
 
 	REQUIRE(buffer.seek(0));
 	bool comparisonPerformed = false;
-	const bool success = serializer.deserialize(buffer, [&](auto&& newOp) {
-		if constexpr (remove_cv_and_reference_t<decltype(newOp)>::op == OpCode::Find)
+	const bool success = serializer.deserialize(buffer, [&]<class Op>(Op&& newOp) {
+		if constexpr (Op::op == OpCode::Find)
 		{
 			if constexpr (std::is_same_v<remove_cv_and_reference_t<decltype(op._fields)>, remove_cv_and_reference_t<decltype(newOp._fields)>>)
 			{
@@ -62,9 +65,9 @@ TEST_CASE("Operation::Find serialization", "[dbops]") {
 				return;
 			}
 			else
-				REQUIRE(false);
+				FAIL();
 		}
-		REQUIRE(false);
+		FAIL();
 	});
 
 
@@ -92,8 +95,8 @@ TEST_CASE("Operation::UpdateFull serialization", "[dbops]") {
 		REQUIRE(serializer.serialize(op, buffer));
 
 		REQUIRE(buffer.seek(0));
-		const bool success = serializer.deserialize(buffer, [&](auto&& newOp) {
-			using OpType = remove_cv_and_reference_t<decltype(newOp)>;
+		bool opDeserialized = false;
+		const bool success = serializer.deserialize(buffer, [&]<class OpType>(OpType&& newOp) {
 			if constexpr (OpType::op == OpCode::UpdateFull)
 			{
 				if constexpr (std::is_same_v<KeyField, typename OpType::KeyField>)
@@ -101,6 +104,7 @@ TEST_CASE("Operation::UpdateFull serialization", "[dbops]") {
 					REQUIRE(newOp.insertIfNotPresent == op.insertIfNotPresent);
 					REQUIRE(newOp.record == op.record);
 					REQUIRE(newOp.keyValue == op.keyValue);
+					opDeserialized = true;
 				}
 				else
 					FAIL();
@@ -110,6 +114,7 @@ TEST_CASE("Operation::UpdateFull serialization", "[dbops]") {
 			});
 
 		REQUIRE(success);
+		REQUIRE(opDeserialized);
 		REQUIRE(buffer.atEnd());
 	}
 
@@ -127,8 +132,8 @@ TEST_CASE("Operation::UpdateFull serialization", "[dbops]") {
 		REQUIRE(serializer.serialize(op, buffer));
 
 		REQUIRE(buffer.seek(0));
-		const bool success = serializer.deserialize(buffer, [&](auto&& newOp) {
-			using OpType = remove_cv_and_reference_t<decltype(newOp)>;
+		bool deserializationOccurred = false;
+		const bool success = serializer.deserialize(buffer, [&]<class OpType>(OpType&& newOp) {
 			if constexpr (OpType::op == OpCode::UpdateFull)
 			{
 				if constexpr (std::is_same_v<KeyField, typename OpType::KeyField>)
@@ -136,6 +141,7 @@ TEST_CASE("Operation::UpdateFull serialization", "[dbops]") {
 					REQUIRE(newOp.insertIfNotPresent == op.insertIfNotPresent);
 					REQUIRE(newOp.record == op.record);
 					REQUIRE(newOp.keyValue == op.keyValue);
+					deserializationOccurred = true;
 				}
 				else
 					FAIL();
@@ -145,6 +151,7 @@ TEST_CASE("Operation::UpdateFull serialization", "[dbops]") {
 			});
 
 		REQUIRE(success);
+		REQUIRE(deserializationOccurred);
 		REQUIRE(buffer.atEnd());
 	}
 }
@@ -167,13 +174,14 @@ TEST_CASE("Operation::Delete serialization", "[dbops]") {
 	REQUIRE(serializer.serialize(op, buffer));
 
 	REQUIRE(buffer.seek(0));
-	const bool success = serializer.deserialize(buffer, [&](auto&& newOp) {
-		using OpType = remove_cv_and_reference_t<decltype(newOp)>;
+	bool deserializationOccurred = false;
+	const bool success = serializer.deserialize(buffer, [&]<class OpType>(OpType&& newOp) {
 		if constexpr (OpType::op == OpCode::Delete)
 		{
 			if constexpr (std::is_same_v<KeyField, typename OpType::KeyField>)
 			{
 				REQUIRE(newOp.keyValue == op.keyValue);
+				deserializationOccurred = true;
 			}
 			else
 				FAIL();
@@ -183,6 +191,7 @@ TEST_CASE("Operation::Delete serialization", "[dbops]") {
 		});
 
 	REQUIRE(success);
+	REQUIRE(deserializationOccurred);
 	REQUIRE(buffer.atEnd());
 }
 
@@ -222,8 +231,7 @@ TEST_CASE("Operation::AppendToArray serialization", "[dbops]") {
 
 		REQUIRE(buffer.seek(0));
 		bool deserializationOccurred = false;
-		const bool success = serializer.deserialize(buffer, [&](auto&& newOp) {
-			using OpType = remove_cv_and_reference_t<decltype(newOp)>;
+		const bool success = serializer.deserialize(buffer, [&]<class OpType>(OpType&& newOp) {
 			if constexpr (OpType::op == OpCode::AppendToArray)
 			{
 				REQUIRE(newOp.insertIfNotPresent() == op.insertIfNotPresent());
@@ -260,8 +268,7 @@ TEST_CASE("Operation::AppendToArray serialization", "[dbops]") {
 
 		REQUIRE(buffer.seek(0));
 		bool deserializationOccurred = false;
-		const bool success = serializer.deserialize(buffer, [&](auto&& newOp) {
-			using OpType = remove_cv_and_reference_t<decltype(newOp)>;
+		const bool success = serializer.deserialize(buffer, [&]<class OpType>(OpType&& newOp) {
 			if constexpr (OpType::op == OpCode::AppendToArray)
 			{
 				if constexpr (std::is_same_v<FKey, typename OpType::KeyField> && std::is_same_v<FSecondArray, typename OpType::ArrayField>)

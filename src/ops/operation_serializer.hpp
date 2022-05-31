@@ -203,7 +203,7 @@ bool Serializer<DbRecord<RecordParams...>>::deserialize(StorageIO<StorageAdapter
 		if (!RecordSerializer::deserialize(r, io))
 			return false;
 
-		receiver.operator()(Op{ std::move(r) });
+		receiver(Op{ std::move(r) });
 		return true;
 	}
 	case OpCode::Find:
@@ -267,12 +267,12 @@ bool Serializer<DbRecord<RecordParams...>>::deserialize(StorageIO<StorageAdapter
 				if (insertIfNotPresent)
 				{
 					using Op = Operation::UpdateFull<Record, KeyField, true>;
-					receiver.operator()(Op{ std::move(r), std::move(keyFieldValue) });
+					receiver(Op{ std::move(r), std::move(keyFieldValue) });
 				}
 				else
 				{
 					using Op = Operation::UpdateFull<Record, KeyField, false>;
-					receiver.operator()(Op{ std::move(r), std::move(keyFieldValue) });
+					receiver(Op{ std::move(r), std::move(keyFieldValue) });
 				}
 				success = true;
 			}
@@ -318,7 +318,7 @@ bool Serializer<DbRecord<RecordParams...>>::deserialize(StorageIO<StorageAdapter
 									return;
 
 								using Op = Operation::AppendToArray<Record, KeyField, ArrayField, true>;
-								receiver.operator()(Op{ std::move(keyFieldValue), std::move(r) });
+								receiver(Op{ std::move(keyFieldValue), std::move(r) });
 							}
 							else
 							{
@@ -327,7 +327,7 @@ bool Serializer<DbRecord<RecordParams...>>::deserialize(StorageIO<StorageAdapter
 									return;
 
 								using Op = Operation::AppendToArray<Record, KeyField, ArrayField, false>;
-								receiver.operator()(Op{ std::move(keyFieldValue), std::move(array) });
+								receiver(Op{ std::move(keyFieldValue), std::move(array) });
 							}
 
 							success = true;
@@ -355,7 +355,7 @@ bool Serializer<DbRecord<RecordParams...>>::deserialize(StorageIO<StorageAdapter
 					return;
 
 				using Op = Operation::Delete<Record, KeyField>;
-				receiver.operator()(Op{ std::move(keyFieldValue) });
+				receiver(Op{ std::move(keyFieldValue) });
 				success = true;
 			}
 		});
