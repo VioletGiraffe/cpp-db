@@ -20,7 +20,9 @@ jobs:
 
     - name: Windows - setup MSBuild
       if: startsWith(matrix.os, 'windows')
-      uses: microsoft/setup-msbuild@v1.0.2
+      uses: microsoft/setup-msbuild@v1.1
+      with:
+        vs-version: '[17.0,18.0)'
 
     - name: Windows - building tests
       if: startsWith(matrix.os, 'windows')
@@ -32,8 +34,8 @@ jobs:
         git clone --depth 1 https://github.com/VioletGiraffe/cpputils
         set PATH=%Qt5_DIR%;%PATH%;
         %Qt5_DIR%\bin\qmake.exe -v
-        call "%programfiles(x86)%\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" amd64 && "%Qt5_DIR%\bin\qmake.exe" -tp vc -r
-        msbuild tests.sln /t:Build /p:Configuration=Release;PlatformToolset=v142
+        call "%programfiles%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" amd64 && "%Qt5_DIR%\bin\qmake.exe" -tp vc -r
+        msbuild tests.sln /t:Build /p:Configuration=Release;PlatformToolset=v143
         popd
 
     - name: Linux
