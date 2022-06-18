@@ -3,7 +3,6 @@
 #include "utility/template_magic.hpp"
 #include "dbfield_size_helpers.hpp"
 
-#include <stddef.h>
 #include <type_traits>
 #include <utility>
 #include <vector>

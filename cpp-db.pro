@@ -8,6 +8,7 @@ CONFIG += staticlib
 QT = core
 
 CONFIG += strict_c++ c++2a
+CONFIG -= flat
 
 mac* | linux*{
 	CONFIG(release, debug|release):CONFIG *= Release optimize_full

@@ -146,7 +146,8 @@ inline void cppDb_compileTimeChecks()
 	static_assert(decltype(record)::allFieldsHaveStaticSize() == false);
 	static_assert(DbRecord<Tombstone<F1, -1>, F1, F3>::allFieldsHaveStaticSize() == true);
 
-	static_assert(pack::index_for_type<F1, F2, Fs, F1>() == 2U);
+	static_assert(pack::index_for_type<F1, F2, Fs, F1>() == 2_z);
+	static_assert(pack::index_for_type_v<Fs, F2, Fs, F1> == 1_z);
 	static_assert(pack::index_for_type<F3, F2, Fs, F1>().has_value() == false);
 	static_assert(pack::has_type_v<F3, F2, Fs, F1> == false);
 	constexpr size_t i = pack::index_for_type_v<Fs, F2, Fs, F1>;
@@ -190,7 +191,7 @@ inline void cppDb_compileTimeChecks()
 	auto& f1Index1 = singleFieldIndex.indexForField<F1::id>();
 	auto& fsIndex = threeIndices.indexForField<Fs::id>();
 
-	auto storePath = Index::store<io::QFileAdapter>(fsIndex, "Z:Z:");
+	auto storePath = Index::store<io::QFileAdapter>(fsIndex, "Z:Z:" /* Path intentionally invalid */);
 	storePath = Index::load<io::QFileAdapter>(fsIndex, "Z:Z:");
 
 	fsIndex.addLocationForValue("123", { 10 });
