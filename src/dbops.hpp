@@ -10,9 +10,7 @@ enum class OpCode : uint8_t {
 	Find,
 	UpdateFull,
 	AppendToArray,
-	Delete,
-
-	Invalid
+	Delete
 };
 
 namespace Operation {
