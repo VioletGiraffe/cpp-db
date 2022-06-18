@@ -1,4 +1,4 @@
-CONFIG += strict_c++ c++2a
+CONFIG += strict_c++
 QT = core
 
 TEMPLATE = app
@@ -38,8 +38,8 @@ win*{
 }
 
 linux*|mac*{
-	QMAKE_CXXFLAGS_WARN_ON = -Wall -Wno-c++11-extensions -Wno-local-type-template-args -Wno-deprecated-register
-	QMAKE_CXXFLAGS += -std=c++2a
+	QMAKE_CXXFLAGS_WARN_ON = -Wall
+	QMAKE_CXXFLAGS += -std=c++20
 
 	Release:DEFINES += NDEBUG=1
 	Debug:DEFINES += _DEBUG
@@ -47,7 +47,6 @@ linux*|mac*{
 
 *g++*{
 	QMAKE_CXXFLAGS += -fconcepts
-
 	LIBS += -lstdc++ -lm
 }
 
