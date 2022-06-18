@@ -17,6 +17,9 @@ jobs:
 
     - name: Install Qt
       uses: jurplel/install-qt-action@v2
+      with:
+        version: '5.15.2'
+        archives: 'qtbase'
 
     - name: Windows - setup MSBuild
       if: startsWith(matrix.os, 'windows')
