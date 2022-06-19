@@ -9,7 +9,6 @@
 #include "utility/constexpr_algorithms.hpp"
 #include "assert/advanced_assert.h"
 #include "tuple/tuple_helpers.hpp"
-#include "container/string_helpers.hpp"
 
 #include <string>
 #include <tuple>
