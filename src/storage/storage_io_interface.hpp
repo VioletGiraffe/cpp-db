@@ -24,9 +24,9 @@ struct StorageIO
 	template<typename T, auto id, bool isArray>
 	[[nodiscard]] constexpr bool readField(Field<T, id, isArray>& field, const std::optional<uint64_t> position = {}) noexcept;
 
-	template <typename T, typename = std::enable_if_t<!std::is_pointer_v<T>&& is_trivially_serializable_v<T>>>
+	template <typename T, sfinae<!std::is_pointer_v<T>&& is_trivially_serializable_v<T>> = true>
 	[[nodiscard]] constexpr bool read(T& value, const std::optional<uint64_t> position = {}) noexcept;
-	template <typename T, typename = std::enable_if_t<!std::is_pointer_v<T>&& is_trivially_serializable_v<T>>>
+	template <typename T, sfinae<!std::is_pointer_v<T>&& is_trivially_serializable_v<T>> = true>
 	[[nodiscard]] constexpr bool write(const T& value, const std::optional<uint64_t> position = {}) noexcept;
 
 	[[nodiscard]] constexpr bool read(std::string& value, const std::optional<uint64_t> position = {}) noexcept;
@@ -102,7 +102,7 @@ constexpr bool StorageIO<IOAdapter>::readField(Field<T, id, isArray>& field, con
 }
 
 template<typename IOAdapter>
-template<typename T, typename>
+template<typename T, sfinae<!std::is_pointer_v<T>&& is_trivially_serializable_v<T>>>
 constexpr bool StorageIO<IOAdapter>::read(T& value, const std::optional<uint64_t> position) noexcept
 {
 	if (position)
@@ -112,7 +112,7 @@ constexpr bool StorageIO<IOAdapter>::read(T& value, const std::optional<uint64_t
 }
 
 template<typename IOAdapter>
-template<typename T, typename>
+template<typename T, sfinae<!std::is_pointer_v<T>&& is_trivially_serializable_v<T>>>
 constexpr bool StorageIO<IOAdapter>::write(const T& value, const std::optional<uint64_t> position) noexcept
 {
 	if (position)
