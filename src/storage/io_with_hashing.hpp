@@ -22,9 +22,9 @@ public:
 		return IOAdapter::write(targetBuffer, dataSize);
 	}
 
-	[[nodiscard]] auto hash() const noexcept
+	[[nodiscard]] auto calculatedHash() const noexcept
 	{
-		return _hasher.hash();
+		return _hasher.calculatedHash();
 	}
 
 	void resetHash() noexcept

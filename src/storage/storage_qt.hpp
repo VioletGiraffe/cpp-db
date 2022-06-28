@@ -5,14 +5,12 @@
 #include <QBuffer>
 #include <QFile>
 
-#include <string>
-
 namespace io {
 
 class QFileAdapter
 {
 public:
-	[[nodiscard]] bool open(std::string fileName, const OpenMode mode) noexcept
+	[[nodiscard]] bool open(const std::string& fileName, const OpenMode mode) noexcept
 	{
 		QIODevice::OpenModeFlag qtOpenMode;
 		switch (mode) {
@@ -93,7 +91,7 @@ private:
 class QMemoryDeviceAdapter
 {
 public:
-	[[nodiscard]] bool open(std::string /*fileName*/, const OpenMode mode) noexcept
+	[[nodiscard]] bool open(const std::string& /*fileName*/, const OpenMode mode) noexcept
 	{
 		QIODevice::OpenModeFlag qtOpenMode;
 		switch (mode) {

@@ -11,7 +11,7 @@
 
 template <typename T>
 struct DbRecordSerializer {
-	FAIL_WITH_MSG("This shouldn't be instantiated - check the template parameter list for errors!");
+	FAIL_COMPILATION_WITH_MSG("This shouldn't be instantiated - check the template parameter list for errors!");
 };
 
 template <typename... Args>
@@ -39,7 +39,7 @@ struct DbRecordSerializer<DbRecord<Args...>>
 
 			::memcpy(buffer.data() + bufferOffset, std::addressof(field.value), FieldType::staticSize());
 			bufferOffset += FieldType::staticSize();
-			});
+		});
 
 		assert_r(bufferOffset == buffer.size());
 		assert_and_return_r(io.write(buffer.data(), staticFieldsSize), false);
