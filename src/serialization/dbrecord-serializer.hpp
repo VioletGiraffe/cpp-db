@@ -29,10 +29,10 @@ struct DbRecordSerializer<DbRecord<Args...>>
 		std::array<uint8_t, staticFieldsSize> buffer;
 
 		size_t bufferOffset = 0;
-		static_for<0, record.staticFieldsCount()>([&](auto i) {
-			using FieldType = typename Record::template FieldTypeByIndex_t<i>;
+		static_for<0, record.staticFieldsCount()>([&]<auto I>() {
+			using FieldType = typename Record::template FieldTypeByIndex_t<I>;
 
-			const auto& field = record.template fieldAtIndex<i>();
+			const auto& field = record.template fieldAtIndex<I>();
 			static_assert(std::is_same_v<std::remove_cv_t<FieldType>, remove_cv_and_reference_t<decltype(field)>>);
 			static_assert(is_trivially_serializable_v<typename FieldType::ValueType>);
 			static_assert(FieldType::sizeKnownAtCompileTime());
@@ -45,7 +45,7 @@ struct DbRecordSerializer<DbRecord<Args...>>
 		assert_and_return_r(io.write(buffer.data(), staticFieldsSize), false);
 
 		bool success = true;
-		static_for<record.staticFieldsCount(), record.fieldCount()>([&](auto i) {
+		static_for<record.staticFieldsCount(), record.fieldCount()>([&]<auto i>() {
 			if (!success)
 				return;
 
@@ -76,7 +76,7 @@ struct DbRecordSerializer<DbRecord<Args...>>
 
 		size_t bufferOffset = 0;
 		bool success = true;
-		static_for<0, Record::fieldCount()>([&](auto i) {
+		static_for<0, Record::fieldCount()>([&]<auto i>() {
 			using FieldType = typename Record::template FieldTypeByIndex_t<i>;
 
 			auto& field = record.template fieldAtIndex<i>();

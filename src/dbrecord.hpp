@@ -134,8 +134,8 @@ public:
 	static consteval size_t staticFieldsCount() noexcept
 	{
 		size_t count = 0;
-		static_for<0, sizeof...(FieldsSequence)>([&count](auto i) {
-			using FieldType = pack::type_by_index<i, FieldsSequence...>;
+		static_for<0, sizeof...(FieldsSequence)>([&count]<auto I>() {
+			using FieldType = pack::type_by_index<I, FieldsSequence...>;
 			if constexpr (FieldType::sizeKnownAtCompileTime() == true)
 				++count;
 		});
@@ -146,8 +146,8 @@ public:
 	static consteval size_t staticFieldsSize() noexcept
 	{
 		size_t totalSize = 0;
-		static_for<0, staticFieldsCount()>([&totalSize](auto i) {
-			using FieldType = pack::type_by_index<i, FieldsSequence...>;
+		static_for<0, staticFieldsCount()>([&totalSize]<auto I>() {
+			using FieldType = pack::type_by_index<I, FieldsSequence...>;
 			static_assert(FieldType::sizeKnownAtCompileTime() == true);
 
 			totalSize += FieldType::staticSize();
@@ -159,11 +159,11 @@ public:
 	size_t totalSize() const noexcept
 	{
 		size_t totalSize = staticFieldsSize();
-		static_for<staticFieldsCount(), sizeof...(FieldsSequence)>([&totalSize, this](auto i) {
-			using FieldType = pack::type_by_index<i, FieldsSequence...>;
+		static_for<staticFieldsCount(), sizeof...(FieldsSequence)>([&totalSize, this]<auto I>() {
+			using FieldType = pack::type_by_index<I, FieldsSequence...>;
 			static_assert(FieldType::sizeKnownAtCompileTime() == false);
 
-			totalSize += std::get<i>(_fields).fieldSize();
+			totalSize += std::get<I>(_fields).fieldSize();
 		});
 
 		return totalSize;
@@ -213,7 +213,7 @@ private:
 
 		static_assert(std::is_same_v<typename pack::type_by_index<0, FieldsSequence...>, std::tuple_element_t<0, std::tuple<FieldsSequence...>>>);
 
-		constexpr_for_z<1, sizeof...(FieldsSequence)>([](auto index) {
+		static_for<1, sizeof...(FieldsSequence)>([]<auto index>() {
 			using Field1 = typename pack::type_by_index<index - 1, FieldsSequence...>;
 			using Field2 = typename pack::type_by_index<index, FieldsSequence...>;
 			static_assert(!(Field1::sizeKnownAtCompileTime() == false && Field2::sizeKnownAtCompileTime() == true), "All the fields with compile-time size must be grouped before fields with dynamic size.");
