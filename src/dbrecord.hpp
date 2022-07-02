@@ -123,8 +123,8 @@ public:
 	static consteval bool allFieldsHaveStaticSize() noexcept
 	{
 		bool nonStaticSizeFieldDetected = false;
-		pack::for_type<FieldsSequence...>([&nonStaticSizeFieldDetected](auto type) {
-			if (!decltype(type)::type::sizeKnownAtCompileTime())
+		pack::for_type<FieldsSequence...>([&nonStaticSizeFieldDetected]<class Type>() {
+			if (!Type::sizeKnownAtCompileTime())
 				nonStaticSizeFieldDetected = true;
 		});
 

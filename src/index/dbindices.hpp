@@ -79,8 +79,8 @@ private:
 	static consteval bool sanityCheck()
 	{
 		bool success = true;
-		pack::for_type<IndexedFields...>([&](auto type_wrapper) {
-			if constexpr (pack::type_count<typename decltype(type_wrapper)::type, IndexedFields...>() != 1)
+		pack::for_type<IndexedFields...>([&]<class T>() {
+			if constexpr (pack::type_count<T, IndexedFields...>() != 1)
 				success = false;
 		});
 

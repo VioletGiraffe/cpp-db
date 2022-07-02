@@ -53,7 +53,7 @@ private:
 				{
 					// All done - compose the final type and exit.
 					using FindOpType = typename UpdatedTypesPack::template Construct<Operation::Find>;
-					receiver(type_wrapper<FindOpType>{});
+					receiver.template operator()<FindOpType>();
 				}
 				else
 				{
@@ -219,8 +219,7 @@ bool Serializer<Record>::deserialize(StorageIO<StorageAdapter>& io, Receiver&& r
 		}
 
 		bool success = true;
-		constructFindOperationType([&](auto OpTypeWrapper) {
-			using OpType = typename decltype(OpTypeWrapper)::type;
+		constructFindOperationType([&]<class OpType>() {
 			typename OpType::TupleOfFields fieldsTuple;
 			constexpr_for_fold<0, std::tuple_size_v<typename OpType::TupleOfFields>>([&]<auto I>() {
 				auto& field = std::get<I>(fieldsTuple);
