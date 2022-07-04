@@ -31,6 +31,12 @@ public:
 		return _file.open(qtOpenMode);
 	}
 
+	[[nodiscard]] bool close() noexcept
+	{
+		_file.close();
+		return true;
+	}
+
 	[[nodiscard]] bool read(void* targetBuffer, const size_t dataSize) noexcept
 	{
 		return _file.read(reinterpret_cast<char*>(targetBuffer), dataSize) == static_cast<qint64>(dataSize);
@@ -76,11 +82,7 @@ public:
 
 	[[nodiscard]] bool clear() noexcept
 	{
-		if (!_file.resize(0))
-			return false;
-
-		flush();
-		return true;
+		return _file.resize(0);
 	}
 
 private:
@@ -149,7 +151,7 @@ public:
 		return _ioDevice.atEnd();
 	}
 
-	bool flush() noexcept
+	constexpr bool flush() noexcept
 	{
 		return true;
 	}

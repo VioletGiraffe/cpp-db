@@ -187,8 +187,7 @@ template <class StorageAdapter, typename Receiver>
 bool Serializer<Record>::deserialize(StorageIO<StorageAdapter>& io, Receiver&& receiver) noexcept
 {
 	OpCode opCode{};
-	if (!io.read(opCode))
-		return false;
+	assert_and_return_r(io.read(opCode), false);
 
 	switch (opCode)
 	{
@@ -196,8 +195,7 @@ bool Serializer<Record>::deserialize(StorageIO<StorageAdapter>& io, Receiver&& r
 	{
 		using Op = Operation::Insert<Record>;
 		Record r;
-		if (!RecordSerializer::deserialize(r, io))
-			return false;
+		assert_and_return_r(RecordSerializer::deserialize(r, io), false);
 
 		receiver(Op{ std::move(r) });
 		return true;
@@ -205,8 +203,7 @@ bool Serializer<Record>::deserialize(StorageIO<StorageAdapter>& io, Receiver&& r
 	case OpCode::Find:
 	{
 		uint8_t nFields = 0;
-		if (!io.read(nFields))
-			return false;
+		assert_and_return_r(io.read(nFields), false);
 
 		static constexpr size_t maxFindOperationFieldCount = Operation::Find<>::maxFieldCount;
 		assert_and_return_r(nFields > 0 && nFields <= maxFindOperationFieldCount, false);
@@ -214,8 +211,7 @@ bool Serializer<Record>::deserialize(StorageIO<StorageAdapter>& io, Receiver&& r
 		std::array<uint8_t, maxFindOperationFieldCount> ids;
 		for (size_t i = 0; i < nFields; ++i)
 		{
-			if (!io.read(ids[i]))
-				return false;
+			assert_and_return_r(io.read(ids[i]), false);
 		}
 
 		bool success = true;
@@ -225,6 +221,7 @@ bool Serializer<Record>::deserialize(StorageIO<StorageAdapter>& io, Receiver&& r
 				auto& field = std::get<I>(fieldsTuple);
 				if (success && !io.readField(field))
 				{
+					assert_unconditional_r("io.readField(field) failed!");
 					success = false;
 					return;
 				}
@@ -240,16 +237,13 @@ bool Serializer<Record>::deserialize(StorageIO<StorageAdapter>& io, Receiver&& r
 	case OpCode::UpdateFull:
 	{
 		uint8_t keyFieldId;
-		if (!io.read(keyFieldId))
-			return false;
+		assert_and_return_r(io.read(keyFieldId), false);
 
 		bool insertIfNotPresent;
-		if (!io.read(insertIfNotPresent))
-			return false;
+		assert_and_return_r(io.read(insertIfNotPresent), false);
 
 		Record r;
-		if (!RecordSerializer::deserialize(r, io))
-			return false;
+		assert_and_return_r(RecordSerializer::deserialize(r, io), false);
 
 		bool success = false;
 		constexpr_for_fold<0, Schema::fieldsCount_v>([&]<auto I>() {
@@ -257,8 +251,7 @@ bool Serializer<Record>::deserialize(StorageIO<StorageAdapter>& io, Receiver&& r
 			if (KeyField::id == keyFieldId)
 			{
 				typename KeyField::ValueType keyFieldValue;
-				if (!io.read(keyFieldValue))
-					return;
+				assert_and_return_r(io.read(keyFieldValue), );
 
 				if (insertIfNotPresent)
 				{
@@ -279,16 +272,13 @@ bool Serializer<Record>::deserialize(StorageIO<StorageAdapter>& io, Receiver&& r
 	case OpCode::AppendToArray:
 	{
 		uint8_t keyFieldId;
-		if (!io.read(keyFieldId))
-			return false;
+		assert_and_return_r(io.read(keyFieldId), false);
 
 		uint8_t arrayFieldId;
-		if (!io.read(arrayFieldId))
-			return false;
+		assert_and_return_r(io.read(arrayFieldId), false);
 
 		bool insertIfNotPresent;
-		if (!io.read(insertIfNotPresent))
-			return false;
+		assert_and_return_r(io.read(insertIfNotPresent), false);
 
 		bool success = false;
 		// Searching the compile-time value for keyFieldId
@@ -297,8 +287,7 @@ bool Serializer<Record>::deserialize(StorageIO<StorageAdapter>& io, Receiver&& r
 			if (KeyField::id == keyFieldId)
 			{
 				typename KeyField::ValueType keyFieldValue;
-				if (!io.read(keyFieldValue))
-					return;
+				assert_and_return_r(io.read(keyFieldValue), );
 
 				// Searching the compile-time value for arrayFieldId
 				constexpr_for_fold<0, Schema::fieldsCount_v>([&]<auto ArrayFieldIndex>() {
@@ -310,8 +299,7 @@ bool Serializer<Record>::deserialize(StorageIO<StorageAdapter>& io, Receiver&& r
 							if (insertIfNotPresent)
 							{
 								Record r;
-								if (!RecordSerializer::deserialize(r, io))
-									return;
+								assert_and_return_r(RecordSerializer::deserialize(r, io), );
 
 								using Op = Operation::AppendToArray<Record, KeyField, ArrayField, true>;
 								receiver(Op{ std::move(keyFieldValue), std::move(r) });
@@ -319,8 +307,7 @@ bool Serializer<Record>::deserialize(StorageIO<StorageAdapter>& io, Receiver&& r
 							else
 							{
 								typename ArrayField::ValueType array;
-								if (!io.read(array))
-									return;
+								assert_and_return_r(io.read(array), );
 
 								using Op = Operation::AppendToArray<Record, KeyField, ArrayField, false>;
 								receiver(Op{ std::move(keyFieldValue), std::move(array) });
@@ -338,8 +325,7 @@ bool Serializer<Record>::deserialize(StorageIO<StorageAdapter>& io, Receiver&& r
 	case OpCode::Delete:
 	{
 		uint8_t keyFieldId;
-		if (!io.read(keyFieldId))
-			return false;
+		assert_and_return_r(io.read(keyFieldId), false);
 
 		bool success = false;
 		constexpr_for_fold<0, Schema::fieldsCount_v>([&]<auto I>() {
@@ -347,8 +333,7 @@ bool Serializer<Record>::deserialize(StorageIO<StorageAdapter>& io, Receiver&& r
 			if (KeyField::id == keyFieldId)
 			{
 				typename KeyField::ValueType keyFieldValue;
-				if (!io.read(keyFieldValue))
-					return;
+				assert_and_return_r(io.read(keyFieldValue), );
 
 				using Op = Operation::Delete<Record, KeyField>;
 				receiver(Op{ std::move(keyFieldValue) });

@@ -13,10 +13,26 @@ TEST_CASE("DbWAL basics", "[dbwal]")
 	using RecordWithArray = DbRecord<Tomb16, F16, FArray>;
 
 	DbWAL<Record, io::QFileAdapter> wal;
-	REQUIRE_NOTHROW(wal.openLogFile("wal.dat"));
+	REQUIRE(wal.openLogFile("wal.dat"));
+	REQUIRE(wal.clearLog());
+
+	size_t brokenOpsCount = 0;
+	REQUIRE(wal.verifyLog([&](auto&& /*op*/) {
+		++brokenOpsCount;
+	}));
+	REQUIRE(brokenOpsCount == 0);
 
 	Operation::AppendToArray<RecordWithArray, F16, FArray, false> opAppend(uint16_t{0}, std::vector{uint32_t{42}});
-	REQUIRE_NOTHROW(wal.registerOperation(0 /* op ID */, opAppend));
+	REQUIRE(wal.registerOperation(0 /* op ID */, opAppend));
 
-	//REQUIRE_NOTHROW(wal.verifyLog());
+	REQUIRE(wal.closeLogFile());
+
+	REQUIRE(wal.openLogFile("wal.dat"));
+
+	brokenOpsCount = 0;
+	REQUIRE(wal.verifyLog([&](auto&& /*op*/) {
+		++brokenOpsCount;
+	}));
+	REQUIRE(brokenOpsCount == 0);
+	REQUIRE(wal.closeLogFile());
 }

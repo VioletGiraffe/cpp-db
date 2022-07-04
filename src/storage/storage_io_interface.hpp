@@ -17,7 +17,13 @@ namespace io {
 template <typename IOAdapter>
 struct StorageIO
 {
+	template <typename... Args>
+	constexpr StorageIO(Args&&... args) noexcept :
+		_io{ std::forward<Args>(args)... }
+	{}
+
 	[[nodiscard]] constexpr bool open(const std::string& filePath, const io::OpenMode mode) noexcept;
+	[[nodiscard]] constexpr bool close() noexcept;
 
 	template<typename T, auto id, bool isArray>
 	[[nodiscard]] constexpr bool writeField(const Field<T, id, isArray>& field, const std::optional<uint64_t> position = {}) noexcept;
@@ -79,6 +85,12 @@ template<typename IOAdapter>
 constexpr bool StorageIO<IOAdapter>::open(const std::string& filePath, const io::OpenMode mode) noexcept
 {
 	return _io.open(filePath, mode);
+}
+
+template<typename IOAdapter>
+constexpr bool StorageIO<IOAdapter>::close() noexcept
+{
+	return _io.close();
 }
 
 template<typename IOAdapter>

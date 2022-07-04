@@ -82,4 +82,59 @@ private:
 	static_data_buffer<MaxSize> _buffer;
 };
 
+class MemoryBlockAdapter
+{
+public:
+	inline MemoryBlockAdapter(const void* dataPtr, const size_t size) noexcept :
+		_data{ reinterpret_cast<const std::byte*>(dataPtr) },
+		_dataSize{size}
+	{}
+
+	inline constexpr bool read(void* targetBuffer, const size_t dataSize) noexcept
+	{
+		assert_and_return_r(dataSize <= _dataSize - _pos, false);
+		::memcpy(targetBuffer, _data + _pos, dataSize);
+		_pos += dataSize;
+		return true;
+	}
+
+	// Sets the absolute position from the beginning of the file
+	inline constexpr bool seek(const size_t position) & noexcept
+	{
+		assert_and_return_r(position < _dataSize, false);
+		_pos = position;
+		return true;
+	}
+
+	inline constexpr bool seekToEnd() & noexcept
+	{
+		return seek(size());
+	}
+
+	[[nodiscard]] inline constexpr uint64_t pos() const noexcept
+	{
+		return _pos;
+	}
+
+	[[nodiscard]] inline constexpr uint64_t size() const noexcept
+	{
+		return _dataSize;
+	}
+
+	[[nodiscard]] inline constexpr bool atEnd() const noexcept
+	{
+		return pos() == size();
+	}
+
+	inline constexpr bool flush() noexcept
+	{
+		return true;
+	}
+
+private:
+	const std::byte* _data;
+	const size_t _dataSize;
+	size_t _pos = 0;
+};
+
 }
