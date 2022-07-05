@@ -17,7 +17,7 @@ inline void dbRecord_checks()
 	DbRecord<Tombstone<F_ull, std::numeric_limits<uint64_t>::max()>, F3, F_ull, Fs> record;
 	static_assert(record.staticFieldsCount() == 2);
 	static_assert(record.staticFieldsSize() == sizeof(uint64_t) + sizeof(double));
-	static_assert(record.isRecord());
+	static_assert(record.isRecord);
 	static_assert(record.allFieldsHaveStaticSize() == false);
 	static_assert(record.fieldCount() == 3);
 

@@ -9,7 +9,6 @@
 #include "utility/memory_cast.hpp"
 
 #include <array>
-#include <limits>
 #include <string_view>
 #include <tuple>
 
@@ -63,7 +62,7 @@ struct Tombstone<Field<std::string, fieldId, is_array>, 0>
 	}
 
 private:
-	static constexpr const char tombstoneString[] = "#1IcX~|";
+	static constexpr const char tombstoneString[] {-1, -1, -1, -1};
 };
 
 template<>
@@ -86,7 +85,7 @@ class DbRecord
 {
 public:
 // Traits
-	static consteval bool isRecord() noexcept { return true; }
+	static constexpr bool isRecord = true;
 	static consteval bool hasTombstone() noexcept { return TombstoneField::is_valid_v; }
 
 	template <size_t index>
@@ -227,7 +226,6 @@ private:
 	}
 
 	static_assert(checkAssertions());
-	static_assert(std::numeric_limits<unsigned char>::digits == 8, "No funny business!");
 	static_assert(sizeof...(FieldsSequence) > 0);
 
 private:

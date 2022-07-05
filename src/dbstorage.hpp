@@ -1,6 +1,7 @@
 #pragma once
 
 #include "dbrecord.hpp"
+#include "db_type_concepts.hpp"
 #include "storage/storage_io_interface.hpp"
 #include "assert/advanced_assert.h"
 #include "serialization/dbrecord-serializer.hpp"
@@ -21,7 +22,7 @@ struct StorageLocation {
 	[[nodiscard]] constexpr auto operator<=>(const StorageLocation&) const = default;
 };
 
-template <typename StorageAdapter, typename Record>
+template <typename StorageAdapter, RecordConcept Record>
 class DBStorage
 {
 public:
@@ -45,9 +46,6 @@ public:
 		assert_and_return_r(_storageFile.seekToEnd(), false);
 		return DbRecordSerializer<Record>::serialize(record, _storageFile);
 	}
-
-private:
-	static_assert(Record::isRecord());
 
 private:
 	StorageIO<StorageAdapter> _storageFile;

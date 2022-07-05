@@ -1,5 +1,7 @@
 #pragma once
 
+#include "db_type_concepts.hpp"
+
 #include <optional>
 #include <stdint.h>
 #include <tuple>
@@ -15,10 +17,10 @@ enum class OpCode : uint8_t {
 
 namespace Operation {
 
-	template <class Record>
+	template <RecordConcept Record>
 	struct Insert
 	{
-		static_assert(Record::isRecord());
+		using RecordType = Record;
 
 		static constexpr auto op = OpCode::Insert;
 
@@ -29,9 +31,11 @@ namespace Operation {
 		const Record _record;
 	};
 
-	template <typename... Fields>
+	template <RecordConcept Record, typename... Fields>
 	struct Find
 	{
+		using RecordType = Record;
+
 		using TupleOfFields = std::tuple<Fields...>;
 
 		static constexpr auto op = OpCode::Find;
@@ -48,9 +52,10 @@ namespace Operation {
 		const TupleOfFields _fields;
 	};
 
-	template <class Record, class K, bool InsertIfNotPresent = false>
+	template <RecordConcept Record, class K, bool InsertIfNotPresent = false>
 	struct UpdateFull
 	{
+		using RecordType = Record;
 		using KeyField = K;
 
 		static constexpr auto op = OpCode::UpdateFull;
@@ -65,14 +70,12 @@ namespace Operation {
 		const typename KeyField::ValueType keyValue;
 
 	private:
-		static_assert(Record::isRecord());
 		static_assert(Record::template has_field_v<KeyField>);
 	};
 
 	namespace detail {
-		template <class Record>
+		template <RecordConcept Record>
 		struct RecordMember {
-			static_assert(Record::isRecord());
 			explicit constexpr RecordMember(Record r) noexcept :
 				record{ std::move(r) }
 			{}
@@ -91,15 +94,14 @@ namespace Operation {
 		};
 	}
 
-	template <class Record, class Key, class Array, bool InsertIfNotPresent = false>
+	template <RecordConcept Record, class Key, class Array, bool InsertIfNotPresent = false>
 	struct AppendToArray final : public std::conditional_t<InsertIfNotPresent, detail::RecordMember<Record>, detail::ArrayMember<Array>>
 	{
+		using RecordType = Record;
 		using KeyField = Key;
 		using ArrayField = Array;
 		using KeyValueType = typename KeyField::ValueType;
 		using ArrayValueType = typename ArrayField::ValueType;
-
-		static_assert(Record::template has_field_v<KeyField>);
 
 		static constexpr auto op = OpCode::AppendToArray;
 
@@ -125,13 +127,11 @@ namespace Operation {
 		const KeyValueType keyValue;
 	};
 
-	template <class Record, class K>
+	template <RecordConcept Record, class K>
 	struct Delete
 	{
+		using RecordType = Record;
 		using KeyField = K;
-
-		static_assert(Record::isRecord());
-		static_assert(Record::template has_field_v<KeyField>);
 
 		static constexpr auto op = OpCode::Delete;
 
@@ -140,5 +140,7 @@ namespace Operation {
 		{}
 
 		const typename KeyField::ValueType keyValue;
+
+		static_assert(Record::template has_field_v<KeyField>);
 	};
 }

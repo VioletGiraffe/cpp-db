@@ -11,9 +11,11 @@
 
 #include <array>
 
+#include <Windows.h>
+
 namespace Operation {
 
-template <class Record> // TODO: concept 
+template <RecordConcept Record>
 class Serializer
 {
 	using Schema = DbSchema<Record>;
@@ -40,7 +42,7 @@ public:
 private:
 	using RecordSerializer = DbRecordSerializer<Record>;
 
-	template <typename Functor, size_t currentIndex = 0, typename TypesPack = type_pack<>, size_t N>
+	template <typename Functor, size_t currentIndex = 0, typename TypesPack = type_pack<Record>, size_t N>
 	static constexpr void constructFindOperationType([[maybe_unused]] Functor&& receiver, const std::array<uint8_t, N>& fieldIds, const size_t nFieldIds) noexcept
 	{
 		// Get the compile-time ID of the current type
@@ -57,7 +59,7 @@ private:
 				}
 				else
 				{
-					if constexpr (currentIndex + 1 < Operation::Find<>::maxFieldCount) // Keep recursing
+					if constexpr (currentIndex + 1 < Operation::Find<Record>::maxFieldCount) // Keep recursing
 						constructFindOperationType<Functor, currentIndex + 1, UpdatedTypesPack>(std::forward<Functor>(receiver), fieldIds, nFieldIds);
 				}
 			}
@@ -65,7 +67,7 @@ private:
 	}
 };
 
-template <class Record>
+template <RecordConcept Record>
 template<class Operation, class StorageAdapter, sfinae<Operation::op == OpCode::Insert>>
 bool Serializer<Record>::serialize(const Operation& op, StorageIO<StorageAdapter>& io) noexcept
 {
@@ -76,7 +78,7 @@ bool Serializer<Record>::serialize(const Operation& op, StorageIO<StorageAdapter
 	return RecordSerializer::serialize(op._record, io);
 }
 
-template <class Record>
+template <RecordConcept Record>
 template<class Operation, class StorageAdapter, sfinae<Operation::op == OpCode::Find>>
 bool Serializer<Record>::serialize(const Operation& op, StorageIO<StorageAdapter>& io) noexcept
 {
@@ -116,7 +118,7 @@ bool Serializer<Record>::serialize(const Operation& op, StorageIO<StorageAdapter
 	return success;
 }
 
-template <class Record>
+template <RecordConcept Record>
 template<class Operation, class StorageAdapter, sfinae<Operation::op == OpCode::UpdateFull>>
 bool Serializer<Record>::serialize(const Operation& op, StorageIO<StorageAdapter>& io) noexcept
 {
@@ -138,7 +140,7 @@ bool Serializer<Record>::serialize(const Operation& op, StorageIO<StorageAdapter
 	return io.write(op.keyValue);
 }
 
-template <class Record>
+template <RecordConcept Record>
 template<class Operation, class StorageAdapter, sfinae<Operation::op == OpCode::AppendToArray>>
 bool Serializer<Record>::serialize(const Operation& op, StorageIO<StorageAdapter>& io) noexcept
 {
@@ -167,10 +169,12 @@ bool Serializer<Record>::serialize(const Operation& op, StorageIO<StorageAdapter
 		return io.write(op.array);
 }
 
-template <class Record>
+template <RecordConcept Record>
 template<class Operation, class StorageAdapter, sfinae<Operation::op == OpCode::Delete>>
 bool Serializer<Record>::serialize(const Operation& op, StorageIO<StorageAdapter>& io) noexcept
 {
+	static_assert(std::is_same_v<Record, typename Operation::RecordType>, "The operation record type doesn't match Serializer type!!!");
+
 	if (!io.write(Operation::op))
 		return false;
 
@@ -182,7 +186,7 @@ bool Serializer<Record>::serialize(const Operation& op, StorageIO<StorageAdapter
 	return io.write(op.keyValue);
 }
 
-template <class Record>
+template <RecordConcept Record>
 template <class StorageAdapter, typename Receiver>
 bool Serializer<Record>::deserialize(StorageIO<StorageAdapter>& io, Receiver&& receiver) noexcept
 {
@@ -205,7 +209,7 @@ bool Serializer<Record>::deserialize(StorageIO<StorageAdapter>& io, Receiver&& r
 		uint8_t nFields = 0;
 		assert_and_return_r(io.read(nFields), false);
 
-		static constexpr size_t maxFindOperationFieldCount = Operation::Find<>::maxFieldCount;
+		static constexpr size_t maxFindOperationFieldCount = Operation::Find<Record>::maxFieldCount;
 		assert_and_return_r(nFields > 0 && nFields <= maxFindOperationFieldCount, false);
 
 		std::array<uint8_t, maxFindOperationFieldCount> ids;
@@ -292,6 +296,7 @@ bool Serializer<Record>::deserialize(StorageIO<StorageAdapter>& io, Receiver&& r
 				// Searching the compile-time value for arrayFieldId
 				constexpr_for_fold<0, Schema::fieldsCount_v>([&]<auto ArrayFieldIndex>() {
 					using ArrayField = typename Schema::template FieldByIndex_t<ArrayFieldIndex>;
+					OutputDebugStringA(typeid(ArrayField).name());
 					if constexpr (ArrayField::isArray())
 					{
 						if (ArrayField::id == arrayFieldId)

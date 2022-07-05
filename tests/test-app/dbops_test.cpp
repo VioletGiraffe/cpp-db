@@ -1,7 +1,7 @@
 #include "3rdparty/catch2/catch.hpp"
 
 #include "ops/operation_serializer.hpp"
-#include "storage/storage_qt.hpp"
+#include "storage/storage_static_buffer.hpp"
 
 TEST_CASE("Operation::Insert serialization", "[dbops]") {
 	using F3 = Field<double, 4>;
@@ -14,7 +14,7 @@ TEST_CASE("Operation::Insert serialization", "[dbops]") {
 
 	Operation::Insert<Record> op{ Record{3.14, 15, "Hello World!"} };
 
-	StorageIO<io::QMemoryDeviceAdapter> buffer;
+	StorageIO<io::StaticBufferAdapter<2048>> buffer;
 	REQUIRE(buffer.open(".", io::OpenMode::ReadWrite));
 
 	REQUIRE(serializer.serialize(op, buffer));
@@ -46,9 +46,9 @@ TEST_CASE("Operation::Find serialization", "[dbops]") {
 
 	Operation::Serializer<Record> serializer;
 
-	Operation::Find<F3, Fs> op{ F3{3.14}, Fs{"Hello World!"} };
+	Operation::Find<Record, F3, Fs> op{ F3{3.14}, Fs{"Hello World!"} };
 
-	StorageIO<io::QMemoryDeviceAdapter> buffer;
+	StorageIO<io::StaticBufferAdapter<2048>> buffer;
 	REQUIRE(buffer.open(".", io::OpenMode::ReadWrite));
 
 	REQUIRE(serializer.serialize(op, buffer));
@@ -89,7 +89,7 @@ TEST_CASE("Operation::UpdateFull serialization", "[dbops]") {
 		using KeyField = Fs;
 		Operation::UpdateFull<Record, KeyField, false> op{ Record{3.14, 15, "Hello World!"}, "123" };
 
-		StorageIO<io::QMemoryDeviceAdapter> buffer;
+		StorageIO<io::StaticBufferAdapter<2048>> buffer;
 		REQUIRE(buffer.open(".", io::OpenMode::ReadWrite));
 
 		REQUIRE(serializer.serialize(op, buffer));
@@ -126,7 +126,7 @@ TEST_CASE("Operation::UpdateFull serialization", "[dbops]") {
 		using KeyField = F3;
 		Operation::UpdateFull<Record, KeyField, true> op{ Record{3.14, "Hello World!", "I am alive!"}, 5.0 };
 
-		StorageIO<io::QMemoryDeviceAdapter> buffer;
+		StorageIO<io::StaticBufferAdapter<2048>> buffer;
 		REQUIRE(buffer.open(".", io::OpenMode::ReadWrite));
 
 		REQUIRE(serializer.serialize(op, buffer));
@@ -168,7 +168,7 @@ TEST_CASE("Operation::Delete serialization", "[dbops]") {
 	using KeyField = Fs;
 	Operation::Delete<Record, KeyField> op{ "123" };
 
-	StorageIO<io::QMemoryDeviceAdapter> buffer;
+	StorageIO<io::StaticBufferAdapter<2048>> buffer;
 	REQUIRE(buffer.open(".", io::OpenMode::ReadWrite));
 
 	REQUIRE(serializer.serialize(op, buffer));
@@ -222,7 +222,7 @@ TEST_CASE("Operation::AppendToArray serialization", "[dbops]") {
 		const std::vector<uint64_t> newArray{ 1, 2, 0 };
 		Operation::AppendToArray<Record, FKey, FArray, false> op{ 3.14, newArray };
 
-		StorageIO<io::QMemoryDeviceAdapter> buffer;
+		StorageIO<io::StaticBufferAdapter<2048>> buffer;
 		REQUIRE(buffer.open(".", io::OpenMode::ReadWrite));
 
 		REQUIRE(serializer.serialize(op, buffer));
@@ -261,7 +261,7 @@ TEST_CASE("Operation::AppendToArray serialization", "[dbops]") {
 		const Record r{ 'a', -100e35, "Hello!", std::vector<uint64_t>{51, 16}, newArray };
 		Operation::AppendToArray<Record, FKey, FSecondArray, true> op{ 3.14, r };
 
-		StorageIO<io::QMemoryDeviceAdapter> buffer;
+		StorageIO<io::StaticBufferAdapter<2048>> buffer;
 		REQUIRE(buffer.open(".", io::OpenMode::ReadWrite));
 
 		REQUIRE(serializer.serialize(op, buffer));

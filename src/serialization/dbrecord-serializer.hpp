@@ -22,8 +22,6 @@ struct DbRecordSerializer<DbRecord<Args...>>
 	template <typename StorageImplementation>
 	[[nodiscard]] static bool serialize(const Record& record, StorageIO<StorageImplementation>& io) noexcept
 	{
-		static_assert (Record::isRecord());
-
 		// Statically sized fields are grouped before others and can be read or written in a single block.
 		static constexpr size_t staticFieldsSize = record.staticFieldsSize();
 		std::array<uint8_t, staticFieldsSize> buffer;

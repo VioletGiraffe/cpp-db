@@ -11,11 +11,9 @@
 #include <thread>
 #include <vector>
 
-template <class Record, class StorageAdapter>
+template <RecordConcept Record, class StorageAdapter>
 class DbWAL
 {
-	static_assert(Record::isRecord());
-
 public:
 	using OpID = uint64_t;
 	enum class OpStatus : uint8_t {
@@ -54,7 +52,7 @@ private:
 	const std::thread::id _ownerThreadId = std::this_thread::get_id();
 };
 
-template<class Record, class StorageAdapter>
+template<RecordConcept Record, class StorageAdapter>
 [[nodiscard]] bool DbWAL<Record, StorageAdapter>::openLogFile(const std::string& filePath) noexcept
 {
 	assert_debug_only(std::this_thread::get_id() == _ownerThreadId);
@@ -62,7 +60,7 @@ template<class Record, class StorageAdapter>
 	return _logFile.open(filePath, io::OpenMode::ReadWrite);
 }
 
-template<class Record, class StorageAdapter>
+template<RecordConcept Record, class StorageAdapter>
 [[nodiscard]] bool DbWAL<Record, StorageAdapter>::closeLogFile() noexcept
 {
 	assert_debug_only(std::this_thread::get_id() == _ownerThreadId);
@@ -70,7 +68,7 @@ template<class Record, class StorageAdapter>
 	return _logFile.close();
 }
 
-template<class Record, class StorageAdapter>
+template<RecordConcept Record, class StorageAdapter>
 [[nodiscard]] bool DbWAL<Record, StorageAdapter>::clearLog() noexcept
 {
 	assert_debug_only(std::this_thread::get_id() == _ownerThreadId);
@@ -93,7 +91,7 @@ template<class Record, class StorageAdapter>
 
 */
 
-template<class Record, class StorageAdapter>
+template<RecordConcept Record, class StorageAdapter>
 template <typename Receiver>
 [[nodiscard]] bool DbWAL<Record, StorageAdapter>::verifyLog(Receiver&& unfinishedOperationsReceiver) noexcept
 {
@@ -156,7 +154,7 @@ template <typename Receiver>
 	return success;
 }
 
-template<class Record, class StorageAdapter>
+template<RecordConcept Record, class StorageAdapter>
 template<class OpType>
 [[nodiscard]] bool DbWAL<Record, StorageAdapter>::registerOperation(const OpID opId, OpType&& op) noexcept
 {
@@ -201,7 +199,7 @@ template<class OpType>
 	return true;
 }
 
-template<class Record, class StorageAdapter>
+template<RecordConcept Record, class StorageAdapter>
 inline bool DbWAL<Record, StorageAdapter>::updateOpStatus(const OpID opId, const OpStatus status) noexcept
 {
 	assert_debug_only(std::this_thread::get_id() == _ownerThreadId);
