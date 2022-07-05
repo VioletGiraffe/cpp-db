@@ -16,6 +16,7 @@ public:
 
 	constexpr bool close() noexcept
 	{
+		_buffer.seek(0);
 		return true;
 	}
 
@@ -69,7 +70,7 @@ public:
 	constexpr bool clear() noexcept
 	{
 		_buffer.reserve(0);
-		_buffer.seeks(0);
+		_buffer.seek(0);
 		return true;
 	}
 

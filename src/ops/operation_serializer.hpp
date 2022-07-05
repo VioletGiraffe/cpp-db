@@ -11,8 +11,6 @@
 
 #include <array>
 
-#include <Windows.h>
-
 namespace Operation {
 
 template <RecordConcept Record>
@@ -144,6 +142,8 @@ template <RecordConcept Record>
 template<class Operation, class StorageAdapter, sfinae<Operation::op == OpCode::AppendToArray>>
 bool Serializer<Record>::serialize(const Operation& op, StorageIO<StorageAdapter>& io) noexcept
 {
+	static_assert(std::is_same_v<typename Operation::RecordType, Record>, "The operation uses incompatible record type!");
+
 	if (!io.write(Operation::op))
 		return false;
 
@@ -296,7 +296,6 @@ bool Serializer<Record>::deserialize(StorageIO<StorageAdapter>& io, Receiver&& r
 				// Searching the compile-time value for arrayFieldId
 				constexpr_for_fold<0, Schema::fieldsCount_v>([&]<auto ArrayFieldIndex>() {
 					using ArrayField = typename Schema::template FieldByIndex_t<ArrayFieldIndex>;
-					OutputDebugStringA(typeid(ArrayField).name());
 					if constexpr (ArrayField::isArray())
 					{
 						if (ArrayField::id == arrayFieldId)
