@@ -2,14 +2,13 @@
 #include "dbwal.hpp"
 #include "storage/storage_static_buffer.hpp"
 
-TEST_CASE("DbWAL basics", "[dbwal]")
+TEST_CASE("DbWAL basics and normal operation", "[dbwal]")
 {
 	using F64 = Field<uint64_t, 1>;
 	using F16 = Field<int16_t, 2>;
-	using Tomb16 = Tombstone < F16, uint16_t{ 0xDEAD } > ;
 
 	using FArray = Field<uint32_t, 3, true>;
-	using RecordWithArray = DbRecord<Tomb16, F16, FArray>;
+	using RecordWithArray = DbRecord<F16, FArray>;
 
 	DbWAL<RecordWithArray, io::StaticBufferAdapter<4096>> wal;
 	REQUIRE(wal.openLogFile({}));
@@ -49,9 +48,13 @@ TEST_CASE("DbWAL basics", "[dbwal]")
 	// One operation, because we never indicated that it has completed
 	REQUIRE(unfinishedOpsCount == 1);
 
+#ifndef _DEBUG
 	REQUIRE(wal.updateOpStatus(0, OpStatus::Successful) == false); // No such ID
+#endif
 	REQUIRE(wal.updateOpStatus(opID, OpStatus::Successful)); // No such ID
+#ifndef _DEBUG
 	REQUIRE(wal.updateOpStatus(opID, OpStatus::Successful) == false); // No longer pending!
+#endif
 
 	REQUIRE(wal.clearLog());
 

@@ -8,7 +8,7 @@ TEST_CASE("Operation::Insert serialization", "[dbops]") {
 	using F_ull = Field<uint64_t, 5>;
 	using Fs = Field<std::string, 42>;
 
-	using Record = DbRecord<Tombstone<F_ull, std::numeric_limits<uint64_t>::max()>, F3, F_ull, Fs>;
+	using Record = DbRecord<F3, F_ull, Fs>;
 
 	Operation::Serializer<Record> serializer;
 
@@ -42,7 +42,7 @@ TEST_CASE("Operation::Find serialization", "[dbops]") {
 	using F_ull = Field<uint64_t, 5>;
 	using Fs = Field<std::string, 42>;
 
-	using Record = DbRecord<Tombstone<F_ull, std::numeric_limits<uint64_t>::max()>, F3, F_ull, Fs>;
+	using Record = DbRecord<F3, F_ull, Fs>;
 
 	Operation::Serializer<Record> serializer;
 
@@ -82,7 +82,7 @@ TEST_CASE("Operation::UpdateFull serialization", "[dbops]") {
 	using Fs = Field<std::string, 42>;
 
 	{
-		using Record = DbRecord<Tombstone<F_ull, std::numeric_limits<uint64_t>::max()>, F3, F_ull, Fs>;
+		using Record = DbRecord<F3, F_ull, Fs>;
 
 		Operation::Serializer<Record> serializer;
 
@@ -119,7 +119,7 @@ TEST_CASE("Operation::UpdateFull serialization", "[dbops]") {
 	}
 
 	{
-		using Record = DbRecord<NoTombstone, F3, Fs, Field<std::string, 45>>;
+		using Record = DbRecord<F3, Fs, Field<std::string, 45>>;
 
 		Operation::Serializer<Record> serializer;
 
@@ -161,7 +161,7 @@ TEST_CASE("Operation::Delete serialization", "[dbops]") {
 	using F_ull = Field<uint64_t, 5>;
 	using Fs = Field<std::string, 42>;
 
-	using Record = DbRecord<Tombstone<F_ull, std::numeric_limits<uint64_t>::max()>, F3, F_ull, Fs>;
+	using Record = DbRecord<F3, F_ull, Fs>;
 
 	Operation::Serializer<Record> serializer;
 
@@ -214,7 +214,7 @@ TEST_CASE("Operation::AppendToArray serialization", "[dbops]") {
 	using Fs = Field<std::string, 42>;
 	using FSecondArray = Field<std::string, 45, true>;
 
-	using Record = DbRecord<NoTombstone, Fc, FKey, Fs, FArray, FSecondArray>;
+	using Record = DbRecord<Fc, FKey, Fs, FArray, FSecondArray>;
 
 	Operation::Serializer<Record> serializer;
 

@@ -19,7 +19,7 @@ TEST_CASE("DbStorage - basic functionality, static record size", "[dbstorage]") 
 	try {
 		using F64 = Field<uint64_t, 1>;
 		using F16 = Field<int16_t, 2>;
-		using Record = DbRecord < Tombstone < F16, uint16_t{ 0xDEAD } > , F64, F16 > ;
+		using Record = DbRecord<F64, F16>;
 		DBStorage<io::QMemoryDeviceAdapter, Record> storage;
 
 		using RNG64 = RNG<uint64_t>;
@@ -77,7 +77,7 @@ TEST_CASE("DbStorage - basic functionality, dynamic record sizes", "[dbstorage]"
 	try {
 		using FS1 = Field<std::string, 1>;
 		using FS2 = Field<std::string, 2>;
-		using Record = DbRecord<Tombstone<FS2, 0>, FS1, FS2>;
+		using Record = DbRecord<FS1, FS2>;
 		DBStorage<io::QMemoryDeviceAdapter, Record> storage;
 
 		REQUIRE(storage.openStorageFile({}));
@@ -129,7 +129,7 @@ TEST_CASE("DbStorage - basic functionality, arrays of static items", "[dbstorage
 	try {
 		using Fi1 = Field<int, 1, true>;
 		using Fi2 = Field<float, 2, true>;
-		using Record = DbRecord<NoTombstone, Fi1, Fi2>;
+		using Record = DbRecord<Fi1, Fi2>;
 		DBStorage<io::QMemoryDeviceAdapter, Record> storage;
 
 		REQUIRE(storage.openStorageFile({}));
@@ -191,7 +191,7 @@ TEST_CASE("DbStorage - basic functionality, arrays of strings", "[dbstorage]") {
 	try {
 		using FS1 = Field<std::string, 1, true>;
 		using FS2 = Field<std::string, 2, true>;
-		using Record = DbRecord<Tombstone<FS2, 0>, FS1, FS2>;
+		using Record = DbRecord<FS1, FS2>;
 		DBStorage<io::QMemoryDeviceAdapter, Record> storage;
 
 		REQUIRE(storage.openStorageFile({}));
