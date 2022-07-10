@@ -22,7 +22,8 @@ TEST_CASE("DbWAL basics", "[dbwal]")
 	REQUIRE(unfinishedOpsCount == 0);
 
 	Operation::AppendToArray<RecordWithArray, F16, FArray, false> opAppend(uint16_t{0}, std::vector{uint32_t{42}});
-	REQUIRE(wal.registerOperation(0 /* op ID */, opAppend));
+	constexpr auto opID = 0xFFFFFFFF123456;
+	REQUIRE(wal.registerOperation(opID, opAppend));
 
 	REQUIRE(wal.closeLogFile());
 
@@ -40,11 +41,25 @@ TEST_CASE("DbWAL basics", "[dbwal]")
 			REQUIRE(opAppend.array == op.array);
 			REQUIRE(opAppend.keyValue == op.keyValue);
 			REQUIRE(opAppend.updatedArray() == op.updatedArray());
-			REQUIRE(opAppend.insertIfNotPresent() == op.insertIfNotPresent());
+			// TODO: this crashes intellisense
+			//REQUIRE(opAppend.insertIfNotPresent() == op.insertIfNotPresent());
 		}
 	}));
 
 	// One operation, because we never indicated that it has completed
 	REQUIRE(unfinishedOpsCount == 1);
+
+	REQUIRE(wal.updateOpStatus(0, OpStatus::Successful) == false); // No such ID
+	REQUIRE(wal.updateOpStatus(opID, OpStatus::Successful)); // No such ID
+	REQUIRE(wal.updateOpStatus(opID, OpStatus::Successful) == false); // No longer pending!
+
+	REQUIRE(wal.clearLog());
+
+	unfinishedOpsCount = 0;
+	REQUIRE(wal.verifyLog([&](auto&& /*op*/) {
+		++unfinishedOpsCount;
+	}));
+	REQUIRE(unfinishedOpsCount == 0);
+
 	REQUIRE(wal.closeLogFile());
 }

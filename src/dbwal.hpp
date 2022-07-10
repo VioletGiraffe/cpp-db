@@ -7,20 +7,22 @@
 #include "storage/storage_static_buffer.hpp"
 
 #include "hash/fnv_1a.h"
+#include "container/std_container_helpers.hpp"
 
 #include <thread>
 #include <vector>
+
+enum class OpStatus : uint8_t {
+	Pending = 0xAA,
+	Successful = 0xFF,
+	Failed = 0x11
+};
 
 template <RecordConcept Record, class StorageAdapter>
 class DbWAL
 {
 public:
 	using OpID = uint64_t;
-	enum class OpStatus : uint8_t {
-		Pending = 0xAA,
-		Successful = 0xFF,
-		Failed = 0x11
-	};
 
 	[[nodiscard]] bool openLogFile(const std::string& filePath) noexcept;
 	[[nodiscard]] bool closeLogFile() noexcept;
