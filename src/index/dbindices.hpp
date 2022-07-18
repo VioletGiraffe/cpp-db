@@ -2,7 +2,7 @@
 
 #include "dbindex.hpp"
 #include "../dbfield.hpp"
-#include "storage/storage_qt.hpp"
+#include "../storage/storage_qt.hpp"
 #include "index_persistence.hpp"
 #include "../index_helpers.hpp"
 
