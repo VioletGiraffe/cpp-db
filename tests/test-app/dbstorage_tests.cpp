@@ -20,6 +20,7 @@ TEST_CASE("DbStorage - basic functionality, static record size", "[dbstorage]") 
 		using F64 = Field<uint64_t, 1>;
 		using F16 = Field<int16_t, 2>;
 		using Record = DbRecord<F64, F16>;
+
 		DBStorage<io::QMemoryDeviceAdapter, Record> storage;
 
 		using RNG64 = RNG<uint64_t>;

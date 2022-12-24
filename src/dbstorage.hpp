@@ -48,6 +48,7 @@ public:
 	}
 
 private:
-	StorageIO<StorageAdapter> _storageFile;
+	StorageAdapter _ioAdapter;
+	StorageIO<StorageAdapter> _storageFile{ _ioAdapter };
 	std::mutex _storageMutex;
 };

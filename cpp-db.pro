@@ -65,7 +65,6 @@ HEADERS += \
 	src/dbrecord.hpp \
 	src/dbschema.hpp \
 	src/dbwal.hpp \
-	src/fileallocationmanager.hpp \
 	src/index/dbindex.hpp \
 	src/index/dbindices.hpp \
 	src/index/index_persistence.hpp \
@@ -78,4 +77,8 @@ HEADERS += \
 	src/storage/storage_helpers.hpp \
 	src/storage/storage_io_interface.hpp \
 	src/storage/storage_qt.hpp \
-	src/storage/storage_static_buffer.hpp
+	src/storage/storage_static_buffer.hpp \
+	src/utils/dbutilities.hpp
+
+SOURCES += \
+	src/utils/dbutilities.cpp

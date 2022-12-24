@@ -17,9 +17,8 @@ namespace io {
 template <typename IOAdapter>
 struct StorageIO
 {
-	template <typename... Args>
-	constexpr StorageIO(Args&&... args) noexcept :
-		_io{ std::forward<Args>(args)... }
+	constexpr StorageIO(IOAdapter& io) noexcept :
+		_io{ io }
 	{}
 
 	[[nodiscard]] constexpr bool open(const std::string& filePath, const io::OpenMode mode) noexcept;
@@ -56,12 +55,6 @@ struct StorageIO
 
 	[[nodiscard]] constexpr bool clear() noexcept;
 
-	// Handle with care!
-	[[nodiscard]] constexpr IOAdapter& ioAdapter() & noexcept
-	{
-		return _io;
-	}
-
 private:
 	template <typename T>
 	constexpr bool checkedWrite(T&& value)
@@ -78,7 +71,7 @@ private:
 	}
 
 private:
-	IOAdapter _io;
+	IOAdapter& _io;
 };
 
 template<typename IOAdapter>

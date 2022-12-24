@@ -10,7 +10,8 @@ TEST_CASE("DbWAL basics and normal operation", "[dbwal]")
 	using FArray = Field<uint32_t, 3, true>;
 	using RecordWithArray = DbRecord<F16, FArray>;
 
-	DbWAL<RecordWithArray, io::StaticBufferAdapter<4096>> wal;
+	io::StaticBufferAdapter<4096> buffer;
+	DbWAL<RecordWithArray, decltype(buffer)> wal{ buffer };
 	REQUIRE(wal.openLogFile({}));
 	REQUIRE(wal.clearLog());
 
@@ -22,7 +23,7 @@ TEST_CASE("DbWAL basics and normal operation", "[dbwal]")
 
 	Operation::AppendToArray<RecordWithArray, F16, FArray, false> opAppend(uint16_t{0}, std::vector{uint32_t{42}});
 	constexpr auto opID = 0xFFFFFFFF123456;
-	REQUIRE(wal.registerOperation(opID, opAppend));
+	REQUIRE(wal.registerOperation(opAppend));
 
 	REQUIRE(wal.closeLogFile());
 

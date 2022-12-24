@@ -14,14 +14,15 @@ TEST_CASE("Operation::Insert serialization", "[dbops]") {
 
 	Operation::Insert<Record> op{ Record{3.14, 15, "Hello World!"} };
 
-	StorageIO<io::StaticBufferAdapter<2048>> buffer;
+	io::StaticBufferAdapter<2048> buffer;
+	StorageIO io{buffer};
 	REQUIRE(buffer.open(".", io::OpenMode::ReadWrite));
 
-	REQUIRE(serializer.serialize(op, buffer));
+	REQUIRE(serializer.serialize(op, io));
 
 	REQUIRE(buffer.seek(0));
 	bool deserializationOccurred = false;
-	const bool success = serializer.deserialize(buffer, [&]<class Op>(Op&& newOp) {
+	const bool success = serializer.deserialize(io, [&]<class Op>(Op&& newOp) {
 		if constexpr (Op::op == OpCode::Insert)
 		{
 			Record r = newOp._record;
@@ -48,14 +49,15 @@ TEST_CASE("Operation::Find serialization", "[dbops]") {
 
 	Operation::Find<Record, F3, Fs> op{ F3{3.14}, Fs{"Hello World!"} };
 
-	StorageIO<io::StaticBufferAdapter<2048>> buffer;
+	io::StaticBufferAdapter<2048> buffer;
+	StorageIO io{ buffer };
 	REQUIRE(buffer.open(".", io::OpenMode::ReadWrite));
 
-	REQUIRE(serializer.serialize(op, buffer));
+	REQUIRE(serializer.serialize(op, io));
 
 	REQUIRE(buffer.seek(0));
 	bool comparisonPerformed = false;
-	const bool success = serializer.deserialize(buffer, [&]<class Op>(Op&& newOp) {
+	const bool success = serializer.deserialize(io, [&]<class Op>(Op&& newOp) {
 		if constexpr (Op::op == OpCode::Find)
 		{
 			if constexpr (std::is_same_v<remove_cv_and_reference_t<decltype(op._fields)>, remove_cv_and_reference_t<decltype(newOp._fields)>>)
@@ -89,14 +91,15 @@ TEST_CASE("Operation::UpdateFull serialization", "[dbops]") {
 		using KeyField = Fs;
 		Operation::UpdateFull<Record, KeyField, false> op{ Record{3.14, 15, "Hello World!"}, "123" };
 
-		StorageIO<io::StaticBufferAdapter<2048>> buffer;
-		REQUIRE(buffer.open(".", io::OpenMode::ReadWrite));
+		io::StaticBufferAdapter<2048> buffer;
+		StorageIO io{ buffer };
+		REQUIRE(io.open(".", io::OpenMode::ReadWrite));
 
-		REQUIRE(serializer.serialize(op, buffer));
+		REQUIRE(serializer.serialize(op, io));
 
 		REQUIRE(buffer.seek(0));
 		bool opDeserialized = false;
-		const bool success = serializer.deserialize(buffer, [&]<class OpType>(OpType&& newOp) {
+		const bool success = serializer.deserialize(io, [&]<class OpType>(OpType&& newOp) {
 			if constexpr (OpType::op == OpCode::UpdateFull)
 			{
 				if constexpr (std::is_same_v<KeyField, typename OpType::KeyField>)
@@ -126,14 +129,15 @@ TEST_CASE("Operation::UpdateFull serialization", "[dbops]") {
 		using KeyField = F3;
 		Operation::UpdateFull<Record, KeyField, true> op{ Record{3.14, "Hello World!", "I am alive!"}, 5.0 };
 
-		StorageIO<io::StaticBufferAdapter<2048>> buffer;
-		REQUIRE(buffer.open(".", io::OpenMode::ReadWrite));
+		io::StaticBufferAdapter<2048> buffer;
+		StorageIO io{ buffer };
+		REQUIRE(io.open(".", io::OpenMode::ReadWrite));
 
-		REQUIRE(serializer.serialize(op, buffer));
+		REQUIRE(serializer.serialize(op, io));
 
 		REQUIRE(buffer.seek(0));
 		bool deserializationOccurred = false;
-		const bool success = serializer.deserialize(buffer, [&]<class OpType>(OpType&& newOp) {
+		const bool success = serializer.deserialize(io, [&]<class OpType>(OpType&& newOp) {
 			if constexpr (OpType::op == OpCode::UpdateFull)
 			{
 				if constexpr (std::is_same_v<KeyField, typename OpType::KeyField>)
@@ -168,14 +172,15 @@ TEST_CASE("Operation::Delete serialization", "[dbops]") {
 	using KeyField = Fs;
 	Operation::Delete<Record, KeyField> op{ "123" };
 
-	StorageIO<io::StaticBufferAdapter<2048>> buffer;
+	io::StaticBufferAdapter<2048> buffer;
+	StorageIO io{ buffer };
 	REQUIRE(buffer.open(".", io::OpenMode::ReadWrite));
 
-	REQUIRE(serializer.serialize(op, buffer));
+	REQUIRE(serializer.serialize(op, io));
 
 	REQUIRE(buffer.seek(0));
 	bool deserializationOccurred = false;
-	const bool success = serializer.deserialize(buffer, [&]<class OpType>(OpType&& newOp) {
+	const bool success = serializer.deserialize(io, [&]<class OpType>(OpType&& newOp) {
 		if constexpr (OpType::op == OpCode::Delete)
 		{
 			if constexpr (std::is_same_v<KeyField, typename OpType::KeyField>)
@@ -222,16 +227,18 @@ TEST_CASE("Operation::AppendToArray serialization", "[dbops]") {
 		const std::vector<uint64_t> newArray{ 1, 2, 0 };
 		Operation::AppendToArray<Record, FKey, FArray, false> op{ 3.14, newArray };
 
-		StorageIO<io::StaticBufferAdapter<2048>> buffer;
+		io::StaticBufferAdapter<2048> buffer;
+		StorageIO io{ buffer };
+
 		REQUIRE(buffer.open(".", io::OpenMode::ReadWrite));
 
-		REQUIRE(serializer.serialize(op, buffer));
+		REQUIRE(serializer.serialize(op, io));
 
 		Operation::AppendToArray<Record, FKey, FArray, true> newop{ 3.14, Record{} };
 
 		REQUIRE(buffer.seek(0));
 		bool deserializationOccurred = false;
-		const bool success = serializer.deserialize(buffer, [&]<class OpType>(OpType&& newOp) {
+		const bool success = serializer.deserialize(io, [&]<class OpType>(OpType&& newOp) {
 			if constexpr (OpType::op == OpCode::AppendToArray)
 			{
 				REQUIRE(newOp.insertIfNotPresent() == op.insertIfNotPresent());
@@ -261,14 +268,16 @@ TEST_CASE("Operation::AppendToArray serialization", "[dbops]") {
 		const Record r{ 'a', -100e35, "Hello!", std::vector<uint64_t>{51, 16}, newArray };
 		Operation::AppendToArray<Record, FKey, FSecondArray, true> op{ 3.14, r };
 
-		StorageIO<io::StaticBufferAdapter<2048>> buffer;
+		io::StaticBufferAdapter<2048> buffer;
+		StorageIO io{ buffer };
+
 		REQUIRE(buffer.open(".", io::OpenMode::ReadWrite));
 
-		REQUIRE(serializer.serialize(op, buffer));
+		REQUIRE(serializer.serialize(op, io));
 
 		REQUIRE(buffer.seek(0));
 		bool deserializationOccurred = false;
-		const bool success = serializer.deserialize(buffer, [&]<class OpType>(OpType&& newOp) {
+		const bool success = serializer.deserialize(io, [&]<class OpType>(OpType&& newOp) {
 			if constexpr (OpType::op == OpCode::AppendToArray)
 			{
 				if constexpr (std::is_same_v<FKey, typename OpType::KeyField> && std::is_same_v<FSecondArray, typename OpType::ArrayField>)

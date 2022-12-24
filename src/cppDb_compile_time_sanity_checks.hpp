@@ -71,7 +71,9 @@ inline void dbWal_checks()
 	using Fs = Field<std::string, 42>;
 
 	using Record = DbRecord<F3, F_ull, Fs>;
-	DbWAL<Record, io::QMemoryDeviceAdapter> wal;
+
+	io::QMemoryDeviceAdapter io;
+	DbWAL<Record, decltype(io)> wal{io};
 }
 
 inline void operations_checks()
@@ -85,12 +87,13 @@ inline void operations_checks()
 	Operation::Insert<Record> op{ Record{3.14, 15, "Hello World!"} };
 	Operation::Serializer<Record> serializer;
 
-	StorageIO<io::QMemoryDeviceAdapter> buffer;
+	io::QMemoryDeviceAdapter buffer;
+	StorageIO<io::QMemoryDeviceAdapter> io{ buffer };
 
-	assert_r(serializer.serialize(op, buffer));
+	assert_r(serializer.serialize(op, io));
 
 	assert_r(buffer.seek(0));
-	assert_r(serializer.deserialize(buffer, [&](auto&& newOp) {
+	assert_r(serializer.deserialize(io, [&](auto&& newOp) {
 		if constexpr (remove_cv_and_reference_t<decltype(newOp)>::op == OpCode::Insert)
 			assert_r(newOp._record == op._record);
 	}));

@@ -38,27 +38,28 @@ std::optional<std::string> store(const IndexType& index, std::string indexStorag
 
 	const auto filePath = indexStorageFolder + "/" + indexFileName + ".index";
 
-	StorageIO<StorageAdapter> file;
-	assert_and_return_r(file.open(filePath, io::OpenMode::Write), {});
+	StorageAdapter file;
+	StorageIO io{ file };
+	assert_and_return_r(io.open(filePath, io::OpenMode::Write), {});
 
 	Sha3_Hasher<256> hasher;
 
 	const auto numIndexEntries = index.size();
-	assert_and_return_r(file.write(numIndexEntries), {});
+	assert_and_return_r(io.write(numIndexEntries), {});
 
 	hasher.update(numIndexEntries);
 
 	for (const auto& indexEntry : index)
 	{
 		static_assert(is_trivially_serializable_v<decltype(indexEntry.second)>);
-		assert_and_return_r(file.write(indexEntry.first), {});
+		assert_and_return_r(io.write(indexEntry.first), {});
 		hasher.update(indexEntry.first);
-		assert_and_return_r(file.write(indexEntry.second), {});
+		assert_and_return_r(io.write(indexEntry.second), {});
 		hasher.update(indexEntry.second);
 	}
 
 	const uint64_t hash = hasher.get64BitHash();
-	assert_and_return_r(file.write(hash), {});
+	assert_and_return_r(io.write(hash), {});
 
 	return filePath;
 }
@@ -71,11 +72,13 @@ std::optional<std::string> load(IndexType& index, const std::string indexStorage
 
 	const auto filePath = indexStorageFolder + "/" + indexFileName + ".index";
 
-	StorageIO<StorageAdapter> file;
-	assert_and_return_r(file.open(filePath, io::OpenMode::Read), {});
+	StorageAdapter file;
+	StorageIO io{ file };
+
+	assert_and_return_r(io.open(filePath, io::OpenMode::Read), {});
 
 	uint64_t numIndexEntries = 0;
-	assert_and_return_r(file.read(numIndexEntries), {});
+	assert_and_return_r(io.read(numIndexEntries), {});
 
 	Sha3_Hasher<256> hasher;
 	hasher.update(numIndexEntries);
@@ -88,8 +91,8 @@ std::optional<std::string> load(IndexType& index, const std::string indexStorage
 		auto field = typename IndexMultiMapType::key_type{};
 		auto offset = typename IndexMultiMapType::mapped_type{ 0 };
 
-		assert_and_return_r(file.read(field), {});
-		assert_and_return_r(file.read(offset), {});
+		assert_and_return_r(io.read(field), {});
+		assert_and_return_r(io.read(offset), {});
 
 		hasher.update(field);
 		hasher.update(offset);
@@ -99,10 +102,10 @@ std::optional<std::string> load(IndexType& index, const std::string indexStorage
 	}
 
 	uint64_t hash = 0;
-	assert_and_return_r(file.read(hash), {});
+	assert_and_return_r(io.read(hash), {});
 	assert_and_return_r(hasher.get64BitHash() == hash, {});
 
-	assert_r(file.pos() == file.size());
+	assert_r(io.pos() == io.size());
 
 	return filePath;
 }

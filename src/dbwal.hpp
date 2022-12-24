@@ -1,14 +1,15 @@
 #pragma once
 
-#include "dbschema.hpp"
 #include "dbops.hpp"
-#include "storage/storage_io_interface.hpp"
+#include "dbschema.hpp"
 #include "ops/operation_serializer.hpp"
+#include "storage/storage_io_interface.hpp"
 #include "storage/storage_static_buffer.hpp"
 
-#include "hash/fnv_1a.h"
 #include "container/std_container_helpers.hpp"
+#include "hash/fnv_1a.h"
 
+#include <optional>
 #include <thread>
 #include <vector>
 
@@ -22,7 +23,11 @@ template <RecordConcept Record, class StorageAdapter>
 class DbWAL
 {
 public:
-	using OpID = uint64_t;
+	constexpr DbWAL(StorageAdapter& walIoDevice) noexcept :
+		_logFile{ walIoDevice }
+	{}
+
+	using OpID = uint32_t;
 
 	[[nodiscard]] bool openLogFile(const std::string& filePath) noexcept;
 	[[nodiscard]] bool closeLogFile() noexcept;
@@ -31,8 +36,9 @@ public:
 	[[nodiscard]] bool verifyLog(Receiver&& unfinishedOperationsReceiver) noexcept;
 	[[nodiscard]] bool clearLog() noexcept;
 
+	// Registers the new operation and returns its unique ID. Empty optional = failure to register.
 	template <class OpType>
-	[[nodiscard]] bool registerOperation(OpID opId, OpType&& op) noexcept;
+	[[nodiscard]] std::optional<OpID> registerOperation(OpType&& op) noexcept;
 	[[nodiscard]] bool updateOpStatus(OpID opId, OpStatus status) noexcept;
 
 private:
@@ -41,15 +47,10 @@ private:
 	using Serializer = Operation::Serializer<Record>;
 
 private:
-	struct LogEntry {
-		uint64_t offsetInLogFile;
-		OpID id;
-		OpStatus status;
-	};
-
-	std::vector<LogEntry> _pendingOperations;
+	std::vector<OpID> _pendingOperations;
 	StorageIO<StorageAdapter> _logFile;
 	size_t _operationsProcessed = 0;
+	OpID _lastOpId = 0;
 
 	const std::thread::id _ownerThreadId = std::this_thread::get_id();
 };
@@ -80,16 +81,13 @@ template<RecordConcept Record, class StorageAdapter>
 
 /* Entry structure :
 
-   -------------------------------------------------------------------------------------------------
-  |            Field                |           Size              |        Offset from start        |
-  |---------------------------------|-----------------------------|---------------------------------|
-  | Complete entry SIZE (inc. hash) | sizeof(EntrySizeType) bytes |                         0 bytes |
-  | Operation STATUS                |                     1 byte  | sizeof(EntrySizeType)     bytes |
-  | Serialized operation DATA       |         var. length         | sizeof(EntrySizeType) + 1 bytes |
-  | HASH of the whole entry data    |      sizeof(HashType) bytes | [SIZE] - sizeof(HashType) bytes |
-   -------------------------------------------------------------------------------------------------
-
-   NOTE: hash is always calculated with STATUS == PENDING. It's not updated when the final status is patched in.
+   -----------------------------------------------------------------------------------------------------------------
+  |            Field                                |           Size              |        Offset from start        |
+  |-------------------------------------------------|-----------------------------|---------------------------------|
+  | Complete entry SIZE (2 bytes max for 4K blocks) | sizeof(EntrySizeType) bytes |                         0 bytes |
+  | Operation ID                                    | 4 bytes                     |     sizeof(EntrySizeType) bytes |
+  | Serialized operation DATA                       | var. length                 | sizeof(EntrySizeType) + 4 bytes |
+   -----------------------------------------------------------------------------------------------------------------
 
 */
 
@@ -156,9 +154,12 @@ template <typename Receiver>
 	return success;
 }
 
+// Registers the new operation and returns its unique ID. Empty optional = failure to register.
+
 template<RecordConcept Record, class StorageAdapter>
 template<class OpType>
-[[nodiscard]] bool DbWAL<Record, StorageAdapter>::registerOperation(const OpID opId, OpType&& op) noexcept
+[[nodiscard]] std::optional<typename DbWAL<Record, StorageAdapter>::OpID>
+DbWAL<Record, StorageAdapter>::registerOperation(OpType&& op) noexcept
 {
 	// Compose all the data in a buffer and then write in one go.
 	// Reference: https://github.com/VioletGiraffe/cpp-db/wiki/WAL-concepts#normal-operation 
@@ -170,13 +171,10 @@ template<class OpType>
 
 	// Reserving space for the total entry size in the beginning
 	buffer.ioAdapter().reserve(sizeof(EntrySizeType));
-	buffer.ioAdapter().seekToEnd();
-
-	assert_and_return_r(buffer.write(OpStatus::Pending), false);
 
 	using Serializer = Operation::Serializer<Record>;
 	// TODO: how to handle this error?
-	assert_and_return_r(Serializer::serialize(std::forward<OpType>(op), buffer), false);
+	assert_and_return_r(Serializer::serialize(std::forward<OpType>(op), buffer), {});
 
 	// !!!!!!!!!!!!!!!!!! Warning: unsafe to use 'op' after forwarding it
 
@@ -194,9 +192,9 @@ template<class OpType>
 
 	++_operationsProcessed;
 
-	assert_and_return_r(_logFile.seekToEnd(), false);
-	assert_and_return_r(_logFile.write(buffer.ioAdapter().data(), buffer.size()), false);
-	assert_and_return_r(_logFile.flush(), false);
+	assert_and_return_r(_logFile.seekToEnd(), {});
+	assert_and_return_r(_logFile.write(buffer.ioAdapter().data(), buffer.size()), {});
+	assert_and_return_r(_logFile.flush(), {});
 
 	return true;
 }
@@ -220,7 +218,7 @@ inline bool DbWAL<Record, StorageAdapter>::updateOpStatus(const OpID opId, const
 
 	_pendingOperations.erase(logEntry);
 
-	if (_pendingOperations.empty() && _operationsProcessed > 1024)
+	if (_pendingOperations.empty() && _operationsProcessed > 100'000)
 	{
 		// No more pending operations left - safe to clear the log
 		// TODO: do it asynchronously
