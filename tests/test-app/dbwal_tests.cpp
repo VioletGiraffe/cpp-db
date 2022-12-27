@@ -22,7 +22,7 @@ TEST_CASE("DbWAL basics and normal operation", "[dbwal]")
 	REQUIRE(unfinishedOpsCount == 0);
 
 	Operation::AppendToArray<RecordWithArray, F16, FArray, false> opAppend(uint16_t{0}, std::vector{uint32_t{42}});
-	constexpr auto opID = 0xFFFFFFFF123456;
+	static constexpr uint32_t opID = 0xFF123456;
 	REQUIRE(wal.registerOperation(opAppend));
 
 	REQUIRE(wal.closeLogFile());
@@ -50,11 +50,11 @@ TEST_CASE("DbWAL basics and normal operation", "[dbwal]")
 	REQUIRE(unfinishedOpsCount == 1);
 
 #ifndef _DEBUG
-	REQUIRE(wal.updateOpStatus(0, OpStatus::Successful) == false); // No such ID
+	REQUIRE(wal.updateOpStatus(0, WAL::OpStatus::Successful) == false); // No such ID
 #endif
-	REQUIRE(wal.updateOpStatus(opID, OpStatus::Successful)); // No such ID
+	REQUIRE(wal.updateOpStatus(opID, WAL::OpStatus::Successful)); // No such ID
 #ifndef _DEBUG
-	REQUIRE(wal.updateOpStatus(opID, OpStatus::Successful) == false); // No longer pending!
+	REQUIRE(wal.updateOpStatus(opID, WAL::OpStatus::Successful) == false); // No longer pending!
 #endif
 
 	REQUIRE(wal.clearLog());

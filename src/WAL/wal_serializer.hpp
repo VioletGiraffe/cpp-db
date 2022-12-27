@@ -5,13 +5,14 @@
 #include "../dbschema.hpp"
 #include "../storage/storage_io_interface.hpp"
 #include "../serialization/dbrecord-serializer.hpp"
+#include "operation_completion_marker.hpp"
 
 #include "tuple/tuple_helpers.hpp"
 #include "utility/template_magic.hpp"
 
 #include <array>
 
-namespace Operation {
+namespace WAL {
 
 template <RecordConcept Record>
 class Serializer
@@ -34,8 +35,14 @@ public:
 	template <class Operation, class StorageAdapter, sfinae<Operation::op == OpCode::Delete> = true>
 	[[nodiscard]] static bool serialize(const Operation& op, StorageIO<StorageAdapter>& io) noexcept;
 
+	template <class MarkerStruct, class StorageAdapter, sfinae<MarkerStruct::markerID != 0> = true>
+	[[nodiscard]] static bool serialize(const MarkerStruct& op, StorageIO<StorageAdapter>& io) noexcept;
+
 	template <class StorageAdapter, typename Receiver>
 	[[nodiscard]] static bool deserialize(StorageIO<StorageAdapter>& io, Receiver&& receiver) noexcept;
+	
+	template <class StorageAdapter>
+	[[nodiscard]] static bool isOperationCompletionMarker(StorageIO<StorageAdapter>& io) noexcept;
 
 private:
 	using RecordSerializer = DbRecordSerializer<Record>;
@@ -74,6 +81,19 @@ bool Serializer<Record>::serialize(const Operation& op, StorageIO<StorageAdapter
 
 	static_assert(std::is_same_v<Record, remove_cv_and_reference_t<decltype(op._record)>>);
 	return RecordSerializer::serialize(op._record, io);
+}
+
+template<RecordConcept Record>
+template<class MarkerStruct, class StorageAdapter, sfinae<MarkerStruct::markerID != 0>>
+inline bool Serializer<Record>::serialize(const MarkerStruct& marker, StorageIO<StorageAdapter>& io) noexcept
+{
+	if (!io.write(marker.markerID))
+		return false;
+
+	if (!io.write(marker.status))
+		return false;
+
+	return true;
 }
 
 template <RecordConcept Record>
@@ -190,167 +210,189 @@ template <RecordConcept Record>
 template <class StorageAdapter, typename Receiver>
 bool Serializer<Record>::deserialize(StorageIO<StorageAdapter>& io, Receiver&& receiver) noexcept
 {
-	OpCode opCode{};
-	assert_and_return_r(io.read(opCode), false);
+	static_assert(sizeof(OpCode) == sizeof(OperationCompletedMarker::markerID));
+	std::underlying_type_t<OpCode> entryType;
+	assert_and_return_r(io.read(entryType), false);
 
-	switch (opCode)
+	switch (entryType)
 	{
-	case OpCode::Insert:
-	{
-		using Op = Operation::Insert<Record>;
-		Record r;
-		assert_and_return_r(RecordSerializer::deserialize(r, io), false);
-
-		receiver(Op{ std::move(r) });
-		return true;
-	}
-	case OpCode::Find:
-	{
-		uint8_t nFields = 0;
-		assert_and_return_r(io.read(nFields), false);
-
-		static constexpr size_t maxFindOperationFieldCount = Operation::Find<Record>::maxFieldCount;
-		assert_and_return_r(nFields > 0 && nFields <= maxFindOperationFieldCount, false);
-
-		std::array<uint8_t, maxFindOperationFieldCount> ids;
-		for (size_t i = 0; i < nFields; ++i)
+		case (decltype(entryType)) OpCode::Insert:
 		{
-			assert_and_return_r(io.read(ids[i]), false);
-		}
+			using Op = Operation::Insert<Record>;
+			Record r;
+			assert_and_return_r(RecordSerializer::deserialize(r, io), false);
 
-		bool success = true;
-		constructFindOperationType([&]<class OpType>() {
-			typename OpType::TupleOfFields fieldsTuple;
-			constexpr_for_fold<0, std::tuple_size_v<typename OpType::TupleOfFields>>([&]<auto I>() {
-				auto& field = std::get<I>(fieldsTuple);
-				if (success && !io.readField(field))
+			receiver(Op{ std::move(r) });
+			return true;
+		}
+		case (decltype(entryType)) OpCode::Find:
+		{
+			uint8_t nFields = 0;
+			assert_and_return_r(io.read(nFields), false);
+
+			static constexpr size_t maxFindOperationFieldCount = Operation::Find<Record>::maxFieldCount;
+			assert_and_return_r(nFields > 0 && nFields <= maxFindOperationFieldCount, false);
+
+			std::array<uint8_t, maxFindOperationFieldCount> ids;
+			for (size_t i = 0; i < nFields; ++i)
+			{
+				assert_and_return_r(io.read(ids[i]), false);
+			}
+
+			bool success = true;
+			constructFindOperationType([&]<class OpType>() {
+				typename OpType::TupleOfFields fieldsTuple;
+				constexpr_for_fold<0, std::tuple_size_v<typename OpType::TupleOfFields>>([&]<auto I>() {
+					auto& field = std::get<I>(fieldsTuple);
+					if (success && !io.readField(field))
+					{
+						assert_unconditional_r("io.readField(field) failed!");
+						success = false;
+						return;
+					}
+				});
+
+				if (success)
+					receiver(OpType{std::move(fieldsTuple)});
+
+			}, ids, nFields);
+
+			return success;
+		}
+		case (decltype(entryType)) OpCode::UpdateFull:
+		{
+			uint8_t keyFieldId;
+			assert_and_return_r(io.read(keyFieldId), false);
+
+			bool insertIfNotPresent;
+			assert_and_return_r(io.read(insertIfNotPresent), false);
+
+			Record r;
+			assert_and_return_r(RecordSerializer::deserialize(r, io), false);
+
+			bool success = false;
+			constexpr_for_fold<0, Schema::fieldsCount_v>([&]<auto I>() {
+				using KeyField = typename Schema::template FieldByIndex_t<I>;
+				if (KeyField::id == keyFieldId)
 				{
-					assert_unconditional_r("io.readField(field) failed!");
-					success = false;
-					return;
+					typename KeyField::ValueType keyFieldValue;
+					assert_and_return_r(io.read(keyFieldValue), );
+
+					if (insertIfNotPresent)
+					{
+						using Op = Operation::UpdateFull<Record, KeyField, true>;
+						receiver(Op{ std::move(r), std::move(keyFieldValue) });
+					}
+					else
+					{
+						using Op = Operation::UpdateFull<Record, KeyField, false>;
+						receiver(Op{ std::move(r), std::move(keyFieldValue) });
+					}
+					success = true;
 				}
 			});
 
-			if (success)
-				receiver(OpType{std::move(fieldsTuple)});
+			return success;
+		}
+		case (decltype(entryType)) OpCode::AppendToArray:
+		{
+			uint8_t keyFieldId;
+			assert_and_return_r(io.read(keyFieldId), false);
 
-		}, ids, nFields);
+			uint8_t arrayFieldId;
+			assert_and_return_r(io.read(arrayFieldId), false);
 
-		return success;
-	}
-	case OpCode::UpdateFull:
-	{
-		uint8_t keyFieldId;
-		assert_and_return_r(io.read(keyFieldId), false);
+			bool insertIfNotPresent;
+			assert_and_return_r(io.read(insertIfNotPresent), false);
 
-		bool insertIfNotPresent;
-		assert_and_return_r(io.read(insertIfNotPresent), false);
-
-		Record r;
-		assert_and_return_r(RecordSerializer::deserialize(r, io), false);
-
-		bool success = false;
-		constexpr_for_fold<0, Schema::fieldsCount_v>([&]<auto I>() {
-			using KeyField = typename Schema::template FieldByIndex_t<I>;
-			if (KeyField::id == keyFieldId)
-			{
-				typename KeyField::ValueType keyFieldValue;
-				assert_and_return_r(io.read(keyFieldValue), );
-
-				if (insertIfNotPresent)
+			bool success = false;
+			// Searching the compile-time value for keyFieldId
+			constexpr_for_fold<0, Schema::fieldsCount_v>([&]<auto KeyFieldIndex>() {
+				using KeyField = typename Schema::template FieldByIndex_t<KeyFieldIndex>;
+				if (KeyField::id == keyFieldId)
 				{
-					using Op = Operation::UpdateFull<Record, KeyField, true>;
-					receiver(Op{ std::move(r), std::move(keyFieldValue) });
-				}
-				else
-				{
-					using Op = Operation::UpdateFull<Record, KeyField, false>;
-					receiver(Op{ std::move(r), std::move(keyFieldValue) });
-				}
-				success = true;
-			}
-		});
+					typename KeyField::ValueType keyFieldValue;
+					assert_and_return_r(io.read(keyFieldValue), );
 
-		return success;
-	}
-	case OpCode::AppendToArray:
-	{
-		uint8_t keyFieldId;
-		assert_and_return_r(io.read(keyFieldId), false);
-
-		uint8_t arrayFieldId;
-		assert_and_return_r(io.read(arrayFieldId), false);
-
-		bool insertIfNotPresent;
-		assert_and_return_r(io.read(insertIfNotPresent), false);
-
-		bool success = false;
-		// Searching the compile-time value for keyFieldId
-		constexpr_for_fold<0, Schema::fieldsCount_v>([&]<auto KeyFieldIndex>() {
-			using KeyField = typename Schema::template FieldByIndex_t<KeyFieldIndex>;
-			if (KeyField::id == keyFieldId)
-			{
-				typename KeyField::ValueType keyFieldValue;
-				assert_and_return_r(io.read(keyFieldValue), );
-
-				// Searching the compile-time value for arrayFieldId
-				constexpr_for_fold<0, Schema::fieldsCount_v>([&]<auto ArrayFieldIndex>() {
-					using ArrayField = typename Schema::template FieldByIndex_t<ArrayFieldIndex>;
-					if constexpr (ArrayField::isArray())
-					{
-						if (ArrayField::id == arrayFieldId)
+					// Searching the compile-time value for arrayFieldId
+					constexpr_for_fold<0, Schema::fieldsCount_v>([&]<auto ArrayFieldIndex>() {
+						using ArrayField = typename Schema::template FieldByIndex_t<ArrayFieldIndex>;
+						if constexpr (ArrayField::isArray())
 						{
-							if (insertIfNotPresent)
+							if (ArrayField::id == arrayFieldId)
 							{
-								Record r;
-								assert_and_return_r(RecordSerializer::deserialize(r, io), );
+								if (insertIfNotPresent)
+								{
+									Record r;
+									assert_and_return_r(RecordSerializer::deserialize(r, io), );
 
-								using Op = Operation::AppendToArray<Record, KeyField, ArrayField, true>;
-								receiver(Op{ std::move(keyFieldValue), std::move(r) });
+									using Op = Operation::AppendToArray<Record, KeyField, ArrayField, true>;
+									receiver(Op{ std::move(keyFieldValue), std::move(r) });
+								}
+								else
+								{
+									typename ArrayField::ValueType array;
+									assert_and_return_r(io.read(array), );
+
+									using Op = Operation::AppendToArray<Record, KeyField, ArrayField, false>;
+									receiver(Op{ std::move(keyFieldValue), std::move(array) });
+								}
+
+								success = true;
 							}
-							else
-							{
-								typename ArrayField::ValueType array;
-								assert_and_return_r(io.read(array), );
-
-								using Op = Operation::AppendToArray<Record, KeyField, ArrayField, false>;
-								receiver(Op{ std::move(keyFieldValue), std::move(array) });
-							}
-
-							success = true;
 						}
-					}
-				});
-			}
-		});
+					});
+				}
+			});
 
-		return success;
+			return success;
+		}
+		case (decltype(entryType)) OpCode::Delete:
+		{
+			uint8_t keyFieldId;
+			assert_and_return_r(io.read(keyFieldId), false);
+
+			bool success = false;
+			constexpr_for_fold<0, Schema::fieldsCount_v>([&]<auto I>() {
+				using KeyField = typename Schema::template FieldByIndex_t<I>;
+				if (KeyField::id == keyFieldId)
+				{
+					typename KeyField::ValueType keyFieldValue;
+					assert_and_return_r(io.read(keyFieldValue), );
+
+					using Op = Operation::Delete<Record, KeyField>;
+					receiver(Op{ std::move(keyFieldValue) });
+					success = true;
+				}
+			});
+
+			return success;
+		}
+		case OperationCompletedMarker::markerID:
+		{
+			OperationCompletedMarker marker;
+			assert_and_return_r(io.read(marker.status), false);
+
+			receiver(std::move(marker));
+			return true;
+		}
 	}
-	case OpCode::Delete:
-	{
-		uint8_t keyFieldId;
-		assert_and_return_r(io.read(keyFieldId), false);
 
-		bool success = false;
-		constexpr_for_fold<0, Schema::fieldsCount_v>([&]<auto I>() {
-			using KeyField = typename Schema::template FieldByIndex_t<I>;
-			if (KeyField::id == keyFieldId)
-			{
-				typename KeyField::ValueType keyFieldValue;
-				assert_and_return_r(io.read(keyFieldValue), );
-
-				using Op = Operation::Delete<Record, KeyField>;
-				receiver(Op{ std::move(keyFieldValue) });
-				success = true;
-			}
-		});
-
-		return success;
-	}
-	}
-
-	assert_unconditional_r("Uknown op code read from storage: " + std::to_string(static_cast<uint8_t>(opCode)));
+	assert_unconditional_r("Uknown entry type encountered in the log: " + std::to_string(static_cast<int>(entryType)));
 	return false;
 }
 
+template<RecordConcept Record>
+template<class StorageAdapter>
+inline bool Serializer<Record>::isOperationCompletionMarker(StorageIO<StorageAdapter>& io) noexcept
+{
+	const auto pos = io.pos();
+
+	std::remove_const_t<decltype(OperationCompletedMarker::markerID)> marker = 0;
+	assert_and_return_r(io.read(marker), false);
+	assert_r(io.seek(pos)); // Restoring the original position
+
+	return marker == OperationCompletedMarker::markerID;
 }
+
+} // namespace

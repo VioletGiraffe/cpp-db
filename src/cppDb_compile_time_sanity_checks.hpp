@@ -2,7 +2,7 @@
 
 #include "cpp-db.hpp"
 #include "storage/storage_qt.hpp"
-#include "ops/operation_serializer.hpp"
+#include "WAL/wal_serializer.hpp"
 #include "assert/advanced_assert.h"
 
 #include <string>
@@ -85,7 +85,7 @@ inline void operations_checks()
 	using Record = DbRecord<F3, F_ull, Fs>;
 
 	Operation::Insert<Record> op{ Record{3.14, 15, "Hello World!"} };
-	Operation::Serializer<Record> serializer;
+	WAL::Serializer<Record> serializer;
 
 	io::QMemoryDeviceAdapter buffer;
 	StorageIO<io::QMemoryDeviceAdapter> io{ buffer };
@@ -93,9 +93,15 @@ inline void operations_checks()
 	assert_r(serializer.serialize(op, io));
 
 	assert_r(buffer.seek(0));
-	assert_r(serializer.deserialize(io, [&](auto&& newOp) {
-		if constexpr (remove_cv_and_reference_t<decltype(newOp)>::op == OpCode::Insert)
+	assert_r(serializer.deserialize(io, [&]<class OpType>(OpType&& newOp) {
+		if constexpr (std::is_same_v<OpType, WAL::OperationCompletedMarker>)
+		{
+			assert_unconditional_r("Fail!!!");
+		}
+		else if constexpr (remove_cv_and_reference_t<decltype(newOp)>::op == OpCode::Insert)
 			assert_r(newOp._record == op._record);
+		else
+			assert_unconditional_r("Fail!!!");
 	}));
 }
 

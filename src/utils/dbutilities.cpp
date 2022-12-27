@@ -11,5 +11,10 @@ static size_t queryBlockSize()
 void checkBlockSize()
 {
 	if (queryBlockSize() != 4096)
-		throw std::runtime_error{"Unexpected cluster size!!!"};
+		fatalAbort("Unexpected cluster size!!!");
+}
+
+void fatalAbort(const char* message)
+{
+	throw std::runtime_error{ message };
 }

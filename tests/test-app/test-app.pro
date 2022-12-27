@@ -80,4 +80,4 @@ SOURCES += tests_main.cpp \
 HEADERS += \
 	dbfilegaps_tester.hpp
 
-LIBS += -L$${PWD}/../$${OUTPUT_DIR} -L$${PWD}/../../../$${OUTPUT_DIR} -lcpputils
+LIBS += -L$${PWD}/../$${OUTPUT_DIR} -L$${PWD}/../../../$${OUTPUT_DIR} -lcpputils -lcpp-db

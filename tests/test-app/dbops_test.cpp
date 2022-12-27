@@ -1,6 +1,6 @@
 #include "3rdparty/catch2/catch.hpp"
 
-#include "ops/operation_serializer.hpp"
+#include "WAL/wal_serializer.hpp"
 #include "storage/storage_static_buffer.hpp"
 
 TEST_CASE("Operation::Insert serialization", "[dbops]") {
@@ -10,7 +10,7 @@ TEST_CASE("Operation::Insert serialization", "[dbops]") {
 
 	using Record = DbRecord<F3, F_ull, Fs>;
 
-	Operation::Serializer<Record> serializer;
+	WAL::Serializer<Record> serializer;
 
 	Operation::Insert<Record> op{ Record{3.14, 15, "Hello World!"} };
 
@@ -23,7 +23,8 @@ TEST_CASE("Operation::Insert serialization", "[dbops]") {
 	REQUIRE(buffer.seek(0));
 	bool deserializationOccurred = false;
 	const bool success = serializer.deserialize(io, [&]<class Op>(Op&& newOp) {
-		if constexpr (Op::op == OpCode::Insert)
+		if constexpr (std::is_same_v<Op, WAL::OperationCompletedMarker>) {}
+		else if constexpr (Op::op == OpCode::Insert)
 		{
 			Record r = newOp._record;
 			REQUIRE(r == op._record);
@@ -45,7 +46,7 @@ TEST_CASE("Operation::Find serialization", "[dbops]") {
 
 	using Record = DbRecord<F3, F_ull, Fs>;
 
-	Operation::Serializer<Record> serializer;
+	WAL::Serializer<Record> serializer;
 
 	Operation::Find<Record, F3, Fs> op{ F3{3.14}, Fs{"Hello World!"} };
 
@@ -58,7 +59,8 @@ TEST_CASE("Operation::Find serialization", "[dbops]") {
 	REQUIRE(buffer.seek(0));
 	bool comparisonPerformed = false;
 	const bool success = serializer.deserialize(io, [&]<class Op>(Op&& newOp) {
-		if constexpr (Op::op == OpCode::Find)
+		if constexpr (std::is_same_v<Op, WAL::OperationCompletedMarker>) {}
+		else if constexpr (Op::op == OpCode::Find)
 		{
 			if constexpr (std::is_same_v<remove_cv_and_reference_t<decltype(op._fields)>, remove_cv_and_reference_t<decltype(newOp._fields)>>)
 			{
@@ -86,7 +88,7 @@ TEST_CASE("Operation::UpdateFull serialization", "[dbops]") {
 	{
 		using Record = DbRecord<F3, F_ull, Fs>;
 
-		Operation::Serializer<Record> serializer;
+		WAL::Serializer<Record> serializer;
 
 		using KeyField = Fs;
 		Operation::UpdateFull<Record, KeyField, false> op{ Record{3.14, 15, "Hello World!"}, "123" };
@@ -100,7 +102,8 @@ TEST_CASE("Operation::UpdateFull serialization", "[dbops]") {
 		REQUIRE(buffer.seek(0));
 		bool opDeserialized = false;
 		const bool success = serializer.deserialize(io, [&]<class OpType>(OpType&& newOp) {
-			if constexpr (OpType::op == OpCode::UpdateFull)
+			if constexpr (std::is_same_v<OpType, WAL::OperationCompletedMarker>) {}
+			else if constexpr (OpType::op == OpCode::UpdateFull)
 			{
 				if constexpr (std::is_same_v<KeyField, typename OpType::KeyField>)
 				{
@@ -124,7 +127,7 @@ TEST_CASE("Operation::UpdateFull serialization", "[dbops]") {
 	{
 		using Record = DbRecord<F3, Fs, Field<std::string, 45>>;
 
-		Operation::Serializer<Record> serializer;
+		WAL::Serializer<Record> serializer;
 
 		using KeyField = F3;
 		Operation::UpdateFull<Record, KeyField, true> op{ Record{3.14, "Hello World!", "I am alive!"}, 5.0 };
@@ -138,7 +141,8 @@ TEST_CASE("Operation::UpdateFull serialization", "[dbops]") {
 		REQUIRE(buffer.seek(0));
 		bool deserializationOccurred = false;
 		const bool success = serializer.deserialize(io, [&]<class OpType>(OpType&& newOp) {
-			if constexpr (OpType::op == OpCode::UpdateFull)
+			if constexpr (std::is_same_v<OpType, WAL::OperationCompletedMarker>) {}
+			else if constexpr (OpType::op == OpCode::UpdateFull)
 			{
 				if constexpr (std::is_same_v<KeyField, typename OpType::KeyField>)
 				{
@@ -167,7 +171,7 @@ TEST_CASE("Operation::Delete serialization", "[dbops]") {
 
 	using Record = DbRecord<F3, F_ull, Fs>;
 
-	Operation::Serializer<Record> serializer;
+	WAL::Serializer<Record> serializer;
 
 	using KeyField = Fs;
 	Operation::Delete<Record, KeyField> op{ "123" };
@@ -181,7 +185,8 @@ TEST_CASE("Operation::Delete serialization", "[dbops]") {
 	REQUIRE(buffer.seek(0));
 	bool deserializationOccurred = false;
 	const bool success = serializer.deserialize(io, [&]<class OpType>(OpType&& newOp) {
-		if constexpr (OpType::op == OpCode::Delete)
+		if constexpr (std::is_same_v<OpType, WAL::OperationCompletedMarker>) {}
+		else if constexpr (OpType::op == OpCode::Delete)
 		{
 			if constexpr (std::is_same_v<KeyField, typename OpType::KeyField>)
 			{
@@ -221,7 +226,7 @@ TEST_CASE("Operation::AppendToArray serialization", "[dbops]") {
 
 	using Record = DbRecord<Fc, FKey, Fs, FArray, FSecondArray>;
 
-	Operation::Serializer<Record> serializer;
+	WAL::Serializer<Record> serializer;
 
 	{
 		const std::vector<uint64_t> newArray{ 1, 2, 0 };
@@ -239,7 +244,8 @@ TEST_CASE("Operation::AppendToArray serialization", "[dbops]") {
 		REQUIRE(buffer.seek(0));
 		bool deserializationOccurred = false;
 		const bool success = serializer.deserialize(io, [&]<class OpType>(OpType&& newOp) {
-			if constexpr (OpType::op == OpCode::AppendToArray)
+			if constexpr (std::is_same_v<OpType, WAL::OperationCompletedMarker>) {}
+			else if constexpr (OpType::op == OpCode::AppendToArray)
 			{
 				REQUIRE(newOp.insertIfNotPresent() == op.insertIfNotPresent());
 				if constexpr (std::is_same_v<FKey, typename OpType::KeyField> && std::is_same_v<FArray, typename OpType::ArrayField>)
@@ -278,7 +284,8 @@ TEST_CASE("Operation::AppendToArray serialization", "[dbops]") {
 		REQUIRE(buffer.seek(0));
 		bool deserializationOccurred = false;
 		const bool success = serializer.deserialize(io, [&]<class OpType>(OpType&& newOp) {
-			if constexpr (OpType::op == OpCode::AppendToArray)
+			if constexpr (std::is_same_v<OpType, WAL::OperationCompletedMarker>) {}
+			else if constexpr (OpType::op == OpCode::AppendToArray)
 			{
 				if constexpr (std::is_same_v<FKey, typename OpType::KeyField> && std::is_same_v<FSecondArray, typename OpType::ArrayField>)
 				{

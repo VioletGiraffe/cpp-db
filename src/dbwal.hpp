@@ -2,9 +2,10 @@
 
 #include "dbops.hpp"
 #include "dbschema.hpp"
-#include "ops/operation_serializer.hpp"
 #include "storage/storage_io_interface.hpp"
 #include "storage/storage_static_buffer.hpp"
+#include "utils/dbutilities.hpp"
+#include "wal/wal_serializer.hpp"
 
 #include "container/std_container_helpers.hpp"
 #include "hash/fnv_1a.h"
@@ -13,19 +14,17 @@
 #include <thread>
 #include <vector>
 
-enum class OpStatus : uint8_t {
-	Pending = 0xAA,
-	Successful = 0xFF,
-	Failed = 0x11
-};
-
 template <RecordConcept Record, class StorageAdapter>
 class DbWAL
 {
 public:
 	constexpr DbWAL(StorageAdapter& walIoDevice) noexcept :
 		_logFile{ walIoDevice }
-	{}
+	{
+		checkBlockSize();
+
+		startNewBlock();
+	}
 
 	using OpID = uint32_t;
 
@@ -39,17 +38,30 @@ public:
 	// Registers the new operation and returns its unique ID. Empty optional = failure to register.
 	template <class OpType>
 	[[nodiscard]] std::optional<OpID> registerOperation(OpType&& op) noexcept;
-	[[nodiscard]] bool updateOpStatus(OpID opId, OpStatus status) noexcept;
+	[[nodiscard]] bool updateOpStatus(OpID opId, WAL::OpStatus status) noexcept;
+
+private:
+	constexpr void startNewBlock() noexcept;
+	[[nodiscard]] constexpr bool finalizeAndflushCurrentBlock() noexcept;
+	[[nodiscard]] constexpr bool newBlockRequiredForData(size_t dataSize) noexcept;
 
 private:
 	using EntrySizeType = uint16_t;
-	using HashType = decltype(FNV_1a_32(nullptr, 0));
-	using Serializer = Operation::Serializer<Record>;
+	using Serializer = WAL::Serializer<Record>;
 
 private:
+	using BlockItemCountType = uint16_t;
+	using BlockChecksumType = uint32_t;
+	static_assert(std::is_same_v<BlockChecksumType, decltype(FNV_1a_32(nullptr, 0))>);
+	static constexpr size_t BlockSize = 4096;
+	io::StaticBufferAdapter<BlockSize> _block;
+	size_t _blockItemCount = 0;
+
+	// Solely for tracking how many ops are pending. When none, the log can be trimmed
 	std::vector<OpID> _pendingOperations;
-	StorageIO<StorageAdapter> _logFile;
 	size_t _operationsProcessed = 0;
+
+	StorageIO<StorageAdapter> _logFile;
 	OpID _lastOpId = 0;
 
 	const std::thread::id _ownerThreadId = std::this_thread::get_id();
@@ -89,6 +101,14 @@ template<RecordConcept Record, class StorageAdapter>
   | Serialized operation DATA                       | var. length                 | sizeof(EntrySizeType) + 4 bytes |
    -----------------------------------------------------------------------------------------------------------------
 
+
+   Block format:
+
+  - Number of entries (2 bytes for 4K block size)
+  - Entry 1
+  - ...
+  - Entry N
+  - Checksum over the whole block (4 bytes)
 */
 
 template<RecordConcept Record, class StorageAdapter>
@@ -98,60 +118,87 @@ template <typename Receiver>
 	assert_debug_only(std::this_thread::get_id() == _ownerThreadId);
 	assert_r(_logFile.pos() == 0);
 
-	// Malformed data - OK, not an error, skip and return true.
-	std::vector<std::byte> buffer;
-	bool success = true;
-	while (!_logFile.atEnd())
+	// This is the buffer for the whole WAL block
+	io::StaticBufferAdapter<BlockSize> blockBuffer;
+	blockBuffer.reserve(BlockSize);
+	StorageIO blockBufferIo{ blockBuffer };
+
+	assert_r(_logFile.size() % BlockSize == 0);
+
+	std::vector<OpID> completedOperations;
+	const auto isCompleted = [&completedOperations](const OpID id) {
+		return std::find(completedOperations.begin(), completedOperations.end(), id) != completedOperations.end();
+	};
+
+	// Two passes are required because of the templated operation types that cannot be [easily] stored at runtime.
+	// The first pass reads and stores all completed operations.
+	// Then the seconds pass can skip over all transactions that have completed successfully and process the ones that didn't.
+
+	// Remeber: malformed last block is not an error
+	for (size_t pass = 1; pass <= 2; ++pass)
 	{
-		EntrySizeType wholeEntrySize;
-		assert_and_return_r(_logFile.read(wholeEntrySize), false);
-
-		const auto dataAndHashSize = wholeEntrySize - sizeof(wholeEntrySize);
-		buffer.resize(dataAndHashSize);
-		assert_and_return_r(_logFile.read(buffer.data(), dataAndHashSize), false);
-
-		static constexpr auto OpStatusOffset = 0;
-		const OpStatus status = memory_cast<OpStatus>(buffer.data() + OpStatusOffset);
-
-		// No need to process operations that finished successfully, but we do want to check the hash.
-		const HashType hash = memory_cast<HashType>(buffer.data() + dataAndHashSize - sizeof(HashType));
-
-		// Patch STATUS to PENDING in order to verify the hash
+		while (!_logFile.atEnd() && (_logFile.size() - _logFile.pos() >= BlockSize))
 		{
-			const auto pending = OpStatus::Pending;
-			::memcpy(buffer.data() + OpStatusOffset, &pending, sizeof(pending));
+			const bool isLastBlock = _logFile.size() - _logFile.pos() == BlockSize;
+			if (!_logFile.read(blockBuffer.data(), BlockSize))
+			{
+				if (isLastBlock)
+					continue; // Not an error
+				else
+					fatalAbort("Failed to read a WAL block that's not the last one!");
+			}
+
+			// Verify checksum before processing the block
+			const auto checksum = memory_cast<BlockChecksumType>(blockBuffer.data() + BlockSize - sizeof(BlockChecksumType));
+
+			const auto actualChecksum = FNV_1a_32_hasher{}.updateHash(blockBuffer.data(), BlockSize - sizeof(BlockChecksumType));
+			if (checksum != actualChecksum)
+			{
+				if (isLastBlock)
+					continue; // Not an error
+				else
+					fatalAbort("Failed to read a WAL block that's not the last one!");
+			}
+
+			BlockItemCountType itemCountInBlock = 0;
+			assert_and_return_r(blockBufferIo.read(itemCountInBlock), false);
+			assert_debug_only(itemCountInBlock > 0);
+
+			for (size_t i = 0; i < itemCountInBlock; ++i)
+			{
+				const auto entryStartPos = blockBufferIo.pos();
+				EntrySizeType wholeEntrySize = 0;
+				assert_and_return_r(blockBufferIo.read(wholeEntrySize) && wholeEntrySize > 0, false);
+
+				OpID operationId = 0;
+				assert_and_return_r(blockBufferIo.read(operationId) && operationId != 0, false);
+
+				// First pass: skip everything. Second pass: skip completed operations.
+				const bool skipEntry = pass == 1 || isCompleted(operationId);
+
+				if (pass == 1 && Serializer::isOperationCompletionMarker(blockBufferIo))
+					completedOperations.push_back(operationId);
+
+				if (skipEntry)
+					assert_and_return_r(blockBufferIo.seek(entryStartPos + wholeEntrySize), false);
+				else
+				{
+					// Contruct the operation and report that it has to be replayed
+					const bool deserializedSuccessfully = Serializer::deserialize(blockBufferIo, [&unfinishedOperationsReceiver](auto&& operation) {
+					// This operation is logged, but wasn't completed against the storage.
+						unfinishedOperationsReceiver(std::move(operation));
+					});
+
+					assert_and_return_message_r(deserializedSuccessfully, "Failed to deserialize an operation from log, but checksum has been verified!", false);
+				}
+			}
 		}
 
-		// Hash verification
-		FNV_1a_32_hasher hasher;
-		hasher.updateHash(wholeEntrySize);
-		const HashType actualHash = hasher.updateHash(buffer.data(), dataAndHashSize - sizeof(HashType));
-		if (actualHash != hash)
-		{
-			assert_unconditional_r("Broken data on the disk!");
-			continue; // Check the next item?
-		}
-
-		// Operation has completed - no need to deserialize it, move on to the next log entry.
-		if (status != OpStatus::Pending)
-			continue;
-
-		StorageIO<io::MemoryBlockAdapter> ioDevice(buffer.data() + sizeof(OpStatus), dataAndHashSize - sizeof(HashType) - sizeof(OpStatus));
-		const bool deserializedSuccessfully = Serializer::deserialize(ioDevice, [&unfinishedOperationsReceiver](auto&& operation) {
-			// This operation is logged, but wasn't completed against the storage.
-			unfinishedOperationsReceiver(std::move(operation));
-		});
-
-		if (!deserializedSuccessfully)
-		{
-			assert_unconditional_r("Failed to deserialize an operation from log, but hash checked out!");
-			success = false;
-		}
-
-		// Continue to the next operation
+		if (pass == 1)
+			assert_and_return_r(_logFile.seek(0), false);
 	}
 
-	return success;
+	return true;
 }
 
 // Registers the new operation and returns its unique ID. Empty optional = failure to register.
@@ -162,63 +209,79 @@ template<class OpType>
 DbWAL<Record, StorageAdapter>::registerOperation(OpType&& op) noexcept
 {
 	// Compose all the data in a buffer and then write in one go.
-	// Reference: https://github.com/VioletGiraffe/cpp-db/wiki/WAL-concepts#normal-operation 
+	// Reference: https://github.com/VioletGiraffe/cpp-db/wiki/WAL
 
 	assert_debug_only(std::this_thread::get_id() == _ownerThreadId);
 
-	// 4K ought to be enough for everybody!
-	StorageIO<io::StaticBufferAdapter<4096>> buffer;
+	// This is the buffer for the single entry, it cannot exceed the block size
+	io::StaticBufferAdapter<BlockSize> entryBuffer;
 
-	// Reserving space for the total entry size in the beginning
-	buffer.ioAdapter().reserve(sizeof(EntrySizeType));
+	// Reserving space for the total entry size and operation ID in the beginning
+	entryBuffer.reserve(sizeof(EntrySizeType) + sizeof(OpID));
 
-	using Serializer = Operation::Serializer<Record>;
-	// TODO: how to handle this error?
-	assert_and_return_r(Serializer::serialize(std::forward<OpType>(op), buffer), {});
+	using Serializer = WAL::Serializer<Record>;
+	StorageIO io{ entryBuffer };
+	assert_and_return_r(Serializer::serialize(std::forward<OpType>(op), io), {});
+	// Fill in the size
+	const auto entrySize = entryBuffer.size();
+	assert_r(io.write(entrySize, 0 /* position to write at */));
 
 	// !!!!!!!!!!!!!!!!!! Warning: unsafe to use 'op' after forwarding it
 
-	const auto bufferSize = buffer.size();
-	assert_r(bufferSize < std::numeric_limits<EntrySizeType>::max() - sizeof(HashType));
-	const EntrySizeType entrySize = static_cast<EntrySizeType>(buffer.size() + sizeof(HashType));
-	// Fill in the size
-	(void)buffer.write(entrySize, 0 /* position to write at */);
-	buffer.ioAdapter().seekToEnd();
-	
-	const auto hash = FNV_1a_32(buffer.ioAdapter().data(), entrySize - sizeof(HashType));
-	(void)buffer.write(hash);
+	const auto newId = ++_lastOpId;
+	assert_r(io.write(newId));
+	// Now buffer holds the complete entry
 
-	_pendingOperations.emplace_back(_logFile.pos(), opId, OpStatus::Pending);
+	const auto bufferSize = entryBuffer.size();
+	if (newBlockRequiredForData(bufferSize)) // Not enough space left
+	{
+		assert_and_return_r(finalizeAndflushCurrentBlock(), {});
+		startNewBlock();
+	}
 
+	assert_and_return_r(_block.write(entryBuffer.data(), entryBuffer.size()), {});
+	++_blockItemCount;
+
+	_pendingOperations.push_back(newId);
 	++_operationsProcessed;
+	
 
-	assert_and_return_r(_logFile.seekToEnd(), {});
-	assert_and_return_r(_logFile.write(buffer.ioAdapter().data(), buffer.size()), {});
-	assert_and_return_r(_logFile.flush(), {});
-
-	return true;
+	return newId;
 }
 
 template<RecordConcept Record, class StorageAdapter>
-inline bool DbWAL<Record, StorageAdapter>::updateOpStatus(const OpID opId, const OpStatus status) noexcept
+inline bool DbWAL<Record, StorageAdapter>::updateOpStatus(const OpID opId, const WAL::OpStatus status) noexcept
 {
 	assert_debug_only(std::this_thread::get_id() == _ownerThreadId);
 
-	auto logEntry = std::find_if(begin_to_end(_pendingOperations), [opId](const LogEntry& item) {
-		return item.id == opId;
-	});
+	io::StaticBufferAdapter<BlockSize> entryBuffer;
 
-	assert_and_return_message_r(logEntry != _pendingOperations.end(), "Operation" + std::to_string(opId) + " hasn't been registered!", false);
-	assert_debug_only(logEntry->status == OpStatus::Pending);
-	assert_debug_only(status != OpStatus::Pending);
+	// Reserving space for the entry size field
+	entryBuffer.reserve(sizeof(EntrySizeType));
+	
+	StorageIO bufferIo{ entryBuffer };
+	assert_and_return_r(bufferIo.seek(sizeof(EntrySizeType)), false);
+	assert_and_return_r(bufferIo.write(opId), false);
 
-	assert_and_return_r(_logFile.seek(logEntry->offsetInLogFile + sizeof(EntrySizeType)), false);
-	assert_and_return_r(_logFile.write(status), false);
-	// TODO: flush!
+	const WAL::OperationCompletedMarker completionMarker{ .status = status };
+	assert_and_return_r(Serializer::serialize(completionMarker, bufferIo), false);
+	// Fill in the size
+	assert_and_return_r(bufferIo.write(entryBuffer.size(), /* pos */ 0), false);
 
-	_pendingOperations.erase(logEntry);
+	if (newBlockRequiredForData(entryBuffer.size())) // Not enough space left
+	{
+		assert_and_return_r(finalizeAndflushCurrentBlock(), {});
+		startNewBlock();
+	}
 
-	if (_pendingOperations.empty() && _operationsProcessed > 100'000)
+	StorageIO blockIo{ _block };
+	assert_and_return_r(blockIo.write(entryBuffer.data(), entryBuffer.size()), false);
+
+	auto pendingOperationIterator = std::find(begin_to_end(_pendingOperations), opId);
+	assert_and_return_message_r(pendingOperationIterator != _pendingOperations.end(), "Operation" + std::to_string(opId) + " hasn't been registered!", false);
+	_pendingOperations.erase(pendingOperationIterator);
+
+	if (_pendingOperations.empty() && _operationsProcessed > 1'000) // TODO: increase this limit for production
 	{
 		// No more pending operations left - safe to clear the log
 		// TODO: do it asynchronously
@@ -227,4 +290,42 @@ inline bool DbWAL<Record, StorageAdapter>::updateOpStatus(const OpID opId, const
 	}
 
 	return true;
+}
+
+template<RecordConcept Record, class StorageAdapter>
+inline constexpr void DbWAL<Record, StorageAdapter>::startNewBlock() noexcept
+{
+	_blockItemCount = 0;
+	_block.clear();
+	_block.reserve(sizeof(BlockItemCountType));
+	_block.seekToEnd();
+}
+
+template<RecordConcept Record, class StorageAdapter>
+inline constexpr bool DbWAL<Record, StorageAdapter>::finalizeAndflushCurrentBlock() noexcept
+{
+	_block.seek(0);
+	assert_and_return_r(_block.write(&_blockItemCount, sizeof(_blockItemCount)), false);
+	const auto actualSize = _block.size();
+	// Extend the size to full 4K
+	_block.reserve(_block.MaxCapacity);
+	assert_debug_only(_block.size() == _block.MaxCapacity);
+	::memset(_block.data() + actualSize, 0, _block.MaxCapacity - actualSize);
+
+	const auto hash = FNV_1a_32(_block.data(), _block.MaxCapacity - sizeof(BlockChecksumType));
+	static_assert(std::is_same_v<decltype(hash), const BlockChecksumType>);
+	_block.seek(_block.MaxCapacity - sizeof(BlockChecksumType));
+	assert_and_return_r(_block.write(&hash, sizeof(BlockChecksumType)), false);
+
+	assert_and_return_r(_logFile.seekToEnd(), false); // TODO: what for?
+	assert_and_return_r(_logFile.write(_block.data(), _block.MaxCapacity), false);
+	assert_and_return_r(_logFile.flush(), false);
+
+	return false;
+}
+
+template<RecordConcept Record, class StorageAdapter>
+inline constexpr bool DbWAL<Record, StorageAdapter>::newBlockRequiredForData(size_t dataSize) noexcept
+{
+	return dataSize > _block.remainingCapacity() - sizeof(BlockChecksumType) - sizeof(BlockItemCountType);
 }

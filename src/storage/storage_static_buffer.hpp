@@ -9,6 +9,7 @@ template <size_t MaxSize>
 class StaticBufferAdapter
 {
 public:
+	static constexpr auto MaxCapacity = MaxSize;
 	constexpr bool open(const std::string& /*fileName*/, const OpenMode /*mode*/) noexcept
 	{
 		return true;
@@ -62,6 +63,11 @@ public:
 		return _buffer.pos() == _buffer.size();
 	}
 
+	[[nodiscard]] constexpr bool remainingCapacity() const noexcept
+	{
+		return MaxSize - _buffer.pos();
+	}
+
 	constexpr bool flush() noexcept
 	{
 		return true;
@@ -75,6 +81,11 @@ public:
 	}
 
 	[[nodiscard]] constexpr const auto* data() const & noexcept
+	{
+		return _buffer.data();
+	}
+
+	[[nodiscard]] constexpr auto* data() & noexcept
 	{
 		return _buffer.data();
 	}
