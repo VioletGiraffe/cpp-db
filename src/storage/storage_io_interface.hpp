@@ -21,6 +21,11 @@ struct StorageIO
 		_io{ io }
 	{}
 
+	~StorageIO() noexcept
+	{
+		assert_r(close());
+	}
+
 	[[nodiscard]] constexpr bool open(const std::string& filePath, const io::OpenMode mode) noexcept;
 	[[nodiscard]] constexpr bool close() noexcept;
 

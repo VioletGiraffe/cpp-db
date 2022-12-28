@@ -113,6 +113,13 @@ public:
 		return _ioDevice.open(qtOpenMode);
 	}
 
+	[[nodiscard]] bool close() noexcept
+	{
+		assert_and_return_r(_ioDevice.isOpen(), false);
+		_ioDevice.close();
+		return true;
+	}
+
 	[[nodiscard]] bool read(void* targetBuffer, const size_t dataSize) noexcept
 	{
 		return _ioDevice.read(reinterpret_cast<char*>(targetBuffer), dataSize) == static_cast<qint64>(dataSize);

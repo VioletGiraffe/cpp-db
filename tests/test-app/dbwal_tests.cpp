@@ -51,9 +51,7 @@ TEST_CASE("DbWAL basics and normal operation", "[dbwal]")
 
 #ifndef _DEBUG
 	REQUIRE(wal.updateOpStatus(0, WAL::OpStatus::Successful) == false); // No such ID
-#endif
-	REQUIRE(wal.updateOpStatus(opID, WAL::OpStatus::Successful)); // No such ID
-#ifndef _DEBUG
+	REQUIRE(wal.updateOpStatus(opID, WAL::OpStatus::Successful) == false); // No such ID
 	REQUIRE(wal.updateOpStatus(opID, WAL::OpStatus::Successful) == false); // No longer pending!
 #endif
 

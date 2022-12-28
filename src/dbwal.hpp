@@ -22,9 +22,9 @@ public:
 		_logFile{ walIoDevice }
 	{
 		checkBlockSize();
-
-		startNewBlock();
 	}
+
+	~DbWAL() noexcept;
 
 	using OpID = uint32_t;
 
@@ -44,6 +44,8 @@ private:
 	constexpr void startNewBlock() noexcept;
 	[[nodiscard]] constexpr bool finalizeAndflushCurrentBlock() noexcept;
 	[[nodiscard]] constexpr bool newBlockRequiredForData(size_t dataSize) noexcept;
+
+	[[nodiscard]] constexpr bool hasUnflushedItems() const noexcept;
 
 private:
 	using EntrySizeType = uint16_t;
@@ -68,9 +70,16 @@ private:
 };
 
 template<RecordConcept Record, class StorageAdapter>
+DbWAL<Record, StorageAdapter>::~DbWAL() noexcept
+{
+	assert_r(!hasUnflushedItems());
+}
+
+template<RecordConcept Record, class StorageAdapter>
 [[nodiscard]] bool DbWAL<Record, StorageAdapter>::openLogFile(const std::string& filePath) noexcept
 {
 	assert_debug_only(std::this_thread::get_id() == _ownerThreadId);
+	startNewBlock();
 	// ReadWrite required in order to be able to seek back and patch operation status.
 	return _logFile.open(filePath, io::OpenMode::ReadWrite);
 }
@@ -80,6 +89,11 @@ template<RecordConcept Record, class StorageAdapter>
 {
 	assert_debug_only(std::this_thread::get_id() == _ownerThreadId);
 	// ReadWrite required in order to be able to seek back and patch operation status.
+	if (hasUnflushedItems())
+	{
+		assert_and_return_r(finalizeAndflushCurrentBlock(), false);
+	}
+
 	return _logFile.close();
 }
 
@@ -87,6 +101,9 @@ template<RecordConcept Record, class StorageAdapter>
 [[nodiscard]] bool DbWAL<Record, StorageAdapter>::clearLog() noexcept
 {
 	assert_debug_only(std::this_thread::get_id() == _ownerThreadId);
+
+	startNewBlock();
+
 	assert_and_return_r(_logFile.clear(), false);
 	return _logFile.flush();
 }
@@ -195,7 +212,7 @@ template <typename Receiver>
 		}
 
 		if (pass == 1)
-			assert_and_return_r(_logFile.seek(0), false);
+			assert_and_return_r(_logFile.seek(0) && blockBuffer.seek(0), false);
 	}
 
 	return true;
@@ -218,13 +235,15 @@ DbWAL<Record, StorageAdapter>::registerOperation(OpType&& op) noexcept
 
 	// Reserving space for the total entry size and operation ID in the beginning
 	entryBuffer.reserve(sizeof(EntrySizeType) + sizeof(OpID));
+	entryBuffer.seekToEnd();
 
 	using Serializer = WAL::Serializer<Record>;
 	StorageIO io{ entryBuffer };
 	assert_and_return_r(Serializer::serialize(std::forward<OpType>(op), io), {});
 	// Fill in the size
 	const auto entrySize = entryBuffer.size();
-	assert_r(io.write(entrySize, 0 /* position to write at */));
+	assert_debug_only(entrySize <= std::numeric_limits<EntrySizeType>::max());
+	assert_r(io.write(static_cast<EntrySizeType>(entrySize), 0 /* position to write at */));
 
 	// !!!!!!!!!!!!!!!!!! Warning: unsafe to use 'op' after forwarding it
 
@@ -304,8 +323,13 @@ inline constexpr void DbWAL<Record, StorageAdapter>::startNewBlock() noexcept
 template<RecordConcept Record, class StorageAdapter>
 inline constexpr bool DbWAL<Record, StorageAdapter>::finalizeAndflushCurrentBlock() noexcept
 {
+	assert_r(_block.size() > 0);
+
 	_block.seek(0);
-	assert_and_return_r(_block.write(&_blockItemCount, sizeof(_blockItemCount)), false);
+	assert_and_return_r(_blockItemCount <= std::numeric_limits<BlockItemCountType>::max(), false);
+
+	StorageIO blockWriter{ _block };
+	assert_and_return_r(blockWriter.write(static_cast<BlockItemCountType>(_blockItemCount)), false);
 	const auto actualSize = _block.size();
 	// Extend the size to full 4K
 	_block.reserve(_block.MaxCapacity);
@@ -315,17 +339,23 @@ inline constexpr bool DbWAL<Record, StorageAdapter>::finalizeAndflushCurrentBloc
 	const auto hash = FNV_1a_32(_block.data(), _block.MaxCapacity - sizeof(BlockChecksumType));
 	static_assert(std::is_same_v<decltype(hash), const BlockChecksumType>);
 	_block.seek(_block.MaxCapacity - sizeof(BlockChecksumType));
-	assert_and_return_r(_block.write(&hash, sizeof(BlockChecksumType)), false);
+	assert_and_return_r(blockWriter.write(hash), false);
 
 	assert_and_return_r(_logFile.seekToEnd(), false); // TODO: what for?
 	assert_and_return_r(_logFile.write(_block.data(), _block.MaxCapacity), false);
 	assert_and_return_r(_logFile.flush(), false);
 
-	return false;
+	return true;
 }
 
 template<RecordConcept Record, class StorageAdapter>
 inline constexpr bool DbWAL<Record, StorageAdapter>::newBlockRequiredForData(size_t dataSize) noexcept
 {
 	return dataSize > _block.remainingCapacity() - sizeof(BlockChecksumType) - sizeof(BlockItemCountType);
+}
+
+template<RecordConcept Record, class StorageAdapter>
+inline constexpr bool DbWAL<Record, StorageAdapter>::hasUnflushedItems() const noexcept
+{
+	return _block.size() > 2;
 }
