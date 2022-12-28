@@ -11,7 +11,7 @@ inline bool operator==(const std::pair<T1, U1>& p1, const std::pair<T2, U2>& p2)
 template <typename Field>
 inline auto fillIndexRandomly(DbIndex<Field>& index, const uint64_t nItems)
 {
-	using IndexEntryType = std::pair<typename DbIndex<Field>::FieldValueType, StorageLocation>;
+	using IndexEntryType = std::pair<typename DbIndex<Field>::FieldValueType, PageNumber>;
 	std::vector<IndexEntryType> items;
 
 	RandomNumberGenerator<int64_t> rng(0, -static_cast<int64_t>(nItems / 5), static_cast<int64_t>(nItems / 5));

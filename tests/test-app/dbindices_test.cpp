@@ -29,34 +29,34 @@ TEST_CASE("Indices - simple interface test", "[dbindices]") {
 
 		CHECK(indices.addLocationForValue<Fs::id>("123", 0) == false);
 
-		CHECK(verifyIndexContents(indices.indexForField<F1::id>(), std::vector < std::pair<int, StorageLocation> > {}));
-		CHECK(verifyIndexContents(indices.indexForField<Fs::id>(), std::vector < std::pair<std::string, StorageLocation> > { {"0", 2}, {"123", 0}, { "123", 1 } }));
+		CHECK(verifyIndexContents(indices.indexForField<F1::id>(), std::vector < std::pair<int, PageNumber> > {}));
+		CHECK(verifyIndexContents(indices.indexForField<Fs::id>(), std::vector < std::pair<std::string, PageNumber> > { {"0", 2}, {"123", 0}, { "123", 1 } }));
 
-		CHECK(verifyIndexContents(indices.indexForField<F2::id>(), std::vector < std::pair<float, StorageLocation> > { { -1e35, 20 }, { 0, 5 }}));
+		CHECK(verifyIndexContents(indices.indexForField<F2::id>(), std::vector < std::pair<float, PageNumber> > { { -1e35, 20 }, { 0, 5 }}));
 
 		CHECK(indices.removeValueLocation<F2::id>(-1e35f, 200) == false);
 		CHECK(indices.removeValueLocation<F2::id>(-1e34f, 20) == false);
 
-		CHECK(indices.findValueLocations<F2::id>(-1e35f) == std::vector<StorageLocation>{20});
+		CHECK(indices.findValueLocations<F2::id>(-1e35f) == std::vector<PageNumber>{20});
 
 		CHECK(indices.removeValueLocation<F2::id>(-1e35f, 20) == true);
-		CHECK(indices.findValueLocations<F2::id>(-1e35f) == std::vector<StorageLocation>{});
-		CHECK(indices.findValueLocations<F2::id>(0.0f) == std::vector<StorageLocation>{5});
+		CHECK(indices.findValueLocations<F2::id>(-1e35f) == std::vector<PageNumber>{});
+		CHECK(indices.findValueLocations<F2::id>(0.0f) == std::vector<PageNumber>{5});
 		CHECK(indices.removeAllValueLocations<F2::id>(0.0f) == 1);
 		CHECK(indices.removeAllValueLocations<F2::id>(0.0f) == 0);
-		CHECK(indices.findValueLocations<F2::id>(0.0f) == std::vector<StorageLocation>{});
-		CHECK(verifyIndexContents(indices.indexForField<F2::id>(), std::vector < std::pair<float, StorageLocation> > {}));
+		CHECK(indices.findValueLocations<F2::id>(0.0f) == std::vector<PageNumber>{});
+		CHECK(verifyIndexContents(indices.indexForField<F2::id>(), std::vector < std::pair<float, PageNumber> > {}));
 
 		CHECK(indices.addLocationForValue<F2::id>(0.0f, 18));
 		CHECK(indices.addLocationForValue<F2::id>(0.0f, 17));
-		CHECK(verifyIndexContents(indices.indexForField<F2::id>(), std::vector < std::pair<float, StorageLocation> > { {0.0, 18}, {0.0, 17}}));
-		CHECK(indices.findValueLocations<F2::id>(0.0f) == std::vector<StorageLocation>{18, 17});
+		CHECK(verifyIndexContents(indices.indexForField<F2::id>(), std::vector < std::pair<float, PageNumber> > { {0.0, 18}, {0.0, 17}}));
+		CHECK(indices.findValueLocations<F2::id>(0.0f) == std::vector<PageNumber>{18, 17});
 
 
-		CHECK(indices.findValueLocations<Fs::id>("123") == std::vector<StorageLocation>{0, 1});
+		CHECK(indices.findValueLocations<Fs::id>("123") == std::vector<PageNumber>{0, 1});
 		CHECK(indices.removeAllValueLocations<Fs::id>("123") == 2);
-		CHECK(indices.findValueLocations<Fs::id>("123") == std::vector<StorageLocation>{});
-		CHECK(verifyIndexContents(indices.indexForField<Fs::id>(), std::vector < std::pair<std::string, StorageLocation> > { {"0", 2} }));
+		CHECK(indices.findValueLocations<Fs::id>("123") == std::vector<PageNumber>{});
+		CHECK(verifyIndexContents(indices.indexForField<Fs::id>(), std::vector < std::pair<std::string, PageNumber> > { {"0", 2} }));
 	}
 	catch (...) {
 		FAIL();

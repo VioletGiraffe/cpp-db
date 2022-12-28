@@ -21,21 +21,22 @@ class Indices
 public:
 	template <auto id>
 	using FieldValueTypeById = FieldValueTypeById_t<id, IndexedFields...>;
+	using LocationType = PageNumber;
 
 	template <auto id, typename U>
-	std::vector<StorageLocation> findValueLocations(U&& value) const
+	std::vector<LocationType> findValueLocations(U&& value) const
 	{
 		return indexForField<id>().findValueLocations(std::forward<U>(value));
 	}
 
 	template <auto id>
-	bool addLocationForValue(FieldValueTypeById<id> value, StorageLocation location)
+	bool addLocationForValue(FieldValueTypeById<id> value, LocationType location)
 	{
 		return indexForField<id>().addLocationForValue(std::move(value), std::move(location));
 	}
 
 	template <auto id>
-	bool removeValueLocation(FieldValueTypeById<id> value, const StorageLocation location) noexcept
+	bool removeValueLocation(FieldValueTypeById<id> value, const LocationType location) noexcept
 	{
 		return indexForField<id>().removeValueLocation(std::move(value), std::move(location));
 	}

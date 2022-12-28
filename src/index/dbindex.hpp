@@ -19,12 +19,12 @@ class DbIndex
 public:
 	using FieldValueType = typename IndexedField::ValueType;
 	using key_type = FieldValueType;
-	using mapped_type = StorageLocation;
+	using mapped_type = PageNumber;
 
-	std::vector<StorageLocation> findValueLocations(FieldValueType value) const noexcept
+	std::vector<mapped_type> findValueLocations(FieldValueType value) const noexcept
 	{
 		const auto [begin, end] = _index.equal_range(std::move(value));
-		std::vector<StorageLocation> locations;
+		std::vector<mapped_type> locations;
 		// TODO: reserve(std::distance(begin, end))
 		for (auto it = begin; it != end; ++it)
 			locations.emplace_back(it->second);
@@ -33,7 +33,7 @@ public:
 	}
 
 	// Returns false if this value-location pair is already registered (no duplicate will be added), otherwise true
-	bool addLocationForValue(FieldValueType value, StorageLocation location) noexcept
+	bool addLocationForValue(FieldValueType value, mapped_type location) noexcept
 	{
 		// Disallow duplicate value-location pairs; only let the same value be registered at different locations.
 		const auto [begin, end] = _index.equal_range(value);
@@ -53,7 +53,7 @@ public:
 		return true;
 	}
 
-	bool removeValueLocation(const FieldValueType& value, const StorageLocation location) noexcept
+	bool removeValueLocation(const FieldValueType& value, const mapped_type location) noexcept
 	{
 		const auto [begin, end] = _index.equal_range(value); // TODO: std::move?
 		if (begin != end)
@@ -109,5 +109,5 @@ public:
 #endif
 
 private:
-	std::multimap<FieldValueType /* field value */, StorageLocation /* record location */> _index;
+	std::multimap<FieldValueType /* field value */, mapped_type /* record location */> _index;
 };

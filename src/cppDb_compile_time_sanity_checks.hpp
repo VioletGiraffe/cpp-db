@@ -179,7 +179,7 @@ inline void cppDb_compileTimeChecks()
 	Indices<F2, F1, Fs> threeIndices;
 
 	[[maybe_unused]] bool added = threeIndices.addLocationForValue<Fs::id>("123", 0);
-	[[maybe_unused]] std::vector<StorageLocation> locs = threeIndices.findValueLocations<Fs::id>("123");
+	[[maybe_unused]] std::vector<PageNumber> locs = threeIndices.findValueLocations<Fs::id>("123");
 	locs = threeIndices.findValueLocations<F2::id>(3.14f);
 	locs = threeIndices.findValueLocations<F1::id>(31);
 	[[maybe_unused]] size_t nRemoved = threeIndices.removeAllValueLocations<Fs::id>({});

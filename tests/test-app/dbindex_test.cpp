@@ -19,16 +19,16 @@ TEST_CASE("DBindices interface test", "[dbindex]") {
 		REQUIRE(index.begin() == index.end());
 		REQUIRE(std::distance(index.begin(), index.end()) == 0);
 
-		CHECK(index.addLocationForValue("123", { 150 }));
-		CHECK(index.addLocationForValue("123", { 10 }));
-		CHECK(index.addLocationForValue("023", { 11 }));
-		CHECK(index.addLocationForValue("023", { 11 }) == false);
+		CHECK(index.addLocationForValue("123", PageNumber{ 150 }));
+		CHECK(index.addLocationForValue("123", PageNumber{ 10 }));
+		CHECK(index.addLocationForValue("023", PageNumber{ 11 }));
+		CHECK(index.addLocationForValue("023", PageNumber{ 11 }) == false);
 
 		// Can't use vector because the items are immovable
-		std::vector<std::pair<typename decltype(index)::FieldValueType, StorageLocation>> reference;
-		reference.emplace_back("023", StorageLocation{ 11 });
-		reference.emplace_back("123", StorageLocation{ 150 }); // The relative order of items with duplicate key is preserved by std::multimap
-		reference.emplace_back("123", StorageLocation{ 10 });
+		std::vector<std::pair<typename decltype(index)::FieldValueType, PageNumber>> reference;
+		reference.emplace_back("023", PageNumber{ 11 });
+		reference.emplace_back("123", PageNumber{ 150 }); // The relative order of items with duplicate key is preserved by std::multimap
+		reference.emplace_back("123", PageNumber{ 10 });
 
 		CHECK(std::equal(cbegin_to_end(reference), cbegin_to_end(index)));
 
@@ -37,11 +37,11 @@ TEST_CASE("DBindices interface test", "[dbindex]") {
 		locations = index.findValueLocations("124");
 		CHECK(locations.empty());
 
-		CHECK(index.removeValueLocation("1", { 0 }) == false);
+		CHECK(index.removeValueLocation("1", PageNumber{ 0 }) == false);
 		locations = index.findValueLocations("123");
 		CHECK(std::equal(cbegin_to_end(reference), cbegin_to_end(index)));
 		{
-			const std::vector<StorageLocation> referenceResult{ {150}, {10} };
+			const std::vector<PageNumber> referenceResult{ PageNumber{150}, PageNumber{10} };
 			CHECK(std::equal(cbegin_to_end(locations), cbegin_to_end(referenceResult)));
 		}
 
@@ -49,7 +49,7 @@ TEST_CASE("DBindices interface test", "[dbindex]") {
 		locations = index.findValueLocations("123");
 		CHECK(std::equal(cbegin_to_end(reference), cbegin_to_end(index)));
 		{
-			const std::vector<StorageLocation> referenceResult{ {150}, {10} };
+			const std::vector<PageNumber> referenceResult{ PageNumber{150}, PageNumber{10} };
 			CHECK(std::equal(cbegin_to_end(locations), cbegin_to_end(referenceResult)));
 		}
 
@@ -63,10 +63,10 @@ TEST_CASE("DBindices interface test", "[dbindex]") {
 		locations = index.findValueLocations("023");
 		CHECK(std::equal(cbegin_to_end(reference), cbegin_to_end(index)));
 		{
-			const std::vector<StorageLocation> referenceResult{ {11} };
+			const std::vector<PageNumber> referenceResult{ PageNumber{11} };
 			CHECK(std::equal(cbegin_to_end(locations), cbegin_to_end(referenceResult)));
 		}
-		CHECK(index.removeValueLocation("023", { 11 }) == true);
+		CHECK(index.removeValueLocation("023", PageNumber{ 11 }) == true);
 		CHECK(index.findValueLocations("023").empty());
 		CHECK(index.begin() == index.end());
 
