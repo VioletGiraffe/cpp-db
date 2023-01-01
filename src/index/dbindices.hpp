@@ -22,16 +22,16 @@ class Indices
 	using FieldValueTypeById = FieldValueTypeById_t<id, IndexedFields...>;
 
 public:
-	using LocationType = PageNumber;
+	using location_type = typename DbIndex<pack::first_type<IndexedFields...>>::location_type;
 
 	template <auto id, typename U>
-	std::optional<LocationType> findKey(const U& key) const
+	std::optional<location_type> findKey(const U& key) const
 	{
-		return indexForField<id>().findValueLocation(key);
+		return indexForField<id>().findKey(key);
 	}
 
 	template <auto id>
-	bool addLocationForKey(FieldValueTypeById<id> key, LocationType location)
+	bool addLocationForKey(FieldValueTypeById<id> key, location_type location)
 	{
 		return indexForField<id>().addLocationForKey(std::move(key), std::move(location));
 	}
@@ -39,7 +39,7 @@ public:
 	template <auto id>
 	bool removeKey(const FieldValueTypeById<id>& key) noexcept
 	{
-		return indexForField<id>().removeAllValueLocations(key);
+		return indexForField<id>().removeKey(key);
 	}
 
 	template <auto id>

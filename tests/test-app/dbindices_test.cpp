@@ -42,8 +42,8 @@
 //		CHECK(indices.removeValueLocation<F2::id>(-1e35f, 20) == true);
 //		CHECK(indices.findValueLocations<F2::id>(-1e35f) == std::vector<PageNumber>{});
 //		CHECK(indices.findValueLocations<F2::id>(0.0f) == std::vector<PageNumber>{5});
-//		CHECK(indices.removeAllValueLocations<F2::id>(0.0f) == 1);
-//		CHECK(indices.removeAllValueLocations<F2::id>(0.0f) == 0);
+//		CHECK(indices.removeKey<F2::id>(0.0f) == 1);
+//		CHECK(indices.removeKey<F2::id>(0.0f) == 0);
 //		CHECK(indices.findValueLocations<F2::id>(0.0f) == std::vector<PageNumber>{});
 //		CHECK(verifyIndexContents(indices.indexForField<F2::id>(), std::vector < std::pair<float, PageNumber> > {}));
 //
@@ -54,7 +54,7 @@
 //
 //
 //		CHECK(indices.findValueLocations<Fs::id>("123") == std::vector<PageNumber>{0, 1});
-//		CHECK(indices.removeAllValueLocations<Fs::id>("123") == 2);
+//		CHECK(indices.removeKey<Fs::id>("123") == 2);
 //		CHECK(indices.findValueLocations<Fs::id>("123") == std::vector<PageNumber>{});
 //		CHECK(verifyIndexContents(indices.indexForField<Fs::id>(), std::vector < std::pair<std::string, PageNumber> > { {"0", 2} }));
 //	}

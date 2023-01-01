@@ -174,7 +174,6 @@ inline void cppDb_compileTimeChecks()
 
 	FileAllocationManager gaps;
 
-	Indices<> noIndices;
 	Indices<F1> singleFieldIndex;
 	Indices<F2, F1, Fs> threeIndices;
 
@@ -187,9 +186,7 @@ inline void cppDb_compileTimeChecks()
 	success = threeIndices.store(".");
 
 	static_assert(decltype(threeIndices)::hasIndex<F3>() == false);
-	static_assert(decltype(noIndices)::hasIndex<F3>() == false);
 
-	static_assert(Indices<>::hasIndex<F1::id>() == false);
 	static_assert(Indices<F1>::hasIndex<F2::id>() == false);
 	static_assert(Indices<F1>::hasIndex<F1::id>() == true);
 	static_assert(Indices<Fs, F1>::hasIndex<F2::id>() == false);
@@ -203,9 +200,9 @@ inline void cppDb_compileTimeChecks()
 	storePath = Index::load<io::QFileAdapter>(fsIndex, "Z:Z:");
 
 	fsIndex.addLocationForKey("123", { 10 });
-	fsIndex.findValueLocation("123");
-	fsIndex.removeAllValueLocations("1");
-	f1Index1.removeAllValueLocations(5);
+	fsIndex.findKey("123");
+	fsIndex.removeKey("1");
+	f1Index1.removeKey(5);
 
 	dbRecord_checks();
 	dbWal_checks();

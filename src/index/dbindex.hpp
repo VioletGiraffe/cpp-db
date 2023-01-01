@@ -8,22 +8,21 @@
 #include <map>
 #include <optional>
 
-template <typename IndexedField>
+template <FieldType IndexedField>
 class DbIndex
 {
-	static_assert(IndexedField::isField());
-
 public:
 	using key_type = typename IndexedField::ValueType;
+	using location_type = typename PageNumber;
 
-	std::optional<PageNumber> findValueLocation(const key_type& value) const noexcept
+	std::optional<location_type> findKey(const key_type& value) const noexcept
 	{
 		const auto it = _index.find(value);
-		return it != _index.end() ? it->second : std::optional<PageNumber>{};
+		return it != _index.end() ? it->second : std::optional<location_type>{};
 	}
 
 	// Returns false if this value-location pair is already registered (no duplicate will be added), otherwise true
-	bool addLocationForKey(key_type value, PageNumber pgN) noexcept
+	bool addLocationForKey(key_type value, location_type pgN) noexcept
 	{
 		// Duplicate keys not allowed!
 		const auto result = _index.emplace(std::move(value), std::move(pgN));
@@ -31,7 +30,7 @@ public:
 	}
 
 	// Removes every occurrence of 'value', returns the number of removed items
-	size_t removeAllValueLocations(const key_type& value) noexcept
+	size_t removeKey(const key_type& value) noexcept
 	{
 		return _index.erase(value);
 	}
@@ -64,5 +63,5 @@ public:
 #endif
 
 private:
-	std::map<key_type /* key value */, PageNumber> _index;
+	std::map<key_type /* key value */, location_type> _index;
 };

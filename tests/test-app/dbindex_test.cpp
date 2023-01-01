@@ -32,27 +32,27 @@ TEST_CASE("DbIndex interface test", "[dbindex]") {
 
 		CHECK(std::equal(cbegin_to_end(reference), cbegin_to_end(index)));
 
-		auto location = index.findValueLocation("123");
+		auto location = index.findKey("123");
 		CHECK(std::equal(cbegin_to_end(reference), cbegin_to_end(index)));
 		CHECK((location && location == 150));
 
-		location = index.findValueLocation("1");
+		location = index.findKey("1");
 		CHECK(std::equal(cbegin_to_end(reference), cbegin_to_end(index)));
 		CHECK(!location);
 
-		CHECK(index.removeAllValueLocations("1") == 0);
+		CHECK(index.removeKey("1") == 0);
 		CHECK(std::equal(cbegin_to_end(reference), cbegin_to_end(index)));
 
-		CHECK(index.removeAllValueLocations("123") == 1);
+		CHECK(index.removeKey("123") == 1);
 		reference.erase(reference.begin() + 1, reference.end());
 		CHECK(std::equal(cbegin_to_end(reference), cbegin_to_end(index)));
-		location = index.findValueLocation("123");
+		location = index.findKey("123");
 		CHECK(std::equal(cbegin_to_end(reference), cbegin_to_end(index)));
 		CHECK(!location);
 
-		CHECK(index.removeAllValueLocations("023") == 1);
-		CHECK(!index.findValueLocation("023"));
-		CHECK(index.removeAllValueLocations("023") == 0);
+		CHECK(index.removeKey("023") == 1);
+		CHECK(!index.findKey("023"));
+		CHECK(index.removeKey("023") == 0);
 		CHECK(index.begin() == index.end());
 		CHECK(index.size() == 0);
 		CHECK(index.empty());
@@ -85,7 +85,7 @@ TEST_CASE("Adding and removing random locations", "[dbindex]") {
 		REQUIRE(N % 10 == 0);
 		for (uint64_t i = 0; i < N / 10; ++i)
 		{
-			index.removeAllValueLocations(reference[i].first);
+			index.removeKey(reference[i].first);
 			ContainerAlgorithms::erase_all_occurrences(originalReferenceData, reference[i]);
 		}
 

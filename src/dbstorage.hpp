@@ -18,7 +18,7 @@
 //using PageNumber = UniqueNamedType(odd_sized_integer<5>);
 using PageNumber = odd_sized_integer<5>;
 
-template <typename StorageAdapter, RecordConcept Record>
+template <typename StorageAdapter, RecordType Record>
 class DBStorage
 {
 	static constexpr size_t PageSize = 4096;

@@ -14,7 +14,7 @@
 
 namespace WAL {
 
-template <RecordConcept Record>
+template <RecordType Record>
 class Serializer
 {
 	using Schema = DbSchema<Record>;
@@ -72,7 +72,7 @@ private:
 	}
 };
 
-template <RecordConcept Record>
+template <RecordType Record>
 template<class Operation, class StorageAdapter, sfinae<Operation::op == OpCode::Insert>>
 bool Serializer<Record>::serialize(const Operation& op, StorageIO<StorageAdapter>& io) noexcept
 {
@@ -83,7 +83,7 @@ bool Serializer<Record>::serialize(const Operation& op, StorageIO<StorageAdapter
 	return RecordSerializer::serialize(op._record, io);
 }
 
-template<RecordConcept Record>
+template<RecordType Record>
 template<class MarkerStruct, class StorageAdapter, sfinae<MarkerStruct::markerID != 0>>
 inline bool Serializer<Record>::serialize(const MarkerStruct& marker, StorageIO<StorageAdapter>& io) noexcept
 {
@@ -96,7 +96,7 @@ inline bool Serializer<Record>::serialize(const MarkerStruct& marker, StorageIO<
 	return true;
 }
 
-template <RecordConcept Record>
+template <RecordType Record>
 template<class Operation, class StorageAdapter, sfinae<Operation::op == OpCode::Find>>
 bool Serializer<Record>::serialize(const Operation& op, StorageIO<StorageAdapter>& io) noexcept
 {
@@ -136,7 +136,7 @@ bool Serializer<Record>::serialize(const Operation& op, StorageIO<StorageAdapter
 	return success;
 }
 
-template <RecordConcept Record>
+template <RecordType Record>
 template<class Operation, class StorageAdapter, sfinae<Operation::op == OpCode::UpdateFull>>
 bool Serializer<Record>::serialize(const Operation& op, StorageIO<StorageAdapter>& io) noexcept
 {
@@ -158,7 +158,7 @@ bool Serializer<Record>::serialize(const Operation& op, StorageIO<StorageAdapter
 	return io.write(op.keyValue);
 }
 
-template <RecordConcept Record>
+template <RecordType Record>
 template<class Operation, class StorageAdapter, sfinae<Operation::op == OpCode::AppendToArray>>
 bool Serializer<Record>::serialize(const Operation& op, StorageIO<StorageAdapter>& io) noexcept
 {
@@ -189,7 +189,7 @@ bool Serializer<Record>::serialize(const Operation& op, StorageIO<StorageAdapter
 		return io.write(op.array);
 }
 
-template <RecordConcept Record>
+template <RecordType Record>
 template<class Operation, class StorageAdapter, sfinae<Operation::op == OpCode::Delete>>
 bool Serializer<Record>::serialize(const Operation& op, StorageIO<StorageAdapter>& io) noexcept
 {
@@ -206,7 +206,7 @@ bool Serializer<Record>::serialize(const Operation& op, StorageIO<StorageAdapter
 	return io.write(op.keyValue);
 }
 
-template <RecordConcept Record>
+template <RecordType Record>
 template <class StorageAdapter, typename Receiver>
 bool Serializer<Record>::deserialize(StorageIO<StorageAdapter>& io, Receiver&& receiver) noexcept
 {
@@ -382,7 +382,7 @@ bool Serializer<Record>::deserialize(StorageIO<StorageAdapter>& io, Receiver&& r
 	return false;
 }
 
-template<RecordConcept Record>
+template<RecordType Record>
 template<class StorageAdapter>
 inline bool Serializer<Record>::isOperationCompletionMarker(StorageIO<StorageAdapter>& io) noexcept
 {

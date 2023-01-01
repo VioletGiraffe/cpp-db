@@ -10,12 +10,12 @@
 
 template <typename T, auto fieldId, bool is_array = false>
 struct Field {
+	static constexpr bool isField = true;
 
 	/// Traits
 	using ValueType = std::conditional_t<is_array, std::vector<T>, T>;
 
 	static constexpr auto id = fieldId;
-	static consteval bool isField() noexcept { return true; }
 	static consteval bool isArray() noexcept { return is_array; }
 	///
 
@@ -72,9 +72,6 @@ private:
 //
 // Helper templates
 //
-
-//template<typename T>
-//concept FieldInstance = T::isField();
 
 template <auto id, typename FirstField = void, typename... OtherFields>
 struct FieldById {

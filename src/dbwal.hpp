@@ -14,7 +14,7 @@
 #include <thread>
 #include <vector>
 
-template <RecordConcept Record, class StorageAdapter>
+template <RecordType Record, class StorageAdapter>
 class DbWAL
 {
 public:
@@ -69,13 +69,13 @@ private:
 	const std::thread::id _ownerThreadId = std::this_thread::get_id();
 };
 
-template<RecordConcept Record, class StorageAdapter>
+template<RecordType Record, class StorageAdapter>
 DbWAL<Record, StorageAdapter>::~DbWAL() noexcept
 {
 	assert_r(!hasUnflushedItems());
 }
 
-template<RecordConcept Record, class StorageAdapter>
+template<RecordType Record, class StorageAdapter>
 [[nodiscard]] bool DbWAL<Record, StorageAdapter>::openLogFile(const std::string& filePath) noexcept
 {
 	assert_debug_only(std::this_thread::get_id() == _ownerThreadId);
@@ -84,7 +84,7 @@ template<RecordConcept Record, class StorageAdapter>
 	return _logFile.open(filePath, io::OpenMode::ReadWrite);
 }
 
-template<RecordConcept Record, class StorageAdapter>
+template<RecordType Record, class StorageAdapter>
 [[nodiscard]] bool DbWAL<Record, StorageAdapter>::closeLogFile() noexcept
 {
 	assert_debug_only(std::this_thread::get_id() == _ownerThreadId);
@@ -97,7 +97,7 @@ template<RecordConcept Record, class StorageAdapter>
 	return _logFile.close();
 }
 
-template<RecordConcept Record, class StorageAdapter>
+template<RecordType Record, class StorageAdapter>
 [[nodiscard]] bool DbWAL<Record, StorageAdapter>::clearLog() noexcept
 {
 	assert_debug_only(std::this_thread::get_id() == _ownerThreadId);
@@ -128,7 +128,7 @@ template<RecordConcept Record, class StorageAdapter>
   - Checksum over the whole block (4 bytes)
 */
 
-template<RecordConcept Record, class StorageAdapter>
+template<RecordType Record, class StorageAdapter>
 template <typename Receiver>
 [[nodiscard]] bool DbWAL<Record, StorageAdapter>::verifyLog(Receiver&& unfinishedOperationsReceiver) noexcept
 {
@@ -220,7 +220,7 @@ template <typename Receiver>
 
 // Registers the new operation and returns its unique ID. Empty optional = failure to register.
 
-template<RecordConcept Record, class StorageAdapter>
+template<RecordType Record, class StorageAdapter>
 template<class OpType>
 [[nodiscard]] std::optional<typename DbWAL<Record, StorageAdapter>::OpID>
 DbWAL<Record, StorageAdapter>::registerOperation(OpType&& op) noexcept
@@ -268,7 +268,7 @@ DbWAL<Record, StorageAdapter>::registerOperation(OpType&& op) noexcept
 	return newId;
 }
 
-template<RecordConcept Record, class StorageAdapter>
+template<RecordType Record, class StorageAdapter>
 inline bool DbWAL<Record, StorageAdapter>::updateOpStatus(const OpID opId, const WAL::OpStatus status) noexcept
 {
 	assert_debug_only(std::this_thread::get_id() == _ownerThreadId);
@@ -311,7 +311,7 @@ inline bool DbWAL<Record, StorageAdapter>::updateOpStatus(const OpID opId, const
 	return true;
 }
 
-template<RecordConcept Record, class StorageAdapter>
+template<RecordType Record, class StorageAdapter>
 inline constexpr void DbWAL<Record, StorageAdapter>::startNewBlock() noexcept
 {
 	_blockItemCount = 0;
@@ -320,7 +320,7 @@ inline constexpr void DbWAL<Record, StorageAdapter>::startNewBlock() noexcept
 	_block.seekToEnd();
 }
 
-template<RecordConcept Record, class StorageAdapter>
+template<RecordType Record, class StorageAdapter>
 inline constexpr bool DbWAL<Record, StorageAdapter>::finalizeAndflushCurrentBlock() noexcept
 {
 	assert_r(_block.size() > 0);
@@ -348,13 +348,13 @@ inline constexpr bool DbWAL<Record, StorageAdapter>::finalizeAndflushCurrentBloc
 	return true;
 }
 
-template<RecordConcept Record, class StorageAdapter>
+template<RecordType Record, class StorageAdapter>
 inline constexpr bool DbWAL<Record, StorageAdapter>::newBlockRequiredForData(size_t dataSize) noexcept
 {
 	return dataSize > _block.remainingCapacity() - sizeof(BlockChecksumType) - sizeof(BlockItemCountType);
 }
 
-template<RecordConcept Record, class StorageAdapter>
+template<RecordType Record, class StorageAdapter>
 inline constexpr bool DbWAL<Record, StorageAdapter>::hasUnflushedItems() const noexcept
 {
 	return _block.size() > 2;

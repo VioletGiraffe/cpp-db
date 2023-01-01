@@ -1,6 +1,8 @@
 #pragma once
 
 #include "dbfield.hpp"
+#include "db_type_concepts.hpp"
+
 #include "utility/template_magic.hpp"
 #include "utility/constexpr_algorithms.hpp"
 #include "parameter_pack/parameter_pack_helpers.hpp"
@@ -12,7 +14,7 @@
 #include <tuple>
 
 // The first of the fields is always the primary key
-template <typename... FieldsSequence>
+template <FieldType... FieldsSequence>
 class DbRecord
 {
 public:
@@ -139,7 +141,6 @@ private:
 	static consteval bool checkAssertions() noexcept
 	{
 		static_assert(sizeof...(FieldsSequence) > 0);
-		static_assert((FieldsSequence::isField() && ...), "All template parameter types must be Fields!");
 		//static_assert(TombstoneField::is_valid_v == true || TombstoneField::is_valid_v == false, "The first template parameter must beither Tombstone<FieldType>, or NoTombstone.");
 		//static_assert(!TombstoneField::is_valid_v || pack::has_type_v<typename TombstoneField::FieldType, FieldsSequence...>, "The tombstone field must be one of the fields in this DbRecord");
 

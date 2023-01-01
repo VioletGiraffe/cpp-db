@@ -17,7 +17,7 @@ enum class OpCode : uint8_t {
 
 namespace Operation {
 
-	template <RecordConcept Record>
+	template <RecordType Record>
 	struct Insert
 	{
 		using RecordType = Record;
@@ -31,7 +31,7 @@ namespace Operation {
 		const Record _record;
 	};
 
-	template <RecordConcept Record, typename... Fields>
+	template <RecordType Record, typename... Fields>
 	struct Find
 	{
 		using RecordType = Record;
@@ -52,7 +52,7 @@ namespace Operation {
 		const TupleOfFields _fields;
 	};
 
-	template <RecordConcept Record, class K, bool InsertIfNotPresent = false>
+	template <RecordType Record, class K, bool InsertIfNotPresent = false>
 	struct UpdateFull
 	{
 		using RecordType = Record;
@@ -74,7 +74,7 @@ namespace Operation {
 	};
 
 	namespace detail {
-		template <RecordConcept Record>
+		template <RecordType Record>
 		struct RecordMember {
 			explicit constexpr RecordMember(Record r) noexcept :
 				record{ std::move(r) }
@@ -94,7 +94,7 @@ namespace Operation {
 		};
 	}
 
-	template <RecordConcept Record, class Key, class Array, bool InsertIfNotPresent = false>
+	template <RecordType Record, class Key, class Array, bool InsertIfNotPresent = false>
 	struct AppendToArray final : public std::conditional_t<InsertIfNotPresent, detail::RecordMember<Record>, detail::ArrayMember<Array>>
 	{
 		using RecordType = Record;
@@ -127,7 +127,7 @@ namespace Operation {
 		const KeyValueType keyValue;
 	};
 
-	template <RecordConcept Record, class K>
+	template <RecordType Record, class K>
 	struct Delete
 	{
 		using RecordType = Record;
