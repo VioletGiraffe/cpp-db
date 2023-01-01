@@ -18,33 +18,28 @@
 template <class... IndexedFields>
 class Indices
 {
-public:
 	template <auto id>
 	using FieldValueTypeById = FieldValueTypeById_t<id, IndexedFields...>;
+
+public:
 	using LocationType = PageNumber;
 
 	template <auto id, typename U>
-	std::vector<LocationType> findValueLocations(U&& value) const
+	std::optional<LocationType> findKey(const U& key) const
 	{
-		return indexForField<id>().findValueLocations(std::forward<U>(value));
+		return indexForField<id>().findValueLocation(key);
 	}
 
 	template <auto id>
-	bool addLocationForValue(FieldValueTypeById<id> value, LocationType location)
+	bool addLocationForKey(FieldValueTypeById<id> key, LocationType location)
 	{
-		return indexForField<id>().addLocationForValue(std::move(value), std::move(location));
+		return indexForField<id>().addLocationForKey(std::move(key), std::move(location));
 	}
 
 	template <auto id>
-	bool removeValueLocation(FieldValueTypeById<id> value, const LocationType location) noexcept
+	bool removeKey(const FieldValueTypeById<id>& key) noexcept
 	{
-		return indexForField<id>().removeValueLocation(std::move(value), std::move(location));
-	}
-
-	template <auto id>
-	size_t removeAllValueLocations(FieldValueTypeById<id> value)
-	{
-		return indexForField<id>().removeAllValueLocations(std::move(value));
+		return indexForField<id>().removeAllValueLocations(key);
 	}
 
 	template <auto id>

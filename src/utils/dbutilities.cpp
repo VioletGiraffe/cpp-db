@@ -1,4 +1,5 @@
 #include "dbutilities.hpp"
+#include "assert/advanced_assert.h"
 
 #include <stdexcept>
 
@@ -16,5 +17,6 @@ void checkBlockSize()
 
 void fatalAbort(const char* message)
 {
+	assert_unconditional_r("Fatal error!");
 	throw std::runtime_error{ message };
 }

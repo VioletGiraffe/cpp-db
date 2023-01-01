@@ -178,11 +178,11 @@ inline void cppDb_compileTimeChecks()
 	Indices<F1> singleFieldIndex;
 	Indices<F2, F1, Fs> threeIndices;
 
-	[[maybe_unused]] bool added = threeIndices.addLocationForValue<Fs::id>("123", 0);
-	[[maybe_unused]] std::vector<PageNumber> locs = threeIndices.findValueLocations<Fs::id>("123");
-	locs = threeIndices.findValueLocations<F2::id>(3.14f);
-	locs = threeIndices.findValueLocations<F1::id>(31);
-	[[maybe_unused]] size_t nRemoved = threeIndices.removeAllValueLocations<Fs::id>({});
+	[[maybe_unused]] bool added = threeIndices.addLocationForKey<Fs::id>("123", 0);
+	[[maybe_unused]] std::optional<PageNumber> loc = threeIndices.findKey<Fs::id>("123");
+	loc = threeIndices.findKey<F2::id>(3.14f);
+	loc = threeIndices.findKey<F1::id>(31);
+	[[maybe_unused]] size_t nRemoved = threeIndices.removeKey<Fs::id>({});
 	[[maybe_unused]] bool success = threeIndices.load(".");
 	success = threeIndices.store(".");
 
@@ -202,9 +202,9 @@ inline void cppDb_compileTimeChecks()
 	auto storePath = Index::store<io::QFileAdapter>(fsIndex, "Z:Z:" /* Path intentionally invalid */);
 	storePath = Index::load<io::QFileAdapter>(fsIndex, "Z:Z:");
 
-	fsIndex.addLocationForValue("123", { 10 });
-	fsIndex.findValueLocations("123");
-	fsIndex.removeValueLocation("1", { 0 });
+	fsIndex.addLocationForKey("123", { 10 });
+	fsIndex.findValueLocation("123");
+	fsIndex.removeAllValueLocations("1");
 	f1Index1.removeAllValueLocations(5);
 
 	dbRecord_checks();

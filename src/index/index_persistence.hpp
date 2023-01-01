@@ -1,6 +1,8 @@
 #pragma once
 
 #include "../storage/storage_io_interface.hpp"
+#include "../utils/dbutilities.hpp"
+
 #include "container/std_container_helpers.hpp"
 #include "hash/sha3_hasher.hpp"
 #include "utility/extra_type_traits.hpp"
@@ -85,20 +87,20 @@ std::optional<std::string> load(IndexType& index, const std::string indexStorage
 
 	for (uint64_t i = 0; i < numIndexEntries; ++i)
 	{
-		using IndexMultiMapType = std::decay_t<decltype(index)>;
-		static_assert(is_trivially_serializable_v<typename IndexMultiMapType::mapped_type>);
+		static_assert(is_trivially_serializable_v< PageNumber>);
 
-		auto field = typename IndexMultiMapType::key_type{};
-		auto offset = typename IndexMultiMapType::mapped_type{ 0 };
+		auto field = typename IndexType::key_type{};
+		auto location = PageNumber{};
 
 		assert_and_return_r(io.read(field), {});
-		assert_and_return_r(io.read(offset), {});
+		assert_and_return_r(io.read(location), {});
 
 		hasher.update(field);
-		hasher.update(offset);
+		hasher.update(location);
 
-		const bool emplacementSuccess = index.addLocationForValue(std::move(field), std::move(offset));
-		assert_r(emplacementSuccess);
+		const bool emplacementSuccess = index.addLocationForKey(std::move(field), std::move(location));
+		if (!emplacementSuccess)
+			fatalAbort("Failed to add key to index!");
 	}
 
 	uint64_t hash = 0;
