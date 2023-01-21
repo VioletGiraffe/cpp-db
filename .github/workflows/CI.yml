@@ -13,13 +13,18 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: Install Qt
-      uses: jurplel/install-qt-action@v2
+      uses: jurplel/install-qt-action@v3
       with:
         version: '5.15.2'
         archives: 'qtbase'
+
+    - name: Clone dependencies
+      run: |
+        git clone --depth 1 https://github.com/VioletGiraffe/cpp-template-utils tests/cpp-template-utils
+        git clone --depth 1 https://github.com/VioletGiraffe/cpputils tests/cpputils
 
     - name: Windows - setup MSBuild
       if: startsWith(matrix.os, 'windows')
@@ -32,16 +37,14 @@ jobs:
       working-directory: ${{env.GITHUB_WORKSPACE}}
       shell: cmd
       run: |
-        pushd tests
-        git clone --depth 1 https://github.com/VioletGiraffe/cpp-template-utils
-        git clone --depth 1 https://github.com/VioletGiraffe/cpputils
         set PATH=%Qt5_DIR%;%PATH%;
         %Qt5_DIR%\bin\qmake.exe -v
+        pushd tests
         call "%programfiles%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" amd64 && "%Qt5_DIR%\bin\qmake.exe" -tp vc -r
         msbuild tests.sln /t:Build /p:Configuration=Release;PlatformToolset=v143
         popd
 
-    - name: Linux
+    - name: Linux - building tests
       if: startsWith(matrix.os, 'ubuntu')
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
@@ -54,20 +57,19 @@ jobs:
         chmod a+x linuxdeployqt-7-x86_64.AppImage
         unset QTDIR; unset QT_PLUGIN_PATH ; unset LD_LIBRARY_PATH
         pushd tests
-        git clone --depth 1 https://github.com/VioletGiraffe/cpp-template-utils
-        git clone --depth 1 https://github.com/VioletGiraffe/cpputils
         $Qt5_DIR/bin/qmake -r CONFIG+=release
         make -j
         popd
+
         ./linuxdeployqt-7-x86_64.AppImage ./tests/bin_tests/test-app -unsupported-allow-new-glibc -bundle-non-qt-libs
 
-    - name: Tests - Linux
+    - name: Linux - running tests
       if: startsWith(matrix.os, 'ubuntu')
       run: |
         ./tests/bin_tests/test-app
         ./tests/bin_tests/test-app [benchmark]
 
-    - name: Tests - Windows
+    - name: Windows - running tests
       if: startsWith(matrix.os, 'windows')
       shell: cmd
       run: |

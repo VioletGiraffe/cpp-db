@@ -1,4 +1,5 @@
-CONFIG += strict_c++
+CONFIG += strict_c++ c++_latest # this is an intentinal typo, c++_latest is not a valid specifier which leads qmake to NOT generate any -std=... flag at all, which is what I need
+  
 QT = core
 
 TEMPLATE = app
@@ -42,7 +43,7 @@ win*{
 
 linux*|mac*{
 	QMAKE_CXXFLAGS_WARN_ON = -Wall
-	QMAKE_CXXFLAGS += -std=c++20
+	QMAKE_CXXFLAGS += -std=c++2b
 
 	Release:DEFINES += NDEBUG=1
 	Debug:DEFINES += _DEBUG
