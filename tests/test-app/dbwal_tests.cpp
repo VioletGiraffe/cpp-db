@@ -119,19 +119,15 @@ TEST_CASE("DbWAL: registering multiple operations - single thread, single record
 				if constexpr (std::is_same_v<OpType, WAL::OperationCompletedMarker>)
 				{
 				}
-				else if constexpr (OpType::op == OpCode::AppendToArray)
+				else if constexpr (std::is_same_v<decltype(opAppend), OpType>)
 				{
-					if constexpr (OpType::insertIfNotPresent() == opAppend.insertIfNotPresent())
-					{
-						REQUIRE(opAppend.keyValue == op.keyValue);
-						//REQUIRE(opAppend.updatedArray() == op.updatedArray());
-						//REQUIRE(op.updatedArray() == r2.fieldValue<FArray>());
-						// TODO: this crashes intellisense
-						//REQUIRE(opAppend.insertIfNotPresent() == op.insertIfNotPresent());
-					}
-					else
-						FAIL();
+					REQUIRE(opAppend.keyValue == op.keyValue);
+					REQUIRE(opAppend.updatedArray() == op.updatedArray());
+					REQUIRE(op.updatedArray() == r2.fieldValue<FArray>());
+					REQUIRE(opAppend.insertIfNotPresent() == op.insertIfNotPresent());
 				}
+				else
+					FAIL();
 			}));
 		}
 	}
