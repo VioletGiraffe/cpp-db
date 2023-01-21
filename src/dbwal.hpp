@@ -5,7 +5,7 @@
 #include "storage/storage_io_interface.hpp"
 #include "storage/storage_static_buffer.hpp"
 #include "utils/dbutilities.hpp"
-#include "wal/wal_serializer.hpp"
+#include "WAL/wal_serializer.hpp"
 
 #include "container/std_container_helpers.hpp"
 #include "hash/fnv_1a.h"

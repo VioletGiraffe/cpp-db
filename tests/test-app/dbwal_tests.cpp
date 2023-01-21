@@ -25,7 +25,6 @@ TEST_CASE("DbWAL basics and normal operation", "[dbwal]")
 	REQUIRE(buffer.size() == 0);
 
 	Operation::AppendToArray<RecordWithArray, F16, FArray, false> opAppend(uint16_t{0}, std::vector{uint32_t{42}});
-	static constexpr uint32_t opID = 0xFF123456;
 	REQUIRE(wal.registerOperation(opAppend));
 	const auto bufferSize = buffer.size();
 	REQUIRE(bufferSize > 0);

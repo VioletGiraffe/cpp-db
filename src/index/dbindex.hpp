@@ -13,7 +13,7 @@ class DbIndex
 {
 public:
 	using key_type = typename IndexedField::ValueType;
-	using location_type = typename PageNumber;
+	using location_type = PageNumber;
 
 	std::optional<location_type> findKey(const key_type& value) const noexcept
 	{
