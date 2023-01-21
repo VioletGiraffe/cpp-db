@@ -23,8 +23,8 @@ jobs:
 
     - name: Clone dependencies
       run: |
-        git clone --depth 1 https://github.com/VioletGiraffe/cpp-template-utils tests/cpp-template-utils
-        git clone --depth 1 https://github.com/VioletGiraffe/cpputils tests/cpputils
+        git clone --depth 1 https://github.com/VioletGiraffe/cpp-template-utils ../cpp-template-utils
+        git clone --depth 1 https://github.com/VioletGiraffe/cpputils ../cpputils
 
     - name: Windows - setup MSBuild
       if: startsWith(matrix.os, 'windows')
@@ -48,19 +48,18 @@ jobs:
       if: startsWith(matrix.os, 'ubuntu')
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
-        sudo apt install gcc-11 g++-11
-        sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-11 50
-        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 50
+        sudo apt install gcc-12 g++-12
+        sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-12 50
+        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-12 50
         g++ --version
         export PATH=$Qt5_DIR/bin/:$PATH
-        wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/7/linuxdeployqt-7-x86_64.AppImage"
-        chmod a+x linuxdeployqt-7-x86_64.AppImage
         unset QTDIR; unset QT_PLUGIN_PATH ; unset LD_LIBRARY_PATH
         pushd tests
         $Qt5_DIR/bin/qmake -r CONFIG+=release
         make -j
         popd
-
+        wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/7/linuxdeployqt-7-x86_64.AppImage"
+        chmod a+x linuxdeployqt-7-x86_64.AppImage
         ./linuxdeployqt-7-x86_64.AppImage ./tests/bin_tests/test-app -unsupported-allow-new-glibc -bundle-non-qt-libs
 
     - name: Linux - running tests
