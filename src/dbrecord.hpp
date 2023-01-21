@@ -10,7 +10,6 @@
 #include "assert/advanced_assert.h"
 #include "utility/memory_cast.hpp"
 
-#include <array>
 #include <tuple>
 
 // The first of the fields is always the primary key
