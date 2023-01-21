@@ -9,7 +9,10 @@
 
 #include "container/std_container_helpers.hpp"
 #include "hash/fnv_1a.h"
+#include "system/rdtsc.h"
 
+#include <atomic>
+#include <mutex>
 #include <optional>
 #include <thread>
 #include <vector>
@@ -45,13 +48,23 @@ private:
 	[[nodiscard]] constexpr bool finalizeAndflushCurrentBlock() noexcept;
 	[[nodiscard]] constexpr bool newBlockRequiredForData(size_t dataSize) noexcept;
 
-	[[nodiscard]] constexpr bool hasUnflushedItems() const noexcept;
+	[[nodiscard]] constexpr bool blockIsEmpty() const noexcept;
+
+	// Waits for the record with ID == opId to get flushed.
+	// If that doesn't happen within certain time, performs flush.
+	void waitForFlushAndHandleTimeout(OpID opId, bool firstWriter, uint64_t operationStartTimeStamp) noexcept;
 
 private:
 	using EntrySizeType = uint16_t;
 	using Serializer = WAL::Serializer<Record>;
 
 private:
+	std::mutex _mtxBlock;
+	// Has to be atomic for the wait loop to spin on it.
+	std::atomic<OpID> _lastFlushedOpId = 0;
+	// Doesn't have to be atomic - only accessed under mutex
+	OpID _lastStoredOpId = 0;
+	
 	using BlockItemCountType = uint16_t;
 	using BlockChecksumType = uint32_t;
 	static_assert(std::is_same_v<BlockChecksumType, decltype(FNV_1a_32(nullptr, 0))>);
@@ -64,7 +77,7 @@ private:
 	size_t _operationsProcessed = 0;
 
 	StorageIO<StorageAdapter> _logFile;
-	OpID _lastOpId = 0;
+	std::atomic<OpID> _lastOpId = 0;
 
 	const std::thread::id _ownerThreadId = std::this_thread::get_id();
 };
@@ -72,13 +85,15 @@ private:
 template<RecordType Record, class StorageAdapter>
 DbWAL<Record, StorageAdapter>::~DbWAL() noexcept
 {
-	assert_r(!hasUnflushedItems());
+	std::lock_guard lock(_mtxBlock);
+	assert_r(blockIsEmpty());
 }
 
 template<RecordType Record, class StorageAdapter>
 [[nodiscard]] bool DbWAL<Record, StorageAdapter>::openLogFile(const std::string& filePath) noexcept
 {
 	assert_debug_only(std::this_thread::get_id() == _ownerThreadId);
+
 	startNewBlock();
 	// ReadWrite required in order to be able to seek back and patch operation status.
 	return _logFile.open(filePath, io::OpenMode::ReadWrite);
@@ -88,8 +103,10 @@ template<RecordType Record, class StorageAdapter>
 [[nodiscard]] bool DbWAL<Record, StorageAdapter>::closeLogFile() noexcept
 {
 	assert_debug_only(std::this_thread::get_id() == _ownerThreadId);
+
+	std::lock_guard lock(_mtxBlock);
 	// ReadWrite required in order to be able to seek back and patch operation status.
-	if (hasUnflushedItems())
+	if (!blockIsEmpty())
 	{
 		assert_and_return_r(finalizeAndflushCurrentBlock(), false);
 	}
@@ -100,9 +117,13 @@ template<RecordType Record, class StorageAdapter>
 template<RecordType Record, class StorageAdapter>
 [[nodiscard]] bool DbWAL<Record, StorageAdapter>::clearLog() noexcept
 {
-	assert_debug_only(std::this_thread::get_id() == _ownerThreadId);
+	// TODO: why startNewBlock?
+	//{
+	//	std::lock_guard lock(_mtxBlock);
+	//	startNewBlock();
+	//}
 
-	startNewBlock();
+	std::lock_guard lock(_mtxBlock);
 
 	assert_and_return_r(_logFile.clear(), false);
 	return _logFile.flush();
@@ -228,8 +249,6 @@ DbWAL<Record, StorageAdapter>::registerOperation(OpType&& op) noexcept
 	// Compose all the data in a buffer and then write in one go.
 	// Reference: https://github.com/VioletGiraffe/cpp-db/wiki/WAL
 
-	assert_debug_only(std::this_thread::get_id() == _ownerThreadId);
-
 	// This is the buffer for the single entry, it cannot exceed the block size
 	io::StaticBufferAdapter<BlockSize> entryBuffer;
 
@@ -247,32 +266,47 @@ DbWAL<Record, StorageAdapter>::registerOperation(OpType&& op) noexcept
 
 	// !!!!!!!!!!!!!!!!!! Warning: unsafe to use 'op' after forwarding it
 
-	const auto newId = ++_lastOpId;
-	assert_r(io.write(newId));
+	const OpID newOpId = ++_lastOpId;
+	assert_r(io.write(newOpId));
 	// Now buffer holds the complete entry
 
 	const auto bufferSize = entryBuffer.size();
+
+	// Time to lock the shared block buffer
+	_mtxBlock.lock();
+	const bool firstWriter = blockIsEmpty();
+	const uint64_t timeStamp = firstWriter ? rdtsc() : 0;
+
 	if (newBlockRequiredForData(bufferSize)) // Not enough space left
 	{
+		if (firstWriter) [[unlikely]]
+			fatalAbort("Not enough space in the block!"); // TODO: handle the case of data being larger than one block can fit
+
 		assert_and_return_r(finalizeAndflushCurrentBlock(), {});
 		startNewBlock();
 	}
 
-	assert_and_return_r(_block.write(entryBuffer.data(), entryBuffer.size()), {});
+	assert_and_return_r(_block.write(entryBuffer.data(), bufferSize), {});
 	++_blockItemCount;
 
-	_pendingOperations.push_back(newId);
+	_pendingOperations.push_back(newOpId);
 	++_operationsProcessed;
 	
+	_mtxBlock.unlock();
 
-	return newId;
+	/*//////////////////////////////////////////////////////////////////////////////////////////////////////
+	             Waiting for another thread to flush the block and handling the timeout
+	//////////////////////////////////////////////////////////////////////////////////////////////////////*/
+
+	waitForFlushAndHandleTimeout(newOpId, firstWriter, timeStamp);
+
+	// Buffer flushed - return
+	return newOpId;
 }
 
 template<RecordType Record, class StorageAdapter>
 inline bool DbWAL<Record, StorageAdapter>::updateOpStatus(const OpID opId, const WAL::OpStatus status) noexcept
 {
-	assert_debug_only(std::this_thread::get_id() == _ownerThreadId);
-
 	io::StaticBufferAdapter<BlockSize> entryBuffer;
 
 	// Reserving space for the entry size field
@@ -284,30 +318,51 @@ inline bool DbWAL<Record, StorageAdapter>::updateOpStatus(const OpID opId, const
 
 	const WAL::OperationCompletedMarker completionMarker{ .status = status };
 	assert_and_return_r(Serializer::serialize(completionMarker, bufferIo), false);
+	const auto entrySize = entryBuffer.size();
+	assert_debug_only(entrySize <= std::numeric_limits<EntrySizeType>::max());
 	// Fill in the size
-	assert_and_return_r(bufferIo.write(entryBuffer.size(), /* pos */ 0), false);
+	assert_and_return_r(bufferIo.write(static_cast<EntrySizeType>(entrySize), /* pos */ 0), false);
 
-	if (newBlockRequiredForData(entryBuffer.size())) // Not enough space left
+	// Time to lock the shared block
+	_mtxBlock.lock();
+
+	const bool firstWriter = blockIsEmpty();
+	const uint64_t timeStamp = firstWriter ? rdtsc() : 0;
+	const OpID newOpId = ++_lastOpId;
+
+	if (newBlockRequiredForData(entrySize)) // Not enough space left
 	{
-		assert_and_return_r(finalizeAndflushCurrentBlock(), {});
+		if (firstWriter) [[unlikely]]
+			fatalAbort("Not enough space in the block!");
+
+		assert_and_return_r(finalizeAndflushCurrentBlock(), false);
 		startNewBlock();
 	}
 
 	StorageIO blockIo{ _block };
-	assert_and_return_r(blockIo.write(entryBuffer.data(), entryBuffer.size()), false);
+	assert_and_return_r(blockIo.write(entryBuffer.data(), entrySize), false);
+	++_blockItemCount;
 
 	auto pendingOperationIterator = std::find(begin_to_end(_pendingOperations), opId);
 	assert_and_return_message_r(pendingOperationIterator != _pendingOperations.end(), "Operation" + std::to_string(opId) + " hasn't been registered!", false);
 	_pendingOperations.erase(pendingOperationIterator);
 
-	if (_pendingOperations.empty() && _operationsProcessed > 1'000) // TODO: increase this limit for production
-	{
-		// No more pending operations left - safe to clear the log
-		// TODO: do it asynchronously
-		assert_and_return_r(clearLog(), false);
-		_operationsProcessed = 0;
-	}
+	// TODO: this requires _mtxBlock to be recursive
+	//if (_pendingOperations.empty() && _operationsProcessed > 1'000) // TODO: increase this limit for production
+	//{
+	//	// It's unlikely that there will be no pending operations when this branch is examined - this will almost never be invoked
 
+	//	// No more pending operations left - safe to clear the log
+	//	// TODO: do it asynchronously
+	//	assert_and_return_r(clearLog(), false);
+	//	_operationsProcessed = 0;
+	//}
+
+	_mtxBlock.unlock();
+
+	//  Waiting for another thread to flush the block and handling the timeout
+
+	waitForFlushAndHandleTimeout(newOpId, firstWriter, timeStamp);
 	return true;
 }
 
@@ -345,6 +400,8 @@ inline constexpr bool DbWAL<Record, StorageAdapter>::finalizeAndflushCurrentBloc
 	assert_and_return_r(_logFile.write(_block.data(), _block.MaxCapacity), false);
 	assert_and_return_r(_logFile.flush(), false);
 
+	_lastFlushedOpId = _lastStoredOpId;
+
 	return true;
 }
 
@@ -355,7 +412,42 @@ inline constexpr bool DbWAL<Record, StorageAdapter>::newBlockRequiredForData(siz
 }
 
 template<RecordType Record, class StorageAdapter>
-inline constexpr bool DbWAL<Record, StorageAdapter>::hasUnflushedItems() const noexcept
+inline constexpr bool DbWAL<Record, StorageAdapter>::blockIsEmpty() const noexcept
 {
-	return _block.size() > 2;
+	return _block.size() <= 2;
+}
+
+template<RecordType Record, class StorageAdapter>
+inline void DbWAL<Record, StorageAdapter>::waitForFlushAndHandleTimeout(OpID currentOpId, const bool firstWriter, const uint64_t operationStartTimeStamp) noexcept
+{
+	/*//////////////////////////////////////////////////////////////////////////////////////////////////////
+	                 Waiting for another thread to flush the block and handling the timeout
+	//////////////////////////////////////////////////////////////////////////////////////////////////////*/
+
+	while (_lastFlushedOpId < currentOpId)
+	{
+		// Assuming 4 GHz clock speed. Will increment twice slower (longer timeout) at 2 GHz.
+		static constexpr uint64_t fourBillion = 1_u64 << 32;
+		static constexpr uint64_t timeOut = 4;
+		const uint64_t elapsedSeconds = (rdtsc() - operationStartTimeStamp) / fourBillion;
+		if (firstWriter && elapsedSeconds > timeOut)
+		{
+			std::lock_guard lck(_mtxBlock);
+			// Re-check the last flushed OP ID under lock in case another thread started flushing at the same time
+			if (_lastFlushedOpId < currentOpId)
+			{
+				if (!finalizeAndflushCurrentBlock()) [[unlikely]]
+					fatalAbort("WAL: flush failed!");
+
+				startNewBlock();
+			}
+
+			break;
+		}
+
+		// Keep spinning until either another thread finishes the job or timeout occurs
+		std::this_thread::yield();
+	}
+
+	// Done waiting - return
 }
