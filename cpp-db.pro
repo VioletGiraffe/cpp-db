@@ -53,29 +53,7 @@ INCLUDEPATH += \
 	../cpputils \
 	../cpp-template-utils
 
-HEADERS += \
-	src/WAL/operation_completion_marker.hpp \
-	src/cpp-db.hpp \
-	src/cppDb_compile_time_sanity_checks.hpp \
-	src/dbfield_size_helpers.hpp \
-	src/dbops.hpp \
-	src/dbrecord.hpp \
-	src/dbschema.hpp \
-	src/dbwal.hpp \
-	src/index/dbindex.hpp \
-	src/index/dbindices.hpp \
-	src/index/index_persistence.hpp \
-	src/index_helpers.hpp \
-	src/dbfield.hpp \
-	src/dbstorage.hpp \
-	src/serialization/dbrecord-serializer.hpp \
-	src/storage/io_with_hashing.hpp \
-	src/storage/storage_helpers.hpp \
-	src/storage/storage_io_interface.hpp \
-	src/storage/storage_qt.hpp \
-	src/storage/storage_static_buffer.hpp \
-	src/utils/dbutilities.hpp \
-	src/WAL/wal_serializer.hpp
+HEADERS += $$files(src/*.hpp, true)
 
 SOURCES += \
 	src/utils/dbutilities.cpp
