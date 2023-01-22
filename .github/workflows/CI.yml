@@ -54,6 +54,9 @@ jobs:
         g++ --version
         ls
         ls ..
+        export PATH=$Qt5_DIR/bin/:$PATH
+        export LD_LIBRARY_PATH=$Qt5_DIR/lib/:$LD_LIBRARY_PATH
+        ls $Qt5_DIR/lib
         pushd tests
         $Qt5_DIR/bin/qmake -r CONFIG+=release
         make -j
