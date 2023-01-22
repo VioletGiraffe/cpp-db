@@ -47,20 +47,18 @@ jobs:
       if: startsWith(matrix.os, 'ubuntu')
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
-        sudo apt install gcc-12 g++-12
+        sudo apt install -y gcc-12 g++-12
         sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-12 50
         sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-12 50
         g++ --version
-        ls
-        ls ..
         export PATH=$Qt5_DIR/bin/:$PATH
         export LD_LIBRARY_PATH=$Qt5_DIR/lib/:$LD_LIBRARY_PATH
-        ls $Qt5_DIR/lib
         pushd tests
         $Qt5_DIR/bin/qmake -r CONFIG+=release
         make -j
         popd
         wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/7/linuxdeployqt-7-x86_64.AppImage"
+        sudo apt install -y libfuse2
         chmod a+x linuxdeployqt-7-x86_64.AppImage
         ./linuxdeployqt-7-x86_64.AppImage ./tests/bin_tests/test-app -unsupported-allow-new-glibc -bundle-non-qt-libs
 
