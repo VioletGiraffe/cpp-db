@@ -54,8 +54,6 @@ jobs:
         g++ --version
         ls
         ls ..
-        export PATH=$Qt5_DIR/bin/:$PATH
-        unset QTDIR; unset QT_PLUGIN_PATH
         pushd tests
         $Qt5_DIR/bin/qmake -r CONFIG+=release
         make -j
