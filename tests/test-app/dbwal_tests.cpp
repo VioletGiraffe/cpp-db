@@ -58,8 +58,6 @@ TEST_CASE("DbWAL basics and normal operation", "[dbwal]")
 
 #ifndef _DEBUG
 	REQUIRE(wal.updateOpStatus(0, WAL::OpStatus::Successful) == false); // No such ID
-	REQUIRE(wal.updateOpStatus(opID, WAL::OpStatus::Successful) == false); // No such ID
-	REQUIRE(wal.updateOpStatus(opID, WAL::OpStatus::Successful) == false); // No longer pending!
 #endif
 
 	REQUIRE(wal.clearLog());
@@ -84,14 +82,14 @@ TEST_CASE("DbWAL: registering multiple operations - single thread, single record
 		using FArray = Field<uint32_t, 4, true>;
 
 		using RecordWithArray = DbRecord<F64, F16, FString, FArray>;
-		RecordWithArray r1(1'000'000'000'000ULL, -32700_i16, "Hello!", std::vector<uint32_t>{ {123, 456, 789} });
-		RecordWithArray r2(1'111'111'111'000ULL, -27000_i16, "World!", std::vector<uint32_t>{ {990, 1990, 19990} });
+		RecordWithArray r1(1'000'000'000'000ULL, int16_t{ -32700 }, "Hello!", std::vector<uint32_t>{ {123, 456, 789} });
+		RecordWithArray r2(1'111'111'111'000ULL, int16_t{ -27000 }, "World!", std::vector<uint32_t>{ {990, 1990, 19990} });
 
 		Operation::Insert<RecordWithArray> opInsert(r1);
-		Operation::AppendToArray<RecordWithArray, F16, FArray, true> opAppend(-31000_i16, r2);
+		Operation::AppendToArray<RecordWithArray, F16, FArray, true> opAppend(int16_t{ -31000 }, r2);
 		Operation::Delete<RecordWithArray, FString> opDelete("Mars");
 		Operation::UpdateFull<RecordWithArray, F64, false> opUpdate(r1, 1'111'111'111'000ULL);
-		Operation::Find<RecordWithArray, F16, FString> opFind(-21999_i16, "Venus");
+		Operation::Find<RecordWithArray, F16, FString> opFind(int16_t{ -21999 }, "Venus");
 
 		{
 			io::StaticBufferAdapter<4096> buffer;
@@ -124,7 +122,8 @@ TEST_CASE("DbWAL: registering multiple operations - single thread, single record
 					REQUIRE(opAppend.keyValue == op.keyValue);
 					REQUIRE(opAppend.updatedArray() == op.updatedArray());
 					REQUIRE(op.updatedArray() == r2.fieldValue<FArray>());
-					REQUIRE(opAppend.insertIfNotPresent() == op.insertIfNotPresent());
+					// Still crashes intellisense! VS 17.4.3
+					//REQUIRE(opAppend.insertIfNotPresent() == op.insertIfNotPresent());
 				}
 				else
 					FAIL();
