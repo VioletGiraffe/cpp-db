@@ -58,6 +58,16 @@ private:
 	using EntrySizeType = uint16_t;
 	using Serializer = WAL::Serializer<Record>;
 
+	using BlockChecksumType = uint32_t;
+	static_assert(std::is_same_v<BlockChecksumType, decltype(FNV_1a_32(nullptr, 0))>);
+
+	using BlockItemCountType = uint16_t;
+	static constexpr size_t BlockSize = 4096;
+
+	// These two definitions are for bug checking only
+	static constexpr size_t MinItemSize = sizeof(EntrySizeType) + sizeof(OpID) + 1 /* assume at least one byte of payload */;
+	static constexpr size_t MaxItemCount = BlockSize / MinItemSize;
+
 private:
 	std::mutex _mtxBlock;
 	// Has to be atomic for the wait loop to spin on it.
@@ -65,10 +75,6 @@ private:
 	// Doesn't have to be atomic - only accessed under mutex
 	OpID _lastStoredOpId = 0;
 	
-	using BlockItemCountType = uint16_t;
-	using BlockChecksumType = uint32_t;
-	static_assert(std::is_same_v<BlockChecksumType, decltype(FNV_1a_32(nullptr, 0))>);
-	static constexpr size_t BlockSize = 4096;
 	io::StaticBufferAdapter<BlockSize> _block;
 	size_t _blockItemCount = 0;
 
@@ -186,6 +192,8 @@ template <typename Receiver>
 					fatalAbort("Failed to read a WAL block that's not the last one!");
 			}
 
+			blockBuffer.seek(0);
+
 			// Verify checksum before processing the block
 			const auto checksum = memory_cast<BlockChecksumType>(blockBuffer.data() + BlockSize - sizeof(BlockChecksumType));
 
@@ -200,7 +208,7 @@ template <typename Receiver>
 
 			BlockItemCountType itemCountInBlock = 0;
 			assert_and_return_r(blockBufferIo.read(itemCountInBlock), false);
-			assert_debug_only(itemCountInBlock > 0);
+			assert_and_return_r(itemCountInBlock > 0 && itemCountInBlock <= MaxItemCount, false);
 
 			for (size_t i = 0; i < itemCountInBlock; ++i)
 			{
@@ -233,7 +241,7 @@ template <typename Receiver>
 		}
 
 		if (pass == 1)
-			assert_and_return_r(_logFile.seek(0) && blockBuffer.seek(0), false);
+			assert_and_return_r(_logFile.seek(0), false);
 	}
 
 	return true;
@@ -258,26 +266,28 @@ DbWAL<Record, StorageAdapter>::registerOperation(OpType&& op) noexcept
 
 	using Serializer = WAL::Serializer<Record>;
 	StorageIO io{ entryBuffer };
+	
+	// !!!!!!!!!!!!!!!!!! Warning: unsafe to use 'op' after forwarding it
 	assert_and_return_r(Serializer::serialize(std::forward<OpType>(op), io), {});
+
 	// Fill in the size
 	const auto entrySize = entryBuffer.size();
 	assert_debug_only(entrySize <= std::numeric_limits<EntrySizeType>::max());
+	assert_debug_only(entrySize > MinItemSize);
+
 	assert_r(io.write(static_cast<EntrySizeType>(entrySize), 0 /* position to write at */));
 
-	// !!!!!!!!!!!!!!!!!! Warning: unsafe to use 'op' after forwarding it
-
 	const OpID newOpId = ++_lastOpId;
+	// Fill in the ID
 	assert_r(io.write(newOpId));
 	// Now buffer holds the complete entry
-
-	const auto bufferSize = entryBuffer.size();
 
 	// Time to lock the shared block buffer
 	_mtxBlock.lock();
 	const bool firstWriter = blockIsEmpty();
 	const uint64_t timeStamp = firstWriter ? rdtsc() : 0;
 
-	if (newBlockRequiredForData(bufferSize)) // Not enough space left
+	if (newBlockRequiredForData(entrySize)) // Not enough space left
 	{
 		if (firstWriter) [[unlikely]]
 			fatalAbort("Not enough space in the block!"); // TODO: handle the case of data being larger than one block can fit
@@ -286,8 +296,9 @@ DbWAL<Record, StorageAdapter>::registerOperation(OpType&& op) noexcept
 		startNewBlock();
 	}
 
-	assert_and_return_r(_block.write(entryBuffer.data(), bufferSize), {});
+	assert_and_return_r(_block.write(entryBuffer.data(), entrySize), {});
 	++_blockItemCount;
+	assert_debug_only(_blockItemCount <= MaxItemCount);
 
 	_pendingOperations.push_back(newOpId);
 	++_operationsProcessed;
@@ -320,6 +331,7 @@ inline bool DbWAL<Record, StorageAdapter>::updateOpStatus(const OpID opId, const
 	assert_and_return_r(Serializer::serialize(completionMarker, bufferIo), false);
 	const auto entrySize = entryBuffer.size();
 	assert_debug_only(entrySize <= std::numeric_limits<EntrySizeType>::max());
+	assert_debug_only(entrySize >= MinItemSize);
 	// Fill in the size
 	assert_and_return_r(bufferIo.write(static_cast<EntrySizeType>(entrySize), /* pos */ 0), false);
 
@@ -381,7 +393,8 @@ inline constexpr bool DbWAL<Record, StorageAdapter>::finalizeAndflushCurrentBloc
 	assert_r(_block.size() > 0);
 
 	_block.seek(0);
-	assert_and_return_r(_blockItemCount <= std::numeric_limits<BlockItemCountType>::max(), false);
+	assert_and_return_r(_blockItemCount <= std::numeric_limits<BlockItemCountType>::max() && _blockItemCount > 0, false);
+	assert_debug_only(_blockItemCount <= MaxItemCount);
 
 	StorageIO blockWriter{ _block };
 	assert_and_return_r(blockWriter.write(static_cast<BlockItemCountType>(_blockItemCount)), false);
@@ -426,9 +439,11 @@ inline void DbWAL<Record, StorageAdapter>::waitForFlushAndHandleTimeout(OpID cur
 
 	while (_lastFlushedOpId < currentOpId)
 	{
-		// Assuming 4 GHz clock speed. Will increment twice slower (longer timeout) at 2 GHz.
-		static constexpr uint64_t fourBillion = 1_u64 << 32;
-		static constexpr uint64_t timeOut = 4;
+		// Assuming 2 GHz clock speed. Will increment twice faster (shorter timeout) at 4 GHz.
+		static constexpr uint64_t fourBillion = 1_u64 << 31;
+		// Shorter tmeout for debugging. TODO: restore later
+		//static constexpr uint64_t timeOut = 4;
+		static constexpr uint64_t timeOut = 1;
 		const uint64_t elapsedSeconds = (rdtsc() - operationStartTimeStamp) / fourBillion;
 		if (firstWriter && elapsedSeconds > timeOut)
 		{

@@ -2,6 +2,8 @@
 #include "dbwal.hpp"
 #include "storage/storage_static_buffer.hpp"
 
+#include <array>
+
 TEST_CASE("DbWAL basics and normal operation", "[dbwal]")
 {
 	using F16 = Field<int16_t, 2>;
@@ -92,8 +94,8 @@ TEST_CASE("DbWAL: registering multiple operations - single thread, single record
 		Operation::Find<RecordWithArray, F16, FString> opFind(int16_t{ -21999 }, "Venus");
 
 		{
-			io::StaticBufferAdapter<4096> buffer;
-			DbWAL<RecordWithArray, decltype(buffer)> wal{ buffer };
+			io::StaticBufferAdapter<150'000> walDataBuffer;
+			DbWAL<RecordWithArray, decltype(walDataBuffer)> wal{ walDataBuffer };
 			REQUIRE(wal.openLogFile({}));
 
 			std::vector<WAL::OperationIdType> registeredOpIds;
@@ -104,17 +106,27 @@ TEST_CASE("DbWAL: registering multiple operations - single thread, single record
 			registeredOpIds.push_back(wal.registerOperation(opFind).value());
 
 			REQUIRE(wal.closeLogFile());
-			const auto size = buffer.size();
+			const auto size = walDataBuffer.size();
 			REQUIRE(size > 0);
 
 			REQUIRE(wal.openLogFile({}));
 
-			size_t unfinishedOpsCount = 0;
-			REQUIRE(wal.verifyLog([&](auto&& op) {
-				++unfinishedOpsCount;
+			std::array<size_t, 6> unfinishedOpsCount;
+			unfinishedOpsCount.fill(0);
 
+			const bool verificationSuccessful = wal.verifyLog([&](auto&& op) {
 				using OpType = std::remove_cvref_t<decltype(op)>;
-				if constexpr (std::is_same_v<OpType, WAL::OperationCompletedMarker>)
+				static constexpr bool isCompletionmarker = std::is_same_v<OpType, WAL::OperationCompletedMarker>;
+				static constexpr size_t indexForOpType = []() {
+					if constexpr (isCompletionmarker)
+						return 6 - 1;
+					else
+						return (size_t)OpType::op;
+				}();
+
+				++unfinishedOpsCount[indexForOpType];
+
+				if constexpr (isCompletionmarker)
 				{
 				}
 				else if constexpr (std::is_same_v<decltype(opAppend), OpType>)
@@ -125,16 +137,34 @@ TEST_CASE("DbWAL: registering multiple operations - single thread, single record
 					// Still crashes intellisense! VS 17.4.3
 					//REQUIRE(opAppend.insertIfNotPresent() == op.insertIfNotPresent());
 				}
+				else if constexpr (std::is_same_v<decltype(opInsert), OpType>)
+				{
+					REQUIRE(op._record == r1);
+				}
+				else if constexpr (std::is_same_v<decltype(opDelete), OpType>)
+				{
+					REQUIRE(opDelete.keyValue == op.keyValue);
+				}
+				else if constexpr (std::is_same_v<decltype(opUpdate), OpType>)
+				{
+					REQUIRE(opUpdate.keyValue == op.keyValue);
+					REQUIRE(opUpdate.record == r1);
+				}
+				else if constexpr (std::is_same_v<decltype(opFind), OpType>)
+				{
+					REQUIRE(opFind._fields == op._fields);
+				}
 				else
 					FAIL();
-			}));
+			});
+
+			REQUIRE(verificationSuccessful);
+			REQUIRE(std::accumulate(begin_to_end(unfinishedOpsCount), 0_z) == 5);
+			REQUIRE(std::all_of(begin_to_end(unfinishedOpsCount), [](auto count) { return count <= 1; }));
 		}
 	}
 	catch (const std::exception& e) {
 		FAIL(e.what());
-	}
-	catch (...) {
-		FAIL("Unknown exception caught!");
 	}
 }
 
