@@ -2,12 +2,11 @@
 #include "index_test_helpers.cpp"
 
 #include "index/dbindices.hpp"
+#include "storage/storage_std.hpp"
+
 #include "container/algorithms.hpp"
 
-#include <QFile>
-#include <QDir>
-
-#include <random>
+#include <filesystem>
 #include <string>
 
 
@@ -29,10 +28,10 @@ TEST_CASE("Indices - simple interface test", "[dbindices]") {
 
 		CHECK(indices.addLocationForKey<Fs::id>("123", 0) == false);
 
-		CHECK(verifyIndexContents(indices.indexForField<F1::id>(), std::vector < std::pair<int, PageNumber> > {}));
-		CHECK(verifyIndexContents(indices.indexForField<Fs::id>(), std::vector < std::pair<std::string, PageNumber> > { {"0", 2}, {"123", 0} }));
+		CHECK(verifyIndexContents(indices.indexForField<F1::id>(), std::vector<std::pair<int, PageNumber>> {}));
+		CHECK(verifyIndexContents(indices.indexForField<Fs::id>(), std::vector<std::pair<std::string, PageNumber>> { {"0", 2}, {"123", 0} }));
 
-		CHECK(verifyIndexContents(indices.indexForField<F2::id>(), std::vector < std::pair<float, PageNumber> > { { -1e35, 20 }, { 0, 5 }}));
+		CHECK(verifyIndexContents(indices.indexForField<F2::id>(), std::vector<std::pair<float, PageNumber>> { { -1e35f, 20 }, { 0.0f, 5 }}));
 
 		CHECK(indices.removeKey<F2::id>(-1e34f) == false);
 
@@ -49,7 +48,7 @@ TEST_CASE("Indices - simple interface test", "[dbindices]") {
 
 		CHECK(indices.addLocationForKey<F2::id>(0.0f, 18));
 		CHECK(indices.addLocationForKey<F2::id>(0.0f, 17) == false);
-		CHECK(verifyIndexContents(indices.indexForField<F2::id>(), std::vector < std::pair<float, PageNumber> > { {0.0, 18} }));
+		CHECK(verifyIndexContents(indices.indexForField<F2::id>(), std::vector < std::pair<float, PageNumber> > { {0.0f, 18} }));
 		CHECK(indices.findKey<F2::id>(0.0f) == PageNumber{18});
 
 
@@ -81,14 +80,15 @@ TEST_CASE("Indices - Storing / loading", "[dbindices]") {
 		const auto referenceF2 = fillIndexRandomly(indices.indexForField<F2::id>(), N);
 		const auto referenceFs = fillIndexRandomly(indices.indexForField<Fs::id>(), N);
 
-		REQUIRE(indices.store("."));
+		REQUIRE(indices.store<io::FopenAdapter>("."));
 
 		decltype(indices) newIndices;
-		REQUIRE(newIndices.load("."));
+		REQUIRE(newIndices.load<io::FopenAdapter>("."));
 
-		for (auto&& entry : QDir(".").entryInfoList({ "*.index" }, QDir::Files))
+		for (auto&& entry : std::filesystem::directory_iterator{"."})
 		{
-			CHECK(QFile::remove(entry.absoluteFilePath()));
+			if (entry.is_regular_file() && entry.path().extension() == ".index")
+				CHECK(std::filesystem::remove(entry.path()));
 		}
 
 		REQUIRE(verifyIndexContents(newIndices.indexForField<F1::id>(), referenceF1));

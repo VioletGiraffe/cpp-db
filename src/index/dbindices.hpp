@@ -2,7 +2,6 @@
 
 #include "dbindex.hpp"
 #include "../dbfield.hpp"
-#include "../storage/storage_qt.hpp"
 #include "index_persistence.hpp"
 #include "../index_helpers.hpp"
 
@@ -68,7 +67,9 @@ public:
 		return std::get<fieldTupleIndex>(_indices);
 	}
 
+	template <class FileAdapter>
 	bool load(const std::string& indexStorageFolder);
+	template <class FileAdapter>
 	bool store(const std::string& indexStorageFolder);
 
 private:
@@ -90,11 +91,12 @@ private:
 };
 
 template <class... IndexedFields>
+template <class FileAdapter>
 bool Indices<IndexedFields...>::store(const std::string& indexStorageFolder)
 {
 	bool success = true;
 	tuple::for_each(_indices, [this, &success, &indexStorageFolder](const auto& index) {
-		if (!Index::store<io::QFileAdapter>(index, indexStorageFolder))
+		if (!Index::store<FileAdapter>(index, indexStorageFolder))
 		{
 			success = false;
 			return;
@@ -106,11 +108,12 @@ bool Indices<IndexedFields...>::store(const std::string& indexStorageFolder)
 }
 
 template <class... IndexedFields>
+template <class FileAdapter>
 bool Indices<IndexedFields...>::load(const std::string& indexStorageFolder)
 {
 	bool success = true;
 	tuple::for_each(_indices, [this, &success, &indexStorageFolder](auto& index) {
-		if (!Index::load<io::QFileAdapter>(index, indexStorageFolder))
+		if (!Index::load<FileAdapter>(index, indexStorageFolder))
 		{
 			success = false;
 			return;

@@ -13,7 +13,8 @@ inline bool operator==(const std::pair<T1, U1>& p1, const std::pair<T2, U2>& p2)
 template <typename Field>
 inline auto fillIndexRandomly(DbIndex<Field>& index, const uint64_t nItems)
 {
-	using IndexEntryType = std::pair<typename DbIndex<Field>::key_type, PageNumber>;
+	using KeyType = typename DbIndex<Field>::key_type;
+	using IndexEntryType = std::pair<KeyType, PageNumber>;
 	using Comparator = decltype([](const IndexEntryType& l, const IndexEntryType& r) { return l.first < r.first; });
 	std::set<IndexEntryType, Comparator> itemsSet;
 
@@ -24,7 +25,7 @@ inline auto fillIndexRandomly(DbIndex<Field>& index, const uint64_t nItems)
 		if constexpr (std::is_same_v<std::string, typename Field::ValueType>)
 			itemsSet.emplace(std::to_string(rng.rand()), i);
 		else
-			itemsSet.emplace(rng.rand(), i);
+			itemsSet.emplace(static_cast<KeyType>(rng.rand()), i);
 	}
 
 	std::vector<IndexEntryType> items;

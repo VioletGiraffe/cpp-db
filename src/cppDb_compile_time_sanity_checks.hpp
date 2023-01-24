@@ -1,7 +1,7 @@
 #pragma once
 
 #include "cpp-db.hpp"
-#include "storage/storage_qt.hpp"
+#include "storage/storage_std.hpp"
 #include "WAL/wal_serializer.hpp"
 #include "assert/advanced_assert.h"
 
@@ -72,8 +72,8 @@ inline void dbWal_checks()
 
 	using Record = DbRecord<F3, F_ull, Fs>;
 
-	io::QMemoryDeviceAdapter io;
-	DbWAL<Record, decltype(io)> wal{io};
+	io::StaticBufferAdapter<2048> buffer;
+	DbWAL<Record, decltype(buffer)> wal{buffer};
 }
 
 inline void operations_checks()
@@ -87,8 +87,8 @@ inline void operations_checks()
 	Operation::Insert<Record> op{ Record{3.14, 15, "Hello World!"} };
 	WAL::Serializer<Record> serializer;
 
-	io::QMemoryDeviceAdapter buffer;
-	StorageIO<io::QMemoryDeviceAdapter> io{ buffer };
+	io::StaticBufferAdapter<2048> buffer;
+	StorageIO io{ buffer };
 
 	assert_r(serializer.serialize(op, io));
 
@@ -182,8 +182,8 @@ inline void cppDb_compileTimeChecks()
 	loc = threeIndices.findKey<F2::id>(3.14f);
 	loc = threeIndices.findKey<F1::id>(31);
 	[[maybe_unused]] size_t nRemoved = threeIndices.removeKey<Fs::id>({});
-	[[maybe_unused]] bool success = threeIndices.load(".");
-	success = threeIndices.store(".");
+	[[maybe_unused]] bool success = threeIndices.load<io::FopenAdapter>(".");
+	success = threeIndices.store<io::FopenAdapter>(".");
 
 	static_assert(decltype(threeIndices)::hasIndex<F3>() == false);
 
@@ -196,8 +196,8 @@ inline void cppDb_compileTimeChecks()
 	auto& f1Index1 = singleFieldIndex.indexForField<F1::id>();
 	auto& fsIndex = threeIndices.indexForField<Fs::id>();
 
-	auto storePath = Index::store<io::QFileAdapter>(fsIndex, "Z:Z:" /* Path intentionally invalid */);
-	storePath = Index::load<io::QFileAdapter>(fsIndex, "Z:Z:");
+	auto storePath = Index::store<io::FopenAdapter>(fsIndex, "Z:Z:" /* Path intentionally invalid */);
+	storePath = Index::load<io::FopenAdapter>(fsIndex, "Z:Z:");
 
 	fsIndex.addLocationForKey("123", { 10 });
 	fsIndex.findKey("123");

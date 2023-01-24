@@ -1,6 +1,6 @@
-CONFIG += strict_c++ c++_latest # this is an intentinal typo, c++_latest is not a valid specifier which leads qmake to NOT generate any -std=... flag at all, which is what I need
-  
-QT = core
+CONFIG += strict_c++ c++_latest # this is an intentional typo, c++_latest is not a valid specifier which leads qmake to NOT generate any -std=... flag at all, which is what I need
+
+CONFIG -= qt
 
 TEMPLATE = app
 CONFIG += console

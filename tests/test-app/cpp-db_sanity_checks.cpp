@@ -4,7 +4,7 @@
 #include <string>
 #include <type_traits>
 
-TEST_CASE("Compilation tests", "[cpp-db]") {
+TEST_CASE("Compilation tests", "[compilation]") {
 	cppDb_compileTimeChecks();
 
 	using Fs = Field<std::string, 42>;
@@ -23,7 +23,7 @@ TEST_CASE("Compilation tests", "[cpp-db]") {
 	static_assert(Fa::isArray() == true);
 
 	CHECK(arr.fieldSize() == 4);
-	arr.value.emplace_back(123);
+	arr.value.emplace_back(123_i16);
 	CHECK(arr.fieldSize() == 4 + 2);
 
 	Field<std::string, 42, true> strArray;
