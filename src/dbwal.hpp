@@ -264,7 +264,6 @@ DbWAL<Record, StorageAdapter>::registerOperation(OpType&& op) noexcept
 	entryBuffer.reserve(sizeof(EntrySizeType) + sizeof(OpID));
 	entryBuffer.seekToEnd();
 
-	using Serializer = WAL::Serializer<Record>;
 	StorageIO io{ entryBuffer };
 	
 	// !!!!!!!!!!!!!!!!!! Warning: unsafe to use 'op' after forwarding it

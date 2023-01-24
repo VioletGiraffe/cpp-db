@@ -18,13 +18,13 @@ public:
 
 		switch (mode) {
 		case OpenMode::Read:
-			::fopen_s(&_handle, fileName.c_str(), "rb");
+			_handle = ::fopen(fileName.c_str(), "rb");
 			break;
 		case OpenMode::Write:
-			::fopen_s(&_handle, fileName.c_str(), "wb");
+			_handle = ::fopen(fileName.c_str(), "wb");
 			break;
 		case OpenMode::ReadWrite:
-			::fopen_s(&_handle, fileName.c_str(), truncate ? "w+b" : "a+b");
+			_handle = ::fopen(fileName.c_str(), truncate ? "w+b" : "a+b");
 			break;
 		default:
 			assert_and_return_unconditional_r("Unknown open mode " + std::to_string(static_cast<int>(mode)), false);
