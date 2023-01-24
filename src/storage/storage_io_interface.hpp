@@ -55,8 +55,8 @@ struct StorageIO
 	[[nodiscard]] constexpr bool seekToEnd() noexcept;
 	[[nodiscard]] constexpr uint64_t pos() const noexcept;
 
-	[[nodiscard]] constexpr uint64_t size() const noexcept;
-	[[nodiscard]] constexpr bool atEnd() const noexcept;
+	[[nodiscard]] constexpr uint64_t size() noexcept;
+	[[nodiscard]] constexpr bool atEnd() noexcept;
 
 	[[nodiscard]] constexpr bool clear() noexcept;
 
@@ -232,13 +232,13 @@ inline constexpr uint64_t StorageIO<IOAdapter>::pos() const noexcept
 }
 
 template<typename IOAdapter>
-inline constexpr uint64_t StorageIO<IOAdapter>::size() const noexcept
+inline constexpr uint64_t StorageIO<IOAdapter>::size() noexcept
 {
 	return _io.size();
 }
 
 template<typename IOAdapter>
-inline constexpr bool StorageIO<IOAdapter>::atEnd() const noexcept
+inline constexpr bool StorageIO<IOAdapter>::atEnd() noexcept
 {
 	return _io.atEnd();
 }
