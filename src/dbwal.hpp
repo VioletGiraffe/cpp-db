@@ -281,28 +281,32 @@ DbWAL<Record, StorageAdapter>::registerOperation(OpType&& op) noexcept
 	assert_r(io.write(newOpId));
 	// Now buffer holds the complete entry
 
-	// Time to lock the shared block buffer
-	_mtxBlock.lock();
-	const bool firstWriter = blockIsEmpty();
-	const uint64_t timeStamp = firstWriter ? rdtsc() : 0;
+	bool firstWriter = false;
+	uint64_t timeStamp = 0;
 
-	if (newBlockRequiredForData(entrySize)) // Not enough space left
 	{
-		if (firstWriter) [[unlikely]]
-			fatalAbort("Not enough space in the block!"); // TODO: handle the case of data being larger than one block can fit
+		// Time to lock the shared block buffer
+		std::lock_guard lock{_mtxBlock};
 
-		assert_and_return_r(finalizeAndflushCurrentBlock(), {});
-		startNewBlock();
+		firstWriter = blockIsEmpty();
+		timeStamp = firstWriter ? rdtsc() : 0;
+
+		if (newBlockRequiredForData(entrySize)) // Not enough space left
+		{
+			if (firstWriter) [[unlikely]]
+				fatalAbort("Not enough space in the block!"); // TODO: handle the case of data being larger than one block can fit
+
+			assert_and_return_r(finalizeAndflushCurrentBlock(), {});
+			startNewBlock();
+		}
+
+		assert_and_return_r(_block.write(entryBuffer.data(), entrySize), {});
+		++_blockItemCount;
+		assert_debug_only(_blockItemCount <= MaxItemCount);
+
+		_pendingOperations.push_back(newOpId);
+		++_operationsProcessed;
 	}
-
-	assert_and_return_r(_block.write(entryBuffer.data(), entrySize), {});
-	++_blockItemCount;
-	assert_debug_only(_blockItemCount <= MaxItemCount);
-
-	_pendingOperations.push_back(newOpId);
-	++_operationsProcessed;
-	
-	_mtxBlock.unlock();
 
 	/*//////////////////////////////////////////////////////////////////////////////////////////////////////
 	             Waiting for another thread to flush the block and handling the timeout
@@ -334,42 +338,46 @@ inline bool DbWAL<Record, StorageAdapter>::updateOpStatus(const OpID opId, const
 	// Fill in the size
 	assert_and_return_r(bufferIo.write(static_cast<EntrySizeType>(entrySize), /* pos */ 0), false);
 
+	bool firstWriter = false;
+	uint64_t timeStamp = 0;
+	OpID newOpId = 0;
+
 	// Time to lock the shared block
-	_mtxBlock.lock();
-
-	const bool firstWriter = blockIsEmpty();
-	const uint64_t timeStamp = firstWriter ? rdtsc() : 0;
-	const OpID newOpId = ++_lastOpId;
-
-	if (newBlockRequiredForData(entrySize)) // Not enough space left
 	{
-		if (firstWriter) [[unlikely]]
-			fatalAbort("Not enough space in the block!");
+		std::lock_guard lock{_mtxBlock};
 
-		assert_and_return_r(finalizeAndflushCurrentBlock(), false);
-		startNewBlock();
+		firstWriter = blockIsEmpty();
+		timeStamp = firstWriter ? rdtsc() : 0;
+		newOpId = ++_lastOpId;
+
+		if (newBlockRequiredForData(entrySize)) // Not enough space left
+		{
+			if (firstWriter) [[unlikely]]
+				fatalAbort("Not enough space in the block!");
+
+			assert_and_return_r(finalizeAndflushCurrentBlock(), false);
+			startNewBlock();
+		}
+
+		StorageIO blockIo{ _block };
+		assert_and_return_r(blockIo.write(entryBuffer.data(), entrySize), false);
+		++_blockItemCount;
+
+		auto pendingOperationIterator = std::find(begin_to_end(_pendingOperations), opId);
+		assert_and_return_message_r(pendingOperationIterator != _pendingOperations.end(), "Operation" + std::to_string(opId) + " hasn't been registered!", false);
+		_pendingOperations.erase(pendingOperationIterator);
+
+		// TODO: this requires _mtxBlock to be recursive
+		//if (_pendingOperations.empty() && _operationsProcessed > 1'000) // TODO: increase this limit for production
+		//{
+		//	// It's unlikely that there will be no pending operations when this branch is examined - this will almost never be invoked
+
+		//	// No more pending operations left - safe to clear the log
+		//	// TODO: do it asynchronously
+		//	assert_and_return_r(clearLog(), false);
+		//	_operationsProcessed = 0;
+		//}
 	}
-
-	StorageIO blockIo{ _block };
-	assert_and_return_r(blockIo.write(entryBuffer.data(), entrySize), false);
-	++_blockItemCount;
-
-	auto pendingOperationIterator = std::find(begin_to_end(_pendingOperations), opId);
-	assert_and_return_message_r(pendingOperationIterator != _pendingOperations.end(), "Operation" + std::to_string(opId) + " hasn't been registered!", false);
-	_pendingOperations.erase(pendingOperationIterator);
-
-	// TODO: this requires _mtxBlock to be recursive
-	//if (_pendingOperations.empty() && _operationsProcessed > 1'000) // TODO: increase this limit for production
-	//{
-	//	// It's unlikely that there will be no pending operations when this branch is examined - this will almost never be invoked
-
-	//	// No more pending operations left - safe to clear the log
-	//	// TODO: do it asynchronously
-	//	assert_and_return_r(clearLog(), false);
-	//	_operationsProcessed = 0;
-	//}
-
-	_mtxBlock.unlock();
 
 	//  Waiting for another thread to flush the block and handling the timeout
 
