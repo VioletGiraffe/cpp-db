@@ -3,6 +3,7 @@
 #include "3rdparty/catch2/catch.hpp"
 
 #include "assert/advanced_assert.h"
+#include "threading/thread_helpers.h"
 
 #include <iostream>
 
@@ -13,6 +14,8 @@ extern "C" int wmain(int argc, wchar_t* argv[], wchar_t* []) {
 // Standard C/C++ main entry point
 int main(int argc, char* argv[]) {
 #endif
+
+	setThreadName("Main thread");
 
 	AdvancedAssert::setLoggingFunc([](const char* msg) {
 		std::cout << msg << std::endl;
