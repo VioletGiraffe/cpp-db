@@ -4,14 +4,20 @@
 
 #include <array>
 
-TEST_CASE("DbWAL basics and normal operation", "[dbwal]")
+#ifdef _DEBUG
+	#define REQUIRE_RELEASE_ONLY(...) (void)0
+#else
+	#define REQUIRE_RELEASE_ONLY(...) REQUIRE(__VA_ARGS__)
+#endif
+
+TEST_CASE("DbWAL basics", "[dbwal]")
 {
 	using F16 = Field<int16_t, 2>;
 
 	using FArray = Field<uint32_t, 3, true>;
 	using RecordWithArray = DbRecord<F16, FArray>;
 
-	io::StaticBufferAdapter<4096> buffer;
+	io::StaticBufferAdapter<8192> buffer;
 	DbWAL<RecordWithArray, decltype(buffer)> wal{ buffer };
 	REQUIRE(wal.openLogFile({}));
 	REQUIRE(buffer.size() == 0);
@@ -58,10 +64,6 @@ TEST_CASE("DbWAL basics and normal operation", "[dbwal]")
 	// One operation, because we never indicated that it has completed
 	REQUIRE(unfinishedOpsCount == 1);
 
-#ifndef _DEBUG
-	REQUIRE(wal.updateOpStatus(0, WAL::OpStatus::Successful) == false); // No such ID
-#endif
-
 	REQUIRE(wal.clearLog());
 	REQUIRE(buffer.size() == 0);
 
@@ -71,11 +73,35 @@ TEST_CASE("DbWAL basics and normal operation", "[dbwal]")
 	}));
 	REQUIRE(unfinishedOpsCount == 0);
 
+	// Test updating op status
+	const auto id = wal.registerOperation(opAppend);
+	REQUIRE(id);
+	REQUIRE(buffer.pos() == 4096);
+
+	// Rewind for verification without closing the log
+	buffer.seek(0);
+	REQUIRE(wal.verifyLog([&](auto&& /*op*/) {
+		++unfinishedOpsCount;
+	}));
+ 	REQUIRE(unfinishedOpsCount == 1);
+
+	buffer.seek(4096);
+	REQUIRE(wal.updateOpStatus(*id, WAL::OpStatus::Successful));
+	REQUIRE_RELEASE_ONLY(wal.updateOpStatus(*id + 1, WAL::OpStatus::Successful) == false); // No such ID
+	unfinishedOpsCount = 0;
+	buffer.seek(0);
+	REQUIRE(wal.verifyLog([&](auto&& /*op*/) {
+		++unfinishedOpsCount;
+	}));
+	REQUIRE(unfinishedOpsCount == 0);
+	REQUIRE_RELEASE_ONLY(wal.updateOpStatus(*id + 1, WAL::OpStatus::Successful) == false); // No longer pending
+
+	// Closing the log
 	REQUIRE(wal.closeLogFile());
-	REQUIRE(buffer.size() == 0);
+	REQUIRE(buffer.size() == 8192);
 }
 
-TEST_CASE("DbWAL: registering multiple operations - single thread, single record type", "[dbwal]")
+TEST_CASE("DbWAL: registering multiple operations - single thread", "[dbwal]")
 {
 	try {
 		using F64 = Field<uint64_t, 1>;

@@ -439,11 +439,11 @@ inline void DbWAL<Record, StorageAdapter>::waitForFlushAndHandleTimeout(OpID cur
 	while (_lastFlushedOpId < currentOpId)
 	{
 		// Assuming 2 GHz clock speed. Will increment twice faster (shorter timeout) at 4 GHz.
-		static constexpr uint64_t fourBillion = 1_u64 << 31;
+		static constexpr uint64_t twoBillion = 1_u64 << (31 - 3); // Counting in 8ths of a second
 		// Shorter tmeout for debugging. TODO: restore later
 		//static constexpr uint64_t timeOut = 4;
 		static constexpr uint64_t timeOut = 1;
-		const uint64_t elapsedSeconds = (rdtsc() - operationStartTimeStamp) / fourBillion;
+		const uint64_t elapsedSeconds = (rdtsc() - operationStartTimeStamp) / twoBillion;
 		if (firstWriter && elapsedSeconds > timeOut)
 		{
 			std::lock_guard lck(_mtxBlock);

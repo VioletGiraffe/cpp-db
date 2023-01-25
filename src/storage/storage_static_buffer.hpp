@@ -10,7 +10,7 @@ class StaticBufferAdapter
 {
 public:
 	static constexpr auto MaxCapacity = MaxSize;
-	constexpr bool open(const std::string& /*fileName*/, const OpenMode /*mode*/) noexcept
+	constexpr bool open(std::string_view /*fileName*/, const OpenMode /*mode*/) noexcept
 	{
 		return true;
 	}

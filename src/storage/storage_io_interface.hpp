@@ -1,6 +1,5 @@
 #pragma once
 
-#include "storage_helpers.hpp"
 #include "../dbfield.hpp"
 
 #include "hash/fnv_1a.h"
@@ -9,6 +8,7 @@
 
 #include <optional>
 #include <string>
+#include <string_view>
 
 namespace io {
 	enum class OpenMode { Read, Write, ReadWrite };
@@ -26,7 +26,7 @@ struct StorageIO
 		assert_r(close());
 	}
 
-	[[nodiscard]] constexpr bool open(const std::string& filePath, const io::OpenMode mode) noexcept;
+	[[nodiscard]] constexpr bool open(std::string_view filePath, const io::OpenMode mode) noexcept;
 	[[nodiscard]] constexpr bool close() noexcept;
 
 	template<typename T, auto id, bool isArray>
@@ -80,9 +80,9 @@ private:
 };
 
 template<typename IOAdapter>
-constexpr bool StorageIO<IOAdapter>::open(const std::string& filePath, const io::OpenMode mode) noexcept
+constexpr bool StorageIO<IOAdapter>::open(std::string_view filePath, const io::OpenMode mode) noexcept
 {
-	return _io.open(filePath, mode);
+	return _io.open(std::move(filePath), mode);
 }
 
 template<typename IOAdapter>
