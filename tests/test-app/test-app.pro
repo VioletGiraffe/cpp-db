@@ -52,9 +52,8 @@ linux*|mac*{
 }
 
 *g++*{
-	QMAKE_CXXFLAGS += -fconcepts -fsanitize=thread -ggdb3
+	QMAKE_CXXFLAGS += -fconcepts -fsanitize=thread -ggdb3 -fuse-ld=gold
 	QMAKE_LFLAGS += -fsanitize=thread
-	LIBS += -lstdc++ -lm
 }
 
 INCLUDEPATH += \

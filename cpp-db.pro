@@ -49,7 +49,7 @@ linux*|mac*{
 	Debug:DEFINES += _DEBUG
 }
 
-*g++*: QMAKE_CXXFLAGS += -fconcepts
+*g++*: QMAKE_CXXFLAGS += -fconcepts -fuse-ld=gold
 
 INCLUDEPATH += \
 	../cpputils \
