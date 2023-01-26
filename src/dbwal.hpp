@@ -115,6 +115,7 @@ template<RecordType Record, class StorageAdapter>
 	if (!blockIsEmpty())
 	{
 		assert_and_return_r(finalizeAndflushCurrentBlock(), false);
+		_block.clear();
 	}
 
 	return _logFile.close();
@@ -364,7 +365,7 @@ inline bool DbWAL<Record, StorageAdapter>::updateOpStatus(const OpID opId, const
 		++_blockItemCount;
 
 		auto pendingOperationIterator = std::find(begin_to_end(_pendingOperations), opId);
-		assert_and_return_message_r(pendingOperationIterator != _pendingOperations.end(), "Operation" + std::to_string(opId) + " hasn't been registered!", false);
+		assert_and_return_message_r(pendingOperationIterator != _pendingOperations.end(), "OpId=" + std::to_string(opId) + " hasn't been registered!", false);
 		_pendingOperations.erase(pendingOperationIterator);
 
 		// TODO: this requires _mtxBlock to be recursive

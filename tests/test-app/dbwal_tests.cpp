@@ -94,11 +94,13 @@ TEST_CASE("DbWAL basics", "[dbwal]")
 		++unfinishedOpsCount;
 	}));
 	REQUIRE(unfinishedOpsCount == 0);
-	REQUIRE_RELEASE_ONLY(wal.updateOpStatus(*id + 1, WAL::OpStatus::Successful) == false); // No longer pending
+
+	buffer.clear();
+	REQUIRE_RELEASE_ONLY(wal.updateOpStatus(*id, WAL::OpStatus::Successful) == false); // No longer pending
 
 	// Closing the log
 	REQUIRE(wal.closeLogFile());
-	REQUIRE(buffer.size() == 8192);
+	REQUIRE(buffer.size() == 4096);
 }
 
 TEST_CASE("DbWAL: registering multiple operations - single thread", "[dbwal]")
