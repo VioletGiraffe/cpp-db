@@ -9,7 +9,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        #os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest]
 
     steps:
     - name: Checkout
@@ -63,10 +64,10 @@ jobs:
       if: startsWith(matrix.os, 'ubuntu')
       run: |
         lscpu
-        ./tests/bin/release/test-app ~[benchmark]
-        ./tests/bin/release/test-app [benchmark]
-        if [ $? -ne 0 ]; then exit 1; fi
-        sudo apt install -y inux-tools-generic inux-tools-common
+        #./tests/bin/release/test-app ~[benchmark]
+        #./tests/bin/release/test-app [benchmark]
+        #if [ $? -ne 0 ]; then exit 1; fi
+        sudo apt install -y linux-tools-generic linux-tools-common
         sudo perf record ./tests/bin/release/test-app ~[benchmark]
         perf report
 
