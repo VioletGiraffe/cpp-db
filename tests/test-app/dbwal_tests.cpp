@@ -4,10 +4,12 @@
 
 #include <array>
 
-#ifdef _DEBUG
-	#define REQUIRE_RELEASE_ONLY(...) (void)0
+#ifdef _WIN32
+#include <crtdbg.h>
+
+#define IGNORE_ASSERTION(...) do { const auto prevMode = ::_CrtSetReportMode(_CRT_ASSERT, _CRTDBG_MODE_DEBUG); __VA_ARGS__; ::_CrtSetReportMode(_CRT_ASSERT, prevMode); } while(0)
 #else
-	#define REQUIRE_RELEASE_ONLY(...) REQUIRE(__VA_ARGS__)
+#define IGNORE_ASSERTION(...) __VA_ARGS__
 #endif
 
 TEST_CASE("DbWAL basics", "[dbwal]")
@@ -87,7 +89,7 @@ TEST_CASE("DbWAL basics", "[dbwal]")
 
 	buffer.seek(4096);
 	REQUIRE(wal.updateOpStatus(*id, WAL::OpStatus::Successful));
-	REQUIRE_RELEASE_ONLY(wal.updateOpStatus(*id + 1, WAL::OpStatus::Successful) == false); // No such ID
+	IGNORE_ASSERTION(REQUIRE(wal.updateOpStatus(*id + 1, WAL::OpStatus::Successful) == false)); // No such ID
 	unfinishedOpsCount = 0;
 	buffer.seek(0);
 	REQUIRE(wal.verifyLog([&](auto&& /*op*/) {
@@ -96,7 +98,7 @@ TEST_CASE("DbWAL basics", "[dbwal]")
 	REQUIRE(unfinishedOpsCount == 0);
 
 	buffer.clear();
-	REQUIRE_RELEASE_ONLY(wal.updateOpStatus(*id, WAL::OpStatus::Successful) == false); // No longer pending
+	IGNORE_ASSERTION(REQUIRE(wal.updateOpStatus(*id, WAL::OpStatus::Successful) == false)); // No longer pending
 
 	// Closing the log
 	REQUIRE(wal.closeLogFile());
