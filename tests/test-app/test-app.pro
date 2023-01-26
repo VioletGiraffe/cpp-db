@@ -5,24 +5,19 @@ CONFIG -= qt
 TEMPLATE = app
 CONFIG += console
 
-DESTDIR  = ../bin_tests/
-OBJECTS_DIR = $${DESTDIR}/build/
-MOC_DIR     = $${DESTDIR}/build/
-UI_DIR      = $${DESTDIR}/build/
-RCC_DIR     = $${DESTDIR}/build/
-
 mac* | linux* | freebsd {
 	CONFIG(release, debug|release):CONFIG *= Release optimize_full
 	CONFIG(debug, debug|release):CONFIG *= Debug
 }
-contains(QT_ARCH, x86_64) {
-	ARCHITECTURE = x64
-} else {
-	ARCHITECTURE = x86
-}
 
-Release:OUTPUT_DIR=bin/release/$${ARCHITECTURE}
-Debug:OUTPUT_DIR=bin/debug/$${ARCHITECTURE}
+Release:OUTPUT_DIR=release
+Debug:OUTPUT_DIR=debug
+
+DESTDIR  = ../bin/$${OUTPUT_DIR}/
+OBJECTS_DIR = ../build/$${OUTPUT_DIR}
+MOC_DIR     = ../build/$${OUTPUT_DIR}
+UI_DIR      = ../build/$${OUTPUT_DIR}
+RCC_DIR     = ../build/$${OUTPUT_DIR}
 
 win*{
 	QMAKE_CXXFLAGS += /std:c++latest /permissive- /Zc:__cplusplus /Zc:char8_t
@@ -36,9 +31,9 @@ win*{
 	QMAKE_CXXFLAGS_DEBUG *= /ZI
 	Debug:QMAKE_LFLAGS += /DEBUG:FASTLINK /INCREMENTAL
 
-	Release:QMAKE_CXXFLAGS += /GL /Zi
+	Release:QMAKE_CXXFLAGS += /Zi
 
-	Release:QMAKE_LFLAGS += /DEBUG:FULL /OPT:REF /OPT:ICF /LTCG:INCREMENTAL /TIME
+	Release:QMAKE_LFLAGS += /DEBUG:FULL /OPT:REF /OPT:ICF /INCREMENTAL /TIME
 }
 
 linux*|mac*{
@@ -83,4 +78,4 @@ SOURCES += tests_main.cpp \
 HEADERS += \
 	dbfilegaps_tester.hpp
 
-LIBS += -L$${PWD}/../$${OUTPUT_DIR} -L$${PWD}/../../../$${OUTPUT_DIR} -lcpputils -lcpp-db
+LIBS += -L$${PWD}/../bin/$${OUTPUT_DIR} -L$${PWD}/../../../bin/$${OUTPUT_DIR}/x64 -lcpputils -lcpp-db

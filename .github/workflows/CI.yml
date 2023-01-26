@@ -62,8 +62,9 @@ jobs:
     - name: Linux - running tests
       if: startsWith(matrix.os, 'ubuntu')
       run: |
-        ./tests/bin_tests/test-app ~[benchmark]
-        ./tests/bin_tests/test-app [benchmark]
+        ./tests/bin/release/test-app ~[benchmark]
+        if [ $? -ne 0 ]; then exit 1; fi
+        ./tests/bin/release/test-app [benchmark]
 
     - name: Windows - running tests
       if: startsWith(matrix.os, 'windows')
