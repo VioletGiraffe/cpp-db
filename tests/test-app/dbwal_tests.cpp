@@ -7,7 +7,7 @@
 #ifdef _WIN32
 #include <crtdbg.h>
 
-#define IGNORE_ASSERTION(...) do { const auto prevMode = ::_CrtSetReportMode(_CRT_ASSERT, _CRTDBG_MODE_DEBUG); __VA_ARGS__; ::_CrtSetReportMode(_CRT_ASSERT, prevMode); } while(0)
+#define IGNORE_ASSERTION(...) do { const auto prevMode = _CrtSetReportMode(_CRT_ASSERT, _CRTDBG_MODE_DEBUG); __VA_ARGS__; _CrtSetReportMode(_CRT_ASSERT, prevMode); } while(0)
 #else
 #define IGNORE_ASSERTION(...) __VA_ARGS__
 #endif
