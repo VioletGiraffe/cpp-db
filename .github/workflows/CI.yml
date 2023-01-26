@@ -68,8 +68,8 @@ jobs:
         #./tests/bin/release/test-app [benchmark]
         #if [ $? -ne 0 ]; then exit 1; fi
         sudo apt install -y linux-tools-generic linux-tools-common
-        sudo perf record ./tests/bin/release/test-app ~[benchmark]
-        perf report
+        sudo perf record ./tests/bin/release/test-app [dbwal]
+        perf report -q
 
     - name: Windows - running tests
       if: startsWith(matrix.os, 'windows')
