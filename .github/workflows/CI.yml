@@ -62,9 +62,13 @@ jobs:
     - name: Linux - running tests
       if: startsWith(matrix.os, 'ubuntu')
       run: |
+        lscpu
         ./tests/bin/release/test-app ~[benchmark]
-        if [ $? -ne 0 ]; then exit 1; fi
         ./tests/bin/release/test-app [benchmark]
+        if [ $? -ne 0 ]; then exit 1; fi
+        sudo apt install -y inux-tools-generic inux-tools-common
+        sudo perf record ./tests/bin/release/test-app ~[benchmark]
+        perf report
 
     - name: Windows - running tests
       if: startsWith(matrix.os, 'windows')
