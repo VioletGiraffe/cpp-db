@@ -188,6 +188,9 @@ TEST_CASE("DbWAL: registering multiple operations - single thread", "[dbwal]")
 
 		std::fill(begin_to_end(unfinishedOpsCount), 0_z);
 
+		// Rewind the log
+		walDataBuffer.seek(0);
+
 		verificationSuccessful = wal.verifyLog(overload{
 			[&](WAL::OperationCompletedMarker&& /*marker*/) {
 				FAIL("This overload shouldn't be called - updateStatus() wasn't invoked!");
