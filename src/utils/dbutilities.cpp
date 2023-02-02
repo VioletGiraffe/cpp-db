@@ -17,6 +17,6 @@ void checkBlockSize()
 
 void fatalAbort(const char* message)
 {
-	assert_unconditional_r("Fatal error!");
+	assert_unconditional_r(std::string{"!!! FATAL ERROR !!! "} + message);
 	throw std::runtime_error{ message };
 }

@@ -162,6 +162,7 @@ template <typename Receiver>
 {
 	assert_debug_only(std::this_thread::get_id() == _ownerThreadId);
 	assert_r(_logFile.pos() == 0);
+	assert_and_return_r(_logFile.seek(0), false);
 
 	// This is the buffer for the whole WAL block
 	io::StaticBufferAdapter<BlockSize> blockBuffer;

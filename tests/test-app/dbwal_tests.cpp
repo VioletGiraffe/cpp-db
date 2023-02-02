@@ -142,55 +142,82 @@ TEST_CASE("DbWAL: registering multiple operations - single thread", "[dbwal]")
 
 		REQUIRE(wal.openLogFile({}));
 
-		std::array<size_t, 6> unfinishedOpsCount;
+		std::array<size_t, 5> unfinishedOpsCount;
 		unfinishedOpsCount.fill(0);
 
-		const bool verificationSuccessful = wal.verifyLog([&](auto&& op) {
-			using OpType = std::remove_cvref_t<decltype(op)>;
-			static constexpr bool isCompletionmarker = std::is_same_v<OpType, WAL::OperationCompletedMarker>;
-			static constexpr size_t indexForOpType = []() {
-				if constexpr (isCompletionmarker)
-					return 6 - 1;
-				else
-					return (size_t)OpType::op;
-			}();
-
-			++unfinishedOpsCount[indexForOpType];
-
-			if constexpr (isCompletionmarker)
-			{
-			}
-			else if constexpr (std::is_same_v<decltype(opAppend), OpType>)
-			{
+		bool verificationSuccessful = wal.verifyLog(overload{
+			[&](WAL::OperationCompletedMarker&& /*marker*/) {
+				FAIL("This overload shouldn't be called - updateStatus() wasn't invoked!");
+			},
+			[&](decltype(opAppend)&& op) {
+				++unfinishedOpsCount[0];
 				REQUIRE(opAppend.keyValue == op.keyValue);
 				REQUIRE(opAppend.updatedArray() == op.updatedArray());
 				REQUIRE(op.updatedArray() == r2.fieldValue<FArray>());
 				// Still crashes intellisense! VS 17.4.3
 				//REQUIRE(opAppend.insertIfNotPresent() == op.insertIfNotPresent());
-			}
-			else if constexpr (std::is_same_v<decltype(opInsert), OpType>)
-			{
+			},
+			[&](decltype(opInsert)&& op) {
+				++unfinishedOpsCount[1];
 				REQUIRE(op._record == r1);
-			}
-			else if constexpr (std::is_same_v<decltype(opDelete), OpType>)
-			{
+			},
+			[&](decltype(opDelete)&& op) {
+				++unfinishedOpsCount[2];
 				REQUIRE(opDelete.keyValue == op.keyValue);
-			}
-			else if constexpr (std::is_same_v<decltype(opUpdate), OpType>)
-			{
+			},
+			[&](decltype(opUpdate)&& op) {
+				++unfinishedOpsCount[3];
 				REQUIRE(opUpdate.keyValue == op.keyValue);
 				REQUIRE(opUpdate.record == r1);
-			}
-			else if constexpr (std::is_same_v<decltype(opFind), OpType>)
-			{
+			},
+			[&](decltype(opFind)&& op) {
+				++unfinishedOpsCount[4];
 				REQUIRE(opFind._fields == op._fields);
+			},
+			[&](auto&&) {
+				FAIL("This overload shouldn't be called!");
 			}
-			else
-				FAIL();
 		});
 
 		REQUIRE(verificationSuccessful);
 		REQUIRE(std::accumulate(begin_to_end(unfinishedOpsCount), 0_z) == 5);
+		REQUIRE(std::all_of(begin_to_end(unfinishedOpsCount), [](auto count) { return count == 1; }));
+
+		REQUIRE(wal.updateOpStatus(registeredOpIds[1], WAL::OpStatus::Failed));
+		REQUIRE(wal.updateOpStatus(registeredOpIds[4], WAL::OpStatus::Successful));
+
+		std::fill(begin_to_end(unfinishedOpsCount), 0_z);
+
+		verificationSuccessful = wal.verifyLog(overload{
+			[&](WAL::OperationCompletedMarker&& /*marker*/) {
+				FAIL("This overload shouldn't be called - updateStatus() wasn't invoked!");
+			},
+			[&](decltype(opAppend) &&) {
+				FAIL("This overload shouldn't be called!");
+			},
+			[&](decltype(opInsert) && op) {
+				++unfinishedOpsCount[1];
+				REQUIRE(op._record == r1);
+			},
+			[&](decltype(opDelete) && op) {
+				++unfinishedOpsCount[2];
+				REQUIRE(opDelete.keyValue == op.keyValue);
+			},
+			[&](decltype(opUpdate) && op) {
+				++unfinishedOpsCount[3];
+				REQUIRE(opUpdate.keyValue == op.keyValue);
+				REQUIRE(opUpdate.record == r1);
+			},
+			[&](decltype(opFind) &&) {
+				FAIL("This overload shouldn't be called!");
+			},
+			[&](auto&&) {
+				FAIL("This overload shouldn't be called!");
+			}
+			});
+
+		REQUIRE(verificationSuccessful);
+		REQUIRE(std::accumulate(begin_to_end(unfinishedOpsCount), 0_z) == 5 - 2);
 		REQUIRE(std::all_of(begin_to_end(unfinishedOpsCount), [](auto count) { return count <= 1; }));
 	}
 	catch (const std::exception& e) {
