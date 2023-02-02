@@ -136,92 +136,99 @@ TEST_CASE("DbWAL: registering multiple operations - single thread", "[dbwal]")
 		registeredOpIds.push_back(wal.registerOperation(opUpdate).value());
 		registeredOpIds.push_back(wal.registerOperation(opFind).value());
 
-		REQUIRE(wal.closeLogFile());
-		const auto size = walDataBuffer.size();
-		REQUIRE(size > 0);
-
-		REQUIRE(wal.openLogFile({}));
-
 		std::array<size_t, 5> unfinishedOpsCount;
 		unfinishedOpsCount.fill(0);
 
-		bool verificationSuccessful = wal.verifyLog(overload{
-			[&](WAL::OperationCompletedMarker&& /*marker*/) {
-				FAIL("This overload shouldn't be called - updateStatus() wasn't invoked!");
-			},
-			[&](decltype(opAppend)&& op) {
-				++unfinishedOpsCount[0];
-				REQUIRE(opAppend.keyValue == op.keyValue);
-				REQUIRE(opAppend.updatedArray() == op.updatedArray());
-				REQUIRE(op.updatedArray() == r2.fieldValue<FArray>());
-				// Still crashes intellisense! VS 17.4.3
-				//REQUIRE(opAppend.insertIfNotPresent() == op.insertIfNotPresent());
-			},
-			[&](decltype(opInsert)&& op) {
-				++unfinishedOpsCount[1];
-				REQUIRE(op._record == r1);
-			},
-			[&](decltype(opDelete)&& op) {
-				++unfinishedOpsCount[2];
-				REQUIRE(opDelete.keyValue == op.keyValue);
-			},
-			[&](decltype(opUpdate)&& op) {
-				++unfinishedOpsCount[3];
-				REQUIRE(opUpdate.keyValue == op.keyValue);
-				REQUIRE(opUpdate.record == r1);
-			},
-			[&](decltype(opFind)&& op) {
-				++unfinishedOpsCount[4];
-				REQUIRE(opFind._fields == op._fields);
-			},
-			[&](auto&&) {
-				FAIL("This overload shouldn't be called!");
-			}
-		});
+		SECTION("No updateOpStatus()")
+		{
+			REQUIRE(wal.closeLogFile());
+			const auto size = walDataBuffer.size();
+			REQUIRE(size > 0);
 
-		REQUIRE(verificationSuccessful);
-		REQUIRE(std::accumulate(begin_to_end(unfinishedOpsCount), 0_z) == 5);
-		REQUIRE(std::all_of(begin_to_end(unfinishedOpsCount), [](auto count) { return count == 1; }));
+			REQUIRE(wal.openLogFile({}));
 
-		REQUIRE(wal.updateOpStatus(registeredOpIds[1], WAL::OpStatus::Failed));
-		REQUIRE(wal.updateOpStatus(registeredOpIds[4], WAL::OpStatus::Successful));
+			const bool verificationSuccessful = wal.verifyLog(overload{
+				[&](WAL::OperationCompletedMarker&& /*marker*/) {
+					FAIL("This overload shouldn't be called - updateStatus() wasn't invoked!");
+				},
+				[&](decltype(opAppend) && op) {
+					++unfinishedOpsCount[0];
+					REQUIRE(opAppend.keyValue == op.keyValue);
+					REQUIRE(opAppend.updatedArray() == op.updatedArray());
+					REQUIRE(op.updatedArray() == r2.fieldValue<FArray>());
+					// Still crashes intellisense! VS 17.4.3
+					//REQUIRE(opAppend.insertIfNotPresent() == op.insertIfNotPresent());
+				},
+				[&](decltype(opInsert) && op) {
+					++unfinishedOpsCount[1];
+					REQUIRE(op._record == r1);
+				},
+				[&](decltype(opDelete) && op) {
+					++unfinishedOpsCount[2];
+					REQUIRE(opDelete.keyValue == op.keyValue);
+				},
+				[&](decltype(opUpdate) && op) {
+					++unfinishedOpsCount[3];
+					REQUIRE(opUpdate.keyValue == op.keyValue);
+					REQUIRE(opUpdate.record == r1);
+				},
+				[&](decltype(opFind) && op) {
+					++unfinishedOpsCount[4];
+					REQUIRE(opFind._fields == op._fields);
+				},
+				[&](auto&&) {
+					FAIL("This overload shouldn't be called!");
+				}
+				});
 
-		std::fill(begin_to_end(unfinishedOpsCount), 0_z);
+			REQUIRE(verificationSuccessful);
+			REQUIRE(std::accumulate(begin_to_end(unfinishedOpsCount), 0_z) == 5);
+			REQUIRE(std::all_of(begin_to_end(unfinishedOpsCount), [](auto count) { return count == 1; }));
+		}
 
-		// Rewind the log
-		walDataBuffer.seek(0);
+		SECTION("With updateOpStatus()")
+		{
+			REQUIRE(wal.updateOpStatus(registeredOpIds[1], WAL::OpStatus::Failed));
+			REQUIRE(wal.updateOpStatus(registeredOpIds[4], WAL::OpStatus::Successful));
 
-		verificationSuccessful = wal.verifyLog(overload{
-			[&](WAL::OperationCompletedMarker&& /*marker*/) {
-				FAIL("This overload shouldn't be called - updateStatus() wasn't invoked!");
-			},
-			[&](decltype(opAppend) &&) {
-				FAIL("This overload shouldn't be called!");
-			},
-			[&](decltype(opInsert) && op) {
-				++unfinishedOpsCount[1];
-				REQUIRE(op._record == r1);
-			},
-			[&](decltype(opDelete) && op) {
-				++unfinishedOpsCount[2];
-				REQUIRE(opDelete.keyValue == op.keyValue);
-			},
-			[&](decltype(opUpdate) && op) {
-				++unfinishedOpsCount[3];
-				REQUIRE(opUpdate.keyValue == op.keyValue);
-				REQUIRE(opUpdate.record == r1);
-			},
-			[&](decltype(opFind) &&) {
-				FAIL("This overload shouldn't be called!");
-			},
-			[&](auto&&) {
-				FAIL("This overload shouldn't be called!");
-			}
-			});
+			REQUIRE(wal.closeLogFile());
+			const auto size = walDataBuffer.size();
+			REQUIRE(size > 0);
 
-		REQUIRE(verificationSuccessful);
-		REQUIRE(std::accumulate(begin_to_end(unfinishedOpsCount), 0_z) == 5 - 2);
-		REQUIRE(std::all_of(begin_to_end(unfinishedOpsCount), [](auto count) { return count <= 1; }));
+			REQUIRE(wal.openLogFile({}));
+
+			const bool verificationSuccessful = wal.verifyLog(overload{
+				[&](WAL::OperationCompletedMarker&& /*marker*/) {
+					FAIL("This overload shouldn't be called - updateStatus() wasn't invoked!");
+				},
+				[&](decltype(opAppend)&&) {
+					FAIL("This overload shouldn't be called!");
+				},
+				[&](decltype(opInsert) && op) {
+					++unfinishedOpsCount[1];
+					REQUIRE(op._record == r1);
+				},
+				[&](decltype(opDelete) && op) {
+					++unfinishedOpsCount[2];
+					REQUIRE(opDelete.keyValue == op.keyValue);
+				},
+				[&](decltype(opUpdate) && op) {
+					++unfinishedOpsCount[3];
+					REQUIRE(opUpdate.keyValue == op.keyValue);
+					REQUIRE(opUpdate.record == r1);
+				},
+				[&](decltype(opFind)&&) {
+					FAIL("This overload shouldn't be called!");
+				},
+				[&](auto&&) {
+					FAIL("This overload shouldn't be called!");
+				}
+				});
+
+			REQUIRE(verificationSuccessful);
+			REQUIRE(std::accumulate(begin_to_end(unfinishedOpsCount), 0_z) == 5 - 2);
+			REQUIRE(std::all_of(begin_to_end(unfinishedOpsCount), [](auto count) { return count <= 1; }));
+		}
 	}
 	catch (const std::exception& e) {
 		FAIL(e.what());
