@@ -9,8 +9,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        #os: [ubuntu-latest, windows-latest]
-        os: [ubuntu-latest]
+        os: [ubuntu-latest, windows-latest]
 
     steps:
     - name: Checkout
@@ -64,12 +63,9 @@ jobs:
       if: startsWith(matrix.os, 'ubuntu')
       run: |
         lscpu
-        #./tests/bin/release/test-app ~[benchmark]
-        #./tests/bin/release/test-app [benchmark]
-        #if [ $? -ne 0 ]; then exit 1; fi
-        sudo apt install -y linux-tools-generic linux-tools-common
-        sudo perf record ./tests/bin/release/test-app [dbwal]
-        perf report -q
+        ./tests/bin/release/test-app ~[benchmark]
+        if [ $? -ne 0 ]; then exit 1; fi
+        ./tests/bin/release/test-app [benchmark]
 
     - name: Windows - running tests
       if: startsWith(matrix.os, 'windows')

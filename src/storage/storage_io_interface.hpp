@@ -2,7 +2,6 @@
 
 #include "../dbfield.hpp"
 
-#include "hash/fnv_1a.h"
 #include "assert/advanced_assert.h"
 #include "utility/extra_type_traits.hpp"
 

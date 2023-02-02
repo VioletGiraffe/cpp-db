@@ -2,6 +2,8 @@
 #include "dbwal.hpp"
 #include "storage/storage_static_buffer.hpp"
 
+#include "utility/integer_literals.hpp"
+
 #include <array>
 
 #ifdef _WIN32
@@ -123,75 +125,73 @@ TEST_CASE("DbWAL: registering multiple operations - single thread", "[dbwal]")
 		Operation::UpdateFull<RecordWithArray, F64, false> opUpdate(r1, 1'111'111'111'000ULL);
 		Operation::Find<RecordWithArray, F16, FString> opFind(int16_t{ -21999 }, "Venus");
 
-		{
-			io::StaticBufferAdapter<150'000> walDataBuffer;
-			DbWAL<RecordWithArray, decltype(walDataBuffer)> wal{ walDataBuffer };
-			REQUIRE(wal.openLogFile({}));
+		io::StaticBufferAdapter<150'000> walDataBuffer;
+		DbWAL<RecordWithArray, decltype(walDataBuffer)> wal{ walDataBuffer };
+		REQUIRE(wal.openLogFile({}));
 
-			std::vector<WAL::OperationIdType> registeredOpIds;
-			registeredOpIds.push_back(wal.registerOperation(opInsert).value());
-			registeredOpIds.push_back(wal.registerOperation(opAppend).value());
-			registeredOpIds.push_back(wal.registerOperation(opDelete).value());
-			registeredOpIds.push_back(wal.registerOperation(opUpdate).value());
-			registeredOpIds.push_back(wal.registerOperation(opFind).value());
+		std::vector<WAL::OperationIdType> registeredOpIds;
+		registeredOpIds.push_back(wal.registerOperation(opInsert).value());
+		registeredOpIds.push_back(wal.registerOperation(opAppend).value());
+		registeredOpIds.push_back(wal.registerOperation(opDelete).value());
+		registeredOpIds.push_back(wal.registerOperation(opUpdate).value());
+		registeredOpIds.push_back(wal.registerOperation(opFind).value());
 
-			REQUIRE(wal.closeLogFile());
-			const auto size = walDataBuffer.size();
-			REQUIRE(size > 0);
+		REQUIRE(wal.closeLogFile());
+		const auto size = walDataBuffer.size();
+		REQUIRE(size > 0);
 
-			REQUIRE(wal.openLogFile({}));
+		REQUIRE(wal.openLogFile({}));
 
-			std::array<size_t, 6> unfinishedOpsCount;
-			unfinishedOpsCount.fill(0);
+		std::array<size_t, 6> unfinishedOpsCount;
+		unfinishedOpsCount.fill(0);
 
-			const bool verificationSuccessful = wal.verifyLog([&](auto&& op) {
-				using OpType = std::remove_cvref_t<decltype(op)>;
-				static constexpr bool isCompletionmarker = std::is_same_v<OpType, WAL::OperationCompletedMarker>;
-				static constexpr size_t indexForOpType = []() {
-					if constexpr (isCompletionmarker)
-						return 6 - 1;
-					else
-						return (size_t)OpType::op;
-				}();
-
-				++unfinishedOpsCount[indexForOpType];
-
+		const bool verificationSuccessful = wal.verifyLog([&](auto&& op) {
+			using OpType = std::remove_cvref_t<decltype(op)>;
+			static constexpr bool isCompletionmarker = std::is_same_v<OpType, WAL::OperationCompletedMarker>;
+			static constexpr size_t indexForOpType = []() {
 				if constexpr (isCompletionmarker)
-				{
-				}
-				else if constexpr (std::is_same_v<decltype(opAppend), OpType>)
-				{
-					REQUIRE(opAppend.keyValue == op.keyValue);
-					REQUIRE(opAppend.updatedArray() == op.updatedArray());
-					REQUIRE(op.updatedArray() == r2.fieldValue<FArray>());
-					// Still crashes intellisense! VS 17.4.3
-					//REQUIRE(opAppend.insertIfNotPresent() == op.insertIfNotPresent());
-				}
-				else if constexpr (std::is_same_v<decltype(opInsert), OpType>)
-				{
-					REQUIRE(op._record == r1);
-				}
-				else if constexpr (std::is_same_v<decltype(opDelete), OpType>)
-				{
-					REQUIRE(opDelete.keyValue == op.keyValue);
-				}
-				else if constexpr (std::is_same_v<decltype(opUpdate), OpType>)
-				{
-					REQUIRE(opUpdate.keyValue == op.keyValue);
-					REQUIRE(opUpdate.record == r1);
-				}
-				else if constexpr (std::is_same_v<decltype(opFind), OpType>)
-				{
-					REQUIRE(opFind._fields == op._fields);
-				}
+					return 6 - 1;
 				else
-					FAIL();
-			});
+					return (size_t)OpType::op;
+			}();
 
-			REQUIRE(verificationSuccessful);
-			REQUIRE(std::accumulate(begin_to_end(unfinishedOpsCount), 0_z) == 5);
-			REQUIRE(std::all_of(begin_to_end(unfinishedOpsCount), [](auto count) { return count <= 1; }));
-		}
+			++unfinishedOpsCount[indexForOpType];
+
+			if constexpr (isCompletionmarker)
+			{
+			}
+			else if constexpr (std::is_same_v<decltype(opAppend), OpType>)
+			{
+				REQUIRE(opAppend.keyValue == op.keyValue);
+				REQUIRE(opAppend.updatedArray() == op.updatedArray());
+				REQUIRE(op.updatedArray() == r2.fieldValue<FArray>());
+				// Still crashes intellisense! VS 17.4.3
+				//REQUIRE(opAppend.insertIfNotPresent() == op.insertIfNotPresent());
+			}
+			else if constexpr (std::is_same_v<decltype(opInsert), OpType>)
+			{
+				REQUIRE(op._record == r1);
+			}
+			else if constexpr (std::is_same_v<decltype(opDelete), OpType>)
+			{
+				REQUIRE(opDelete.keyValue == op.keyValue);
+			}
+			else if constexpr (std::is_same_v<decltype(opUpdate), OpType>)
+			{
+				REQUIRE(opUpdate.keyValue == op.keyValue);
+				REQUIRE(opUpdate.record == r1);
+			}
+			else if constexpr (std::is_same_v<decltype(opFind), OpType>)
+			{
+				REQUIRE(opFind._fields == op._fields);
+			}
+			else
+				FAIL();
+		});
+
+		REQUIRE(verificationSuccessful);
+		REQUIRE(std::accumulate(begin_to_end(unfinishedOpsCount), 0_z) == 5);
+		REQUIRE(std::all_of(begin_to_end(unfinishedOpsCount), [](auto count) { return count <= 1; }));
 	}
 	catch (const std::exception& e) {
 		FAIL(e.what());

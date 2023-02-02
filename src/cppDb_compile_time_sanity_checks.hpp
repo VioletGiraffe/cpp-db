@@ -3,7 +3,9 @@
 #include "cpp-db.hpp"
 #include "storage/storage_std.hpp"
 #include "WAL/wal_serializer.hpp"
+
 #include "assert/advanced_assert.h"
+#include "utility/integer_literals.hpp"
 
 #include <string>
 #include <type_traits>

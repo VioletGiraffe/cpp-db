@@ -8,7 +8,7 @@
 #include "WAL/wal_serializer.hpp"
 
 #include "container/std_container_helpers.hpp"
-#include "hash/fnv_1a.h"
+#include "hash/wheathash.hpp"
 #include "system/rdtsc.h"
 
 #include <atomic>
@@ -59,7 +59,7 @@ private:
 	using Serializer = WAL::Serializer<Record>;
 
 	using BlockChecksumType = uint32_t;
-	static_assert(std::is_same_v<BlockChecksumType, decltype(FNV_1a_32(nullptr, 0))>);
+	static_assert(std::is_same_v<BlockChecksumType, decltype(wheathash32(nullptr, 0))>);
 
 	using BlockItemCountType = uint16_t;
 	static constexpr size_t BlockSize = 4096;
@@ -198,7 +198,7 @@ template <typename Receiver>
 			// Verify checksum before processing the block
 			const auto checksum = memory_cast<BlockChecksumType>(blockBuffer.data() + BlockSize - sizeof(BlockChecksumType));
 
-			const auto actualChecksum = FNV_1a_32_hasher{}.updateHash(blockBuffer.data(), BlockSize - sizeof(BlockChecksumType));
+			const auto actualChecksum = wheathash32(blockBuffer.data(), BlockSize - sizeof(BlockChecksumType));
 			if (checksum != actualChecksum)
 			{
 				if (isLastBlock)
@@ -412,7 +412,7 @@ inline constexpr bool DbWAL<Record, StorageAdapter>::finalizeAndflushCurrentBloc
 	assert_debug_only(_block.size() == _block.MaxCapacity);
 	::memset(_block.data() + actualSize, 0, _block.MaxCapacity - actualSize);
 
-	const auto hash = FNV_1a_32(_block.data(), _block.MaxCapacity - sizeof(BlockChecksumType));
+	const auto hash = wheathash32(_block.data(), _block.MaxCapacity - sizeof(BlockChecksumType));
 	static_assert(std::is_same_v<decltype(hash), const BlockChecksumType>);
 	_block.seek(_block.MaxCapacity - sizeof(BlockChecksumType));
 	assert_and_return_r(blockWriter.write(hash), false);
@@ -448,7 +448,7 @@ inline void DbWAL<Record, StorageAdapter>::waitForFlushAndHandleTimeout(OpID cur
 	while (_lastFlushedOpId < currentOpId)
 	{
 		// Assuming 2 GHz clock speed. Will increment twice faster (shorter timeout) at 4 GHz.
-		static constexpr uint64_t twoBillion = 1_u64 << (31 - 3); // Counting in 8ths of a second
+		static constexpr uint64_t twoBillion = 1ULL << (31 - 3); // Counting in 8ths of a second
 		// Shorter tmeout for debugging. TODO: restore later
 		//static constexpr uint64_t timeOut = 4;
 		static constexpr uint64_t timeOut = 1;
