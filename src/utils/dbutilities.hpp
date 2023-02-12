@@ -1,5 +1,6 @@
 #pragma once
+#include <string_view>
 
 void checkBlockSize();
 
-void fatalAbort(const char* message);
+void fatalAbort(std::string_view message);

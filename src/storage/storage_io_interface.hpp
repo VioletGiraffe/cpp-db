@@ -1,5 +1,6 @@
 #pragma once
 
+#include "io_base_definitions.hpp"
 #include "../dbfield.hpp"
 
 #include "assert/advanced_assert.h"
@@ -8,10 +9,6 @@
 #include <optional>
 #include <string>
 #include <string_view>
-
-namespace io {
-	enum class OpenMode { Read, Write, ReadWrite };
-}
 
 template <typename IOAdapter>
 struct StorageIO

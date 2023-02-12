@@ -1,8 +1,6 @@
 #include "dbutilities.hpp"
 #include "assert/advanced_assert.h"
 
-#include <stdexcept>
-
 static size_t queryBlockSize()
 {
 	// TODO: implement!
@@ -15,8 +13,11 @@ void checkBlockSize()
 		fatalAbort("Unexpected cluster size!!!");
 }
 
-void fatalAbort(const char* message)
+void fatalAbort(std::string_view message)
 {
-	assert_unconditional_r(std::string{"!!! FATAL ERROR !!! "} + message);
-	throw std::runtime_error{ message };
+	std::string msg = "!!! FATAL ERROR !!! ";
+	msg.append(message.data(), message.size());
+
+	assert_unconditional_r(msg);
+	throw std::exception{ msg.c_str() };
 }

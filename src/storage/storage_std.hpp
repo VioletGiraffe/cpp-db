@@ -1,9 +1,10 @@
 #pragma once
 
-#include "storage_io_interface.hpp"
+#include "assert/advanced_assert.h"
 
-#include <algorithm>
 #include <stdio.h>
+#include <string>
+#include <string_view>
 
 namespace io {
 
@@ -26,6 +27,8 @@ public:
 			break;
 		case OpenMode::ReadWrite:
 			_handle = ::fopen(_filePath.c_str(), truncate ? "w+b" : "a+b");
+			if (!truncate && _handle)
+				(void)seek(0); // a+ is append mode - sets the cursor to the end, so need to seek to start manually
 			break;
 		default:
 			assert_and_return_unconditional_r("Unknown open mode " + std::to_string(static_cast<int>(mode)), false);
@@ -86,20 +89,7 @@ public:
 
 	[[nodiscard]] bool atEnd() noexcept
 	{
-		if (::feof(_handle) != 0)
-			return true;
-		else if (_mode != OpenMode::Write)
-		{
-			// Need to try to read at least one symbol
-			char dummy;
-			const auto isAtEnd = read(&dummy, 1);
-			if (isAtEnd)
-				return true;
-			else
-				assert_r(::fseek(_handle, -1, SEEK_CUR) == 0);
-		}
-
-		return false;
+		return pos() == size();
 	}
 
 	bool flush() noexcept

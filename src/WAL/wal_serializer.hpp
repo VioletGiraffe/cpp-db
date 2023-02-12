@@ -1,11 +1,12 @@
 #pragma once
 
+#include "operation_completion_marker.hpp"
 #include "../dbrecord.hpp"
 #include "../dbops.hpp"
 #include "../dbschema.hpp"
 #include "../storage/storage_io_interface.hpp"
 #include "../serialization/dbrecord-serializer.hpp"
-#include "operation_completion_marker.hpp"
+#include "../utils/dbutilities.hpp"
 
 #include "tuple/tuple_helpers.hpp"
 #include "utility/template_magic.hpp"
@@ -368,17 +369,18 @@ bool Serializer<Record>::deserialize(StorageIO<StorageAdapter>& io, Receiver&& r
 
 			return success;
 		}
-		case OperationCompletedMarker::markerID:
+		// Markers are currently handled and skipped by the WAL itself
+		/*case OperationCompletedMarker::markerID:
 		{
 			OperationCompletedMarker marker;
 			assert_and_return_r(io.read(marker.status), false);
 
 			receiver(std::move(marker));
 			return true;
-		}
+		}*/
 	}
 
-	assert_unconditional_r("Uknown entry type encountered in the log: " + std::to_string(static_cast<int>(entryType)));
+	fatalAbort("Uknown entry type encountered in the log: " + std::to_string(entryType));
 	return false;
 }
 

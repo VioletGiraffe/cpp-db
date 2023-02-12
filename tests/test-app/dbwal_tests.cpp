@@ -2,9 +2,13 @@
 #include "dbwal.hpp"
 #include "storage/storage_static_buffer.hpp"
 
+#include "threading/thread_helpers.h"
+
+#include "random/randomnumbergenerator.h"
 #include "utility/integer_literals.hpp"
 
 #include <array>
+#include <deque>
 
 #ifdef _WIN32
 #include <crtdbg.h>
@@ -125,7 +129,7 @@ TEST_CASE("DbWAL: registering multiple operations - single thread", "[dbwal]")
 		Operation::UpdateFull<RecordWithArray, F64, false> opUpdate(r1, 1'111'111'111'000ULL);
 		Operation::Find<RecordWithArray, F16, FString> opFind(int16_t{ -21999 }, "Venus");
 
-		io::StaticBufferAdapter<150'000> walDataBuffer;
+		io::StaticBufferAdapter<80'000> walDataBuffer;
 		DbWAL<RecordWithArray, decltype(walDataBuffer)> wal{ walDataBuffer };
 		REQUIRE(wal.openLogFile({}));
 
@@ -148,9 +152,6 @@ TEST_CASE("DbWAL: registering multiple operations - single thread", "[dbwal]")
 			REQUIRE(wal.openLogFile({}));
 
 			const bool verificationSuccessful = wal.verifyLog(overload{
-				[&](WAL::OperationCompletedMarker&& /*marker*/) {
-					FAIL("This overload shouldn't be called - updateStatus() wasn't invoked!");
-				},
 				[&](decltype(opAppend) && op) {
 					++unfinishedOpsCount[0];
 					REQUIRE(opAppend.keyValue == op.keyValue);
@@ -198,11 +199,112 @@ TEST_CASE("DbWAL: registering multiple operations - single thread", "[dbwal]")
 			REQUIRE(wal.openLogFile({}));
 
 			const bool verificationSuccessful = wal.verifyLog(overload{
-				[&](WAL::OperationCompletedMarker&& /*marker*/) {
-					FAIL("This overload shouldn't be called - updateStatus() wasn't invoked!");
+				[&](decltype(opInsert) && op) {
+					++unfinishedOpsCount[1];
+					REQUIRE(op._record == r1);
 				},
-				[&](decltype(opAppend)&&) {
+				[&](decltype(opDelete) && op) {
+					++unfinishedOpsCount[2];
+					REQUIRE(opDelete.keyValue == op.keyValue);
+				},
+				[&](decltype(opUpdate) && op) {
+					++unfinishedOpsCount[3];
+					REQUIRE(opUpdate.keyValue == op.keyValue);
+					REQUIRE(opUpdate.record == r1);
+				},
+				[&](auto&&) {
 					FAIL("This overload shouldn't be called!");
+				}
+				});
+
+			REQUIRE(verificationSuccessful);
+			REQUIRE(std::accumulate(begin_to_end(unfinishedOpsCount), 0_z) == 5 - 2);
+			REQUIRE(std::all_of(begin_to_end(unfinishedOpsCount), [](auto count) { return count <= 1; }));
+		}
+	}
+	catch (const std::exception& e) {
+		FAIL(e.what());
+	}
+}
+
+TEST_CASE("DbWAL: registering multiple operations - multiple threads", "[dbwal]")
+{
+	try {
+		using F64 = Field<uint64_t, 1>;
+		using F16 = Field<int16_t, 2>;
+		using FString = Field<std::string, 3 >;
+		using FArray = Field<uint64_t, 4, true>;
+
+		using RecordWithArray = DbRecord<F64, F16, FString, FArray>;
+		RecordWithArray r1(1'000'000'000'000ULL, int16_t{ -32700 }, "Hello!", std::vector<uint64_t>(20, 123));
+		RecordWithArray r2(1'111'111'111'000ULL, int16_t{ -27000 }, "World!", std::vector<uint64_t>(20, 456));
+
+		Operation::Insert<RecordWithArray> opInsert(r1);
+		Operation::AppendToArray<RecordWithArray, F16, FArray, true> opAppend(int16_t{ -31000 }, r2);
+		Operation::Delete<RecordWithArray, FString> opDelete("Mars");
+		Operation::UpdateFull<RecordWithArray, F64, false> opUpdate(r1, 1'111'111'111'000ULL);
+		Operation::Find<RecordWithArray, F16, FString> opFind(int16_t{ -21999 }, "Venus");
+
+		io::VectorAdapter walDataBuffer(100000);
+		DbWAL<RecordWithArray, decltype(walDataBuffer)> wal{ walDataBuffer };
+		REQUIRE(wal.openLogFile({}));
+
+		const auto registerOperationByIndex = [&](const size_t index) -> bool {
+			switch (index) {
+			case 0:
+				return wal.registerOperation(opInsert).has_value();
+			case 1:
+				return wal.registerOperation(opAppend).has_value();
+			case 2:
+				return wal.registerOperation(opDelete).has_value();
+			case 3:
+				return wal.registerOperation(opUpdate).has_value();
+			case 4:
+				return wal.registerOperation(opFind).has_value();
+			default:
+				throw std::runtime_error("!!! RNG failed !!!");
+			}
+		};
+
+		// Each thread gets a different, but deterministic seed
+		std::atomic_size_t seed = 0;
+
+		static constexpr size_t NOperationsPerThread = 50;
+		const auto threadFunction = [&registerOperationByIndex, &seed] {
+			static thread_local RandomNumberGenerator<size_t> rng{ seed++, 0, 4 };
+			for (size_t i = 0; i < NOperationsPerThread; ++i)
+			{
+				const auto index = rng.rand();
+				registerOperationByIndex(index);
+			}
+		};
+
+		std::deque<std::thread> threads;
+		// Start N threads
+		for (size_t i = 0, n = 8; i < n; ++i)
+			threads.emplace_back(threadFunction);
+
+		joinAll(threads);
+
+		std::array<size_t, 5> unfinishedOpsCount;
+		unfinishedOpsCount.fill(0);
+
+		SECTION("No updateOpStatus()")
+		{
+			REQUIRE(wal.closeLogFile());
+			const auto size = walDataBuffer.size();
+			REQUIRE(size > 0);
+
+			REQUIRE(wal.openLogFile({}));
+
+			const bool verificationSuccessful = wal.verifyLog(overload{
+				[&](decltype(opAppend) && op) {
+					++unfinishedOpsCount[0];
+					REQUIRE(opAppend.keyValue == op.keyValue);
+					REQUIRE(opAppend.updatedArray() == op.updatedArray());
+					REQUIRE(op.updatedArray() == r2.fieldValue<FArray>());
+					// Still crashes intellisense! VS 17.4.3
+					//REQUIRE(opAppend.insertIfNotPresent() == op.insertIfNotPresent());
 				},
 				[&](decltype(opInsert) && op) {
 					++unfinishedOpsCount[1];
@@ -217,8 +319,9 @@ TEST_CASE("DbWAL: registering multiple operations - single thread", "[dbwal]")
 					REQUIRE(opUpdate.keyValue == op.keyValue);
 					REQUIRE(opUpdate.record == r1);
 				},
-				[&](decltype(opFind)&&) {
-					FAIL("This overload shouldn't be called!");
+				[&](decltype(opFind) && op) {
+					++unfinishedOpsCount[4];
+					REQUIRE(opFind._fields == op._fields);
 				},
 				[&](auto&&) {
 					FAIL("This overload shouldn't be called!");
@@ -226,8 +329,8 @@ TEST_CASE("DbWAL: registering multiple operations - single thread", "[dbwal]")
 				});
 
 			REQUIRE(verificationSuccessful);
-			REQUIRE(std::accumulate(begin_to_end(unfinishedOpsCount), 0_z) == 5 - 2);
-			REQUIRE(std::all_of(begin_to_end(unfinishedOpsCount), [](auto count) { return count <= 1; }));
+			REQUIRE(std::accumulate(begin_to_end(unfinishedOpsCount), 0_z) == threads.size() * NOperationsPerThread);
+			REQUIRE(std::all_of(begin_to_end(unfinishedOpsCount), [](auto count) { return count > 0; }));
 		}
 	}
 	catch (const std::exception& e) {

@@ -3,6 +3,9 @@
 #include "storage_io_interface.hpp"
 #include "utility/static_data_buffer.hpp"
 
+#include <mutex>
+#include <vector>
+
 namespace io {
 
 template <size_t MaxSize>
@@ -12,12 +15,18 @@ public:
 	static constexpr auto MaxCapacity = MaxSize;
 	constexpr bool open(std::string_view /*fileName*/, const OpenMode /*mode*/) noexcept
 	{
+		assert_and_return_r(!_isOpen, false);
+		_isOpen = true;
 		return true;
 	}
 
 	constexpr bool close() noexcept
 	{
-		_buffer.seek(0);
+		if (_isOpen)
+		{
+			_buffer.seek(0);
+			_isOpen = false;
+		}
 		return true;
 	}
 
@@ -63,7 +72,7 @@ public:
 		return _buffer.pos() == _buffer.size();
 	}
 
-	[[nodiscard]] constexpr bool remainingCapacity() const noexcept
+	[[nodiscard]] constexpr size_t remainingCapacity() const noexcept
 	{
 		return MaxSize - _buffer.pos();
 	}
@@ -92,49 +101,95 @@ public:
 
 private:
 	static_data_buffer<MaxSize> _buffer;
+	bool _isOpen = false;
 };
 
-class MemoryBlockAdapter
+class VectorAdapter
 {
 public:
-	inline MemoryBlockAdapter(const void* dataPtr, const size_t size) noexcept :
-		_data{ reinterpret_cast<const std::byte*>(dataPtr) },
-		_dataSize{size}
-	{}
-
-	inline constexpr bool read(void* targetBuffer, const size_t dataSize) noexcept
+	inline VectorAdapter(const size_t reserve = 0) noexcept
 	{
-		assert_and_return_r(dataSize <= _dataSize - _pos, false);
-		::memcpy(targetBuffer, _data + _pos, dataSize);
+		_data.reserve(reserve);
+	}
+
+	constexpr bool open(std::string_view /*fileName*/, const OpenMode /*mode*/) noexcept
+	{
+		assert_and_return_r(!_isOpen, false);
+		_isOpen = true;
+		return true;
+	}
+
+	constexpr bool close() noexcept
+	{
+		if (_isOpen)
+		{
+			_pos = 0;
+			_isOpen = false;
+		}
+		return true;
+	}
+
+	inline bool read(void* targetBuffer, const size_t dataSize) noexcept
+	{
+		std::lock_guard lock(_mtx);
+
+		assert_and_return_r(_pos + dataSize <= size(), false);
+		::memcpy(targetBuffer, _data.data() + _pos, dataSize);
+		_pos += dataSize;
+		return true;
+	}
+
+	inline bool write(const void* sourceBuffer, const size_t dataSize) noexcept
+	{
+		std::lock_guard lock(_mtx);
+
+		if (const auto newSize = _pos + dataSize; newSize > size())
+		{
+			if (newSize > _data.capacity())
+				_data.reserve(newSize + newSize / 4 + 1);
+			_data.resize(newSize);
+		}
+
+		::memcpy(_data.data() + _pos, sourceBuffer, dataSize);
 		_pos += dataSize;
 		return true;
 	}
 
 	// Sets the absolute position from the beginning of the file
-	inline constexpr bool seek(const size_t position) & noexcept
+	inline bool seek(const size_t position) & noexcept
 	{
-		assert_and_return_r(position < _dataSize, false);
+		std::lock_guard lock(_mtx);
+
+		assert_and_return_r(position <= size(), false);
 		_pos = position;
 		return true;
 	}
 
-	inline constexpr bool seekToEnd() & noexcept
+	inline bool seekToEnd() & noexcept
 	{
+		std::lock_guard lock(_mtx);
+
 		return seek(size());
 	}
 
-	[[nodiscard]] inline constexpr uint64_t pos() const noexcept
+	[[nodiscard]] inline uint64_t pos() const noexcept
 	{
+		std::lock_guard lock(_mtx);
+
 		return _pos;
 	}
 
-	[[nodiscard]] inline constexpr uint64_t size() const noexcept
+	[[nodiscard]] inline uint64_t size() const noexcept
 	{
-		return _dataSize;
+		std::lock_guard lock(_mtx);
+
+		return _data.size();
 	}
 
-	[[nodiscard]] inline constexpr bool atEnd() const noexcept
+	[[nodiscard]] inline bool atEnd() const noexcept
 	{
+		std::lock_guard lock(_mtx);
+
 		return pos() == size();
 	}
 
@@ -144,9 +199,10 @@ public:
 	}
 
 private:
-	const std::byte* _data;
-	const size_t _dataSize;
+	mutable std::recursive_mutex _mtx;
+	std::vector<std::byte> _data;
 	size_t _pos = 0;
+	bool _isOpen = false;
 };
 
 }

@@ -14,6 +14,7 @@ Makefile*
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
+3rdparty.7z
 
 # Build results
 [Dd]ebug/

@@ -230,12 +230,9 @@ template <typename Receiver>
 					assert_and_return_r(blockBufferIo.seek(entryStartPos + wholeEntrySize), false);
 				else
 				{
-					// Contruct the operation and report that it has to be replayed
-					const bool deserializedSuccessfully = Serializer::deserialize(blockBufferIo, [&unfinishedOperationsReceiver](auto&& operation) {
-					// This operation is logged, but wasn't completed against the storage.
-						unfinishedOperationsReceiver(std::move(operation));
-					});
-
+					// Contruct the operation and report that it has to be replayed.
+					// Reports operations that are logged but weren't completed against the storage.
+					const bool deserializedSuccessfully = Serializer::deserialize(blockBufferIo, std::forward<Receiver>(unfinishedOperationsReceiver));
 					assert_and_return_message_r(deserializedSuccessfully, "Failed to deserialize an operation from log, but checksum has been verified!", false);
 				}
 			}
@@ -300,6 +297,8 @@ DbWAL<Record, StorageAdapter>::registerOperation(OpType&& op) noexcept
 			assert_and_return_r(finalizeAndflushCurrentBlock(), {});
 			startNewBlock();
 		}
+
+		_lastStoredOpId = newOpId;
 
 		assert_and_return_r(_block.write(entryBuffer.data(), entrySize), {});
 		++_blockItemCount;
@@ -429,7 +428,8 @@ inline constexpr bool DbWAL<Record, StorageAdapter>::finalizeAndflushCurrentBloc
 template<RecordType Record, class StorageAdapter>
 inline constexpr bool DbWAL<Record, StorageAdapter>::newBlockRequiredForData(size_t dataSize) noexcept
 {
-	return dataSize > _block.remainingCapacity() - sizeof(BlockChecksumType) - sizeof(BlockItemCountType);
+	const auto remainingCapacity = _block.remainingCapacity() - sizeof(BlockChecksumType) - sizeof(BlockItemCountType);
+	return dataSize + MinItemSize + 20 > remainingCapacity;
 }
 
 template<RecordType Record, class StorageAdapter>
