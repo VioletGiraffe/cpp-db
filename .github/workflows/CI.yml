@@ -25,6 +25,7 @@ jobs:
       run: |
         git clone --depth 1 https://github.com/VioletGiraffe/cpp-template-utils ../cpp-template-utils
         git clone --depth 1 https://github.com/VioletGiraffe/cpputils ../cpputils
+        git clone --depth 1 https://github.com/VioletGiraffe/thin_io ../thin_io
 
     - name: Windows - setup MSBuild
       if: startsWith(matrix.os, 'windows')
