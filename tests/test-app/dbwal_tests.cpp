@@ -236,8 +236,8 @@ TEST_CASE("DbWAL: registering multiple operations - multiple threads", "[dbwal]"
 		using FArray = Field<uint64_t, 4, true>;
 
 		using RecordWithArray = DbRecord<F64, F16, FString, FArray>;
-		RecordWithArray r1(1'000'000'000'000ULL, int16_t{ -32700 }, "Hello!", std::vector<uint64_t>(20, 123));
-		RecordWithArray r2(1'111'111'111'000ULL, int16_t{ -27000 }, "World!", std::vector<uint64_t>(20, 456));
+		RecordWithArray r1(1'000'000'000'000ULL, int16_t{ -32700 }, "Hello!", std::vector<uint64_t>(100, 123));
+		RecordWithArray r2(1'111'111'111'000ULL, int16_t{ -27000 }, "World!", std::vector<uint64_t>(30, 456));
 
 		Operation::Insert<RecordWithArray> opInsert(r1);
 		Operation::AppendToArray<RecordWithArray, F16, FArray, true> opAppend(int16_t{ -31000 }, r2);
@@ -336,6 +336,8 @@ TEST_CASE("DbWAL: registering multiple operations - multiple threads", "[dbwal]"
 	catch (const std::exception& e) {
 		FAIL(e.what());
 	}
+
+	printf("Max fill: %I64d\n", maxFill.load());
 }
 
 /* Entry structure :

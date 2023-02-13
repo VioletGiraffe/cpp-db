@@ -17,6 +17,8 @@
 #include <thread>
 #include <vector>
 
+static std::atomic_uint64_t maxFill = 0;
+
 template <RecordType Record, class StorageAdapter>
 class DbWAL
 {
@@ -115,7 +117,7 @@ template<RecordType Record, class StorageAdapter>
 	if (!blockIsEmpty())
 	{
 		assert_and_return_r(finalizeAndflushCurrentBlock(), false);
-		_block.clear();
+		startNewBlock();
 	}
 
 	return _logFile.close();
@@ -435,7 +437,7 @@ inline constexpr bool DbWAL<Record, StorageAdapter>::newBlockRequiredForData(siz
 template<RecordType Record, class StorageAdapter>
 inline constexpr bool DbWAL<Record, StorageAdapter>::blockIsEmpty() const noexcept
 {
-	return _block.size() <= 2;
+	return _blockItemCount == 0;
 }
 
 template<RecordType Record, class StorageAdapter>
@@ -448,17 +450,20 @@ inline void DbWAL<Record, StorageAdapter>::waitForFlushAndHandleTimeout(OpID cur
 	while (_lastFlushedOpId < currentOpId)
 	{
 		// Assuming 2 GHz clock speed. Will increment twice faster (shorter timeout) at 4 GHz.
-		static constexpr uint64_t twoBillion = 1ULL << (31 - 3); // Counting in 8ths of a second
+		static constexpr uint64_t clockSpeed = 1ULL << 31;
+		// Counting time intervals in 64ths of a second
 		// Shorter tmeout for debugging. TODO: restore later
-		//static constexpr uint64_t timeOut = 4;
-		static constexpr uint64_t timeOut = 1;
-		const uint64_t elapsedSeconds = (rdtsc() - operationStartTimeStamp) / twoBillion;
-		if (firstWriter && elapsedSeconds > timeOut)
+		static constexpr uint64_t timeOut = 8; // 7/64 = 11 ms
+		const uint64_t elapsed = (rdtsc() - operationStartTimeStamp) * 64 / clockSpeed;
+		if (firstWriter && elapsed >= timeOut)
 		{
 			std::lock_guard lck(_mtxBlock);
 			// Re-check the last flushed OP ID under lock in case another thread started flushing at the same time
 			if (_lastFlushedOpId < currentOpId)
 			{
+				if (const auto bs = _block.size(); maxFill < bs)
+					maxFill = bs;
+
 				if (!finalizeAndflushCurrentBlock()) [[unlikely]]
 					fatalAbort("WAL: flush failed!");
 
