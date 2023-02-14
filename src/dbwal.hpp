@@ -18,6 +18,16 @@
 #include <vector>
 
 static std::atomic_uint64_t maxFill = 0;
+static std::atomic_uint64_t totalBlockCount = 0;
+static std::atomic_uint64_t totalSizeWritten = 0;
+
+//#define ENABLE_TRACING
+
+#ifdef ENABLE_TRACING
+#define TRACE(...) printf(__VA_ARGS__)
+#else
+#define TRACE(...)
+#endif
 
 template <RecordType Record, class StorageAdapter>
 class DbWAL
@@ -298,9 +308,11 @@ DbWAL<Record, StorageAdapter>::registerOperation(OpType&& op) noexcept
 
 			assert_and_return_r(finalizeAndflushCurrentBlock(), {});
 			startNewBlock();
+			firstWriter = true; // You are the first writer now!
 		}
 
 		_lastStoredOpId = newOpId;
+		TRACE("Thread %d\tregisterOperation: \tcurrentOpId=%d, first=%d\n", ::GetCurrentThreadId(), newOpId, (int)firstWriter);
 
 		assert_and_return_r(_block.write(entryBuffer.data(), entrySize), {});
 		++_blockItemCount;
@@ -359,11 +371,14 @@ inline bool DbWAL<Record, StorageAdapter>::updateOpStatus(const OpID opId, const
 
 			assert_and_return_r(finalizeAndflushCurrentBlock(), false);
 			startNewBlock();
+			firstWriter = true; // You are the first writer now!
 		}
 
+		TRACE("Thread %d\tregisterOperation: \tcurrentOpId=%d, first=%d\n", ::GetCurrentThreadId(), newOpId, (int)firstWriter);
 		StorageIO blockIo{ _block };
 		assert_and_return_r(blockIo.write(entryBuffer.data(), entrySize), false);
 		++_blockItemCount;
+		_lastStoredOpId = newOpId;
 
 		auto pendingOperationIterator = std::find(begin_to_end(_pendingOperations), opId);
 		assert_and_return_message_r(pendingOperationIterator != _pendingOperations.end(), "OpId=" + std::to_string(opId) + " hasn't been registered!", false);
@@ -407,11 +422,11 @@ inline constexpr bool DbWAL<Record, StorageAdapter>::finalizeAndflushCurrentBloc
 
 	StorageIO blockWriter{ _block };
 	assert_and_return_r(blockWriter.write(static_cast<BlockItemCountType>(_blockItemCount)), false);
-	const auto actualSize = _block.size();
+	const auto actualBlockSize = _block.size();
 	// Extend the size to full 4K
 	_block.reserve(_block.MaxCapacity);
 	assert_debug_only(_block.size() == _block.MaxCapacity);
-	::memset(_block.data() + actualSize, 0, _block.MaxCapacity - actualSize);
+	::memset(_block.data() + actualBlockSize, 0, _block.MaxCapacity - actualBlockSize);
 
 	const auto hash = wheathash32(_block.data(), _block.MaxCapacity - sizeof(BlockChecksumType));
 	static_assert(std::is_same_v<decltype(hash), const BlockChecksumType>);
@@ -423,6 +438,11 @@ inline constexpr bool DbWAL<Record, StorageAdapter>::finalizeAndflushCurrentBloc
 	assert_and_return_r(_logFile.flush(), false);
 
 	_lastFlushedOpId = _lastStoredOpId;
+
+	++totalBlockCount;
+	totalSizeWritten += actualBlockSize;
+	if (maxFill < actualBlockSize)
+		maxFill = actualBlockSize;
 
 	return true;
 }
@@ -440,12 +460,18 @@ inline constexpr bool DbWAL<Record, StorageAdapter>::blockIsEmpty() const noexce
 	return _blockItemCount == 0;
 }
 
+#include <Windows.h>
 template<RecordType Record, class StorageAdapter>
 inline void DbWAL<Record, StorageAdapter>::waitForFlushAndHandleTimeout(OpID currentOpId, const bool firstWriter, const uint64_t operationStartTimeStamp) noexcept
 {
 	/*//////////////////////////////////////////////////////////////////////////////////////////////////////
 	                 Waiting for another thread to flush the block and handling the timeout
 	//////////////////////////////////////////////////////////////////////////////////////////////////////*/
+
+#ifdef ENABLE_TRACING
+	const auto tid = ::GetCurrentThreadId();
+#endif
+	TRACE("Thread %d\twaiting: \t\tcurrentOpId=%d, lastFlushedOpId=%d, first=%d\n", tid, currentOpId, _lastFlushedOpId.load(), (int)firstWriter);
 
 	while (_lastFlushedOpId < currentOpId)
 	{
@@ -461,13 +487,11 @@ inline void DbWAL<Record, StorageAdapter>::waitForFlushAndHandleTimeout(OpID cur
 			// Re-check the last flushed OP ID under lock in case another thread started flushing at the same time
 			if (_lastFlushedOpId < currentOpId)
 			{
-				if (const auto bs = _block.size(); maxFill < bs)
-					maxFill = bs;
-
 				if (!finalizeAndflushCurrentBlock()) [[unlikely]]
 					fatalAbort("WAL: flush failed!");
 
 				startNewBlock();
+				TRACE("Thread %d\tflushed: \t\tcurrentOpId=%d, lastFlushedOpId=%d, lastStoredOpId=%d, first=%d\n", tid, currentOpId, _lastFlushedOpId.load(), _lastStoredOpId, (int)firstWriter);
 			}
 
 			break;
@@ -477,5 +501,6 @@ inline void DbWAL<Record, StorageAdapter>::waitForFlushAndHandleTimeout(OpID cur
 		std::this_thread::yield();
 	}
 
+	TRACE("Thread %d\tdone: \t\t\tcurrentOpId=%d, lastFlushedOpId=%d, first=%d\n", tid, currentOpId, _lastFlushedOpId.load(), (int)firstWriter);
 	// Done waiting - return
 }
