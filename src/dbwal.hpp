@@ -21,9 +21,18 @@ static std::atomic_uint64_t maxFill = 0;
 static std::atomic_uint64_t totalBlockCount = 0;
 static std::atomic_uint64_t totalSizeWritten = 0;
 
-//#define ENABLE_TRACING
+#define ENABLE_TRACING
 
 #ifdef ENABLE_TRACING
+#ifdef _WIN32
+#include <Windows.h>
+#define get_tid ::GetCurrentThreadId
+#else
+#include <sys/types.h>
+#include <unistd.h>
+#include <sys/syscall.h>
+#define get_tid(...) ::syscall(__NR_gettid)
+#endif
 #define TRACE(...) printf(__VA_ARGS__)
 #else
 #define TRACE(...)
@@ -312,7 +321,7 @@ DbWAL<Record, StorageAdapter>::registerOperation(OpType&& op) noexcept
 		}
 
 		_lastStoredOpId = newOpId;
-		TRACE("Thread %d\tregisterOperation: \tcurrentOpId=%d, first=%d\n", ::GetCurrentThreadId(), newOpId, (int)firstWriter);
+		TRACE("Thread %d\tregisterOperation: \tcurrentOpId=%d, first=%d\n", get_tid(), newOpId, (int)firstWriter);
 
 		assert_and_return_r(_block.write(entryBuffer.data(), entrySize), {});
 		++_blockItemCount;
@@ -374,7 +383,7 @@ inline bool DbWAL<Record, StorageAdapter>::updateOpStatus(const OpID opId, const
 			firstWriter = true; // You are the first writer now!
 		}
 
-		TRACE("Thread %d\tregisterOperation: \tcurrentOpId=%d, first=%d\n", ::GetCurrentThreadId(), newOpId, (int)firstWriter);
+		TRACE("Thread %d\tregisterOperation: \tcurrentOpId=%d, first=%d\n", get_tid(), newOpId, (int)firstWriter);
 		StorageIO blockIo{ _block };
 		assert_and_return_r(blockIo.write(entryBuffer.data(), entrySize), false);
 		++_blockItemCount;
@@ -460,7 +469,6 @@ inline constexpr bool DbWAL<Record, StorageAdapter>::blockIsEmpty() const noexce
 	return _blockItemCount == 0;
 }
 
-#include <Windows.h>
 template<RecordType Record, class StorageAdapter>
 inline void DbWAL<Record, StorageAdapter>::waitForFlushAndHandleTimeout(OpID currentOpId, const bool firstWriter, const uint64_t operationStartTimeStamp) noexcept
 {
@@ -469,7 +477,7 @@ inline void DbWAL<Record, StorageAdapter>::waitForFlushAndHandleTimeout(OpID cur
 	//////////////////////////////////////////////////////////////////////////////////////////////////////*/
 
 #ifdef ENABLE_TRACING
-	const auto tid = ::GetCurrentThreadId();
+	const auto tid = get_tid();
 #endif
 	TRACE("Thread %d\twaiting: \t\tcurrentOpId=%d, lastFlushedOpId=%d, first=%d\n", tid, currentOpId, _lastFlushedOpId.load(), (int)firstWriter);
 

@@ -11,6 +11,7 @@
 *.VC.db
 Makefile*
 .qmake.stash
+.qtc_clangd/
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
