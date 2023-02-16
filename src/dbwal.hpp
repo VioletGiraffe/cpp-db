@@ -307,9 +307,6 @@ DbWAL<Record, StorageAdapter>::registerOperation(OpType&& op) noexcept
 		// Time to lock the shared block buffer
 		std::lock_guard lock{_mtxBlock};
 
-		firstWriter = blockIsEmpty();
-		timeStamp = firstWriter ? rdtsc() : 0;
-
 		if (newBlockRequiredForData(entrySize)) // Not enough space left
 		{
 			if (firstWriter) [[unlikely]]
@@ -319,6 +316,9 @@ DbWAL<Record, StorageAdapter>::registerOperation(OpType&& op) noexcept
 			startNewBlock();
 			firstWriter = true; // You are the first writer now!
 		}
+
+		firstWriter = blockIsEmpty();
+		timeStamp = firstWriter ? rdtsc() : 0;
 
 		_lastStoredOpId = newOpId;
 		TRACE("Thread %d\tregisterOperation: \tcurrentOpId=%d, first=%d\n", get_tid(), newOpId, (int)firstWriter);
@@ -369,8 +369,6 @@ inline bool DbWAL<Record, StorageAdapter>::updateOpStatus(const OpID opId, const
 	{
 		std::lock_guard lock{_mtxBlock};
 
-		firstWriter = blockIsEmpty();
-		timeStamp = firstWriter ? rdtsc() : 0;
 		newOpId = ++_lastOpId;
 
 		if (newBlockRequiredForData(entrySize)) // Not enough space left
@@ -380,8 +378,10 @@ inline bool DbWAL<Record, StorageAdapter>::updateOpStatus(const OpID opId, const
 
 			assert_and_return_r(finalizeAndflushCurrentBlock(), false);
 			startNewBlock();
-			firstWriter = true; // You are the first writer now!
 		}
+
+		firstWriter = blockIsEmpty();
+		timeStamp = firstWriter ? rdtsc() : 0;
 
 		TRACE("Thread %d\tregisterOperation: \tcurrentOpId=%d, first=%d\n", get_tid(), newOpId, (int)firstWriter);
 		StorageIO blockIo{ _block };
@@ -479,7 +479,7 @@ inline void DbWAL<Record, StorageAdapter>::waitForFlushAndHandleTimeout(OpID cur
 #ifdef ENABLE_TRACING
 	const auto tid = get_tid();
 #endif
-	TRACE("Thread %d\twaiting: \t\tcurrentOpId=%d, lastFlushedOpId=%d, first=%d\n", tid, currentOpId, _lastFlushedOpId.load(), (int)firstWriter);
+	TRACE("Thread %d\twaiting: \t\tcurrentOpId=%d, first=%d, lastFlushedOpId=%d\n", tid, currentOpId, (int)firstWriter, _lastFlushedOpId.load());
 
 	while (_lastFlushedOpId < currentOpId)
 	{
@@ -499,7 +499,7 @@ inline void DbWAL<Record, StorageAdapter>::waitForFlushAndHandleTimeout(OpID cur
 					fatalAbort("WAL: flush failed!");
 
 				startNewBlock();
-				TRACE("Thread %d\tflushed: \t\tcurrentOpId=%d, lastFlushedOpId=%d, lastStoredOpId=%d, first=%d\n", tid, currentOpId, _lastFlushedOpId.load(), _lastStoredOpId, (int)firstWriter);
+				TRACE("Thread %d\tflushed: \t\tcurrentOpId=%d, first=%d, lastFlushedOpId=%d, lastStoredOpId=%d\n", tid, currentOpId, (int)firstWriter, _lastFlushedOpId.load(), _lastStoredOpId);
 			}
 
 			break;
@@ -509,6 +509,6 @@ inline void DbWAL<Record, StorageAdapter>::waitForFlushAndHandleTimeout(OpID cur
 		std::this_thread::yield();
 	}
 
-	TRACE("Thread %d\tdone: \t\t\tcurrentOpId=%d, lastFlushedOpId=%d, first=%d\n", tid, currentOpId, _lastFlushedOpId.load(), (int)firstWriter);
+	TRACE("Thread %d\tdone: \t\t\tcurrentOpId=%d, first=%d, lastFlushedOpId=%d\n", tid, currentOpId, (int)firstWriter, _lastFlushedOpId.load());
 	// Done waiting - return
 }
