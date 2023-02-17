@@ -19,4 +19,4 @@ cpp-db.file=$${PWD}/../cpp-db.pro
 cpp-db.depends = cpputils thin_io
 
 test-app.file=$${PWD}/test-app/test-app.pro
-test-app.depends = cpp-db
+test-app.depends = cpp-db cpputils
