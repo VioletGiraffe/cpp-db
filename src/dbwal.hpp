@@ -311,7 +311,7 @@ DbWAL<Record, StorageAdapter>::registerOperation(OpType&& op) noexcept
 		// Now buffer holds the complete entry
 
 		assert_debug_only(newOpId > _lastStoredOpId);
-		assert_debug_only(_lastStoredOpId <= _lastFlushedOpId);
+		assert_debug_only(_lastStoredOpId >= _lastFlushedOpId);
 
 		TRACE("Thread %ld\tregisterOperation: \tcurrentOpId=%d, first=%d, blockSize=%ld,t=%lu\n", get_tid(), newOpId, (int)firstWriter, _blockItemCount.load(), timeElapsedMs());
 
