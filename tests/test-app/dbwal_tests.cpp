@@ -5,6 +5,7 @@
 #include "threading/thread_helpers.h"
 
 #include "random/randomnumbergenerator.h"
+#include "utility/macro_utils.h"
 #include "utility/integer_literals.hpp"
 
 #include <array>
@@ -17,6 +18,8 @@
 #else
 #define IGNORE_ASSERTION(...) __VA_ARGS__
 #endif
+
+#define REQUIRE_THREAD_SAFE(...) if (!(__VA_ARGS__)) fatalAbort(STRINGIFY_EXPANDED_ARGUMENT(__VA_ARGS__))
 
 TEST_CASE("DbWAL basics", "[dbwal]")
 {
@@ -288,7 +291,7 @@ TEST_CASE("DbWAL: registering multiple operations - multiple threads", "[dbwal]"
 				if (index < 5)
 				{
 					const auto id = registerOperationByIndex(index);
-					REQUIRE(id);
+					REQUIRE_THREAD_SAFE(id);
 					opIds.push_back(*id);
 				}
 				else if (!opIds.empty())
@@ -297,13 +300,13 @@ TEST_CASE("DbWAL: registering multiple operations - multiple threads", "[dbwal]"
 					const auto id = *it;
 					const auto random = wheathash64v(rdtsc());
 					const auto status = (random & 1) != 0 ? WAL::OpStatus::Successful : WAL::OpStatus::Failed;
-					REQUIRE(wal.updateOpStatus(id, status));
+					REQUIRE_THREAD_SAFE(wal.updateOpStatus(id, status));
 					opIds.erase(it);
 				}
 				else
 				{
 					const auto id = registerOperationByIndex(1);
-					REQUIRE(id);
+					REQUIRE_THREAD_SAFE(id);
 					opIds.push_back(*id);
 				}
 			}
