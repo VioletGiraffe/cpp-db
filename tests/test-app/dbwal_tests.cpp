@@ -267,7 +267,7 @@ TEST_CASE("DbWAL: registering multiple operations - multiple threads", "[dbwal]"
 		};
 
 		// Each thread gets a different, but deterministic seed
-		std::atomic_size_t seed = 0;
+		std::atomic_uint64_t seed = 13419494910660666967ULL;
 
 		static constexpr size_t NOperationsPerThread = 500;
 		static constexpr size_t NThreads = 12;
@@ -275,8 +275,9 @@ TEST_CASE("DbWAL: registering multiple operations - multiple threads", "[dbwal]"
 		const auto threadFunction = [&](const bool issueUpdateOpStatusCalls) {
 			std::vector<WAL::OpID> opIds;
 			opIds.reserve(NOperationsPerThread);
-			RandomNumberGenerator<size_t> rng{ seed++, 0, issueUpdateOpStatusCalls ? 5_z : 4_z };
-			RandomNumberGenerator<size_t> rngForOpId;
+			const auto localSeed = seed++;
+			RandomNumberGenerator<uint64_t> rng{ localSeed, 0, issueUpdateOpStatusCalls ? 5_z : 4_z };
+			RandomNumberGenerator<uint64_t> rngForOpId{ localSeed + 1 };
 
 			for (size_t i = 0; i < NOperationsPerThread; ++i)
 			{
@@ -369,13 +370,12 @@ TEST_CASE("DbWAL: registering multiple operations - multiple threads", "[dbwal]"
 			REQUIRE(std::all_of(begin_to_end(unfinishedOpsCount), [](auto count) { return count > 0; }));
 		}
 
-		SECTION("With updateOpStatus() - mixed successes and failures")
+		SECTION("With updateOpStatus()")
 		{
 			fillWal(true);
 
 			std::array<size_t, 5> unfinishedOpsCount;
 			unfinishedOpsCount.fill(0);
-			size_t failedOpsCount = 0;
 
 			REQUIRE(wal.closeLogFile());
 			const auto size = walDataBuffer.size();
@@ -409,11 +409,9 @@ TEST_CASE("DbWAL: registering multiple operations - multiple threads", "[dbwal]"
 					++unfinishedOpsCount[4];
 					REQUIRE(opFind._fields == op._fields);
 				},
-				[&](WAL::OperationCompletedMarker&& marker) {
-					if (marker.status == WAL::OpStatus::Failed)
-						++failedOpsCount;
-					else
-						FAIL("This branch shouldn't be called!");
+				[&](WAL::OperationCompletedMarker&& /*marker*/) {
+					// Neither successful nor failed operations should be reported, as long as they are completed!
+					FAIL("This branch shouldn't be called!");
 				},
 				[&](auto&&) {
 					FAIL("This overload shouldn't be called!");
@@ -422,9 +420,9 @@ TEST_CASE("DbWAL: registering multiple operations - multiple threads", "[dbwal]"
 
 			REQUIRE(verificationSuccessful);
 			const auto unfinished = std::accumulate(begin_to_end(unfinishedOpsCount), 0_z);
-			REQUIRE((unfinished < NThreads * NOperationsPerThread && unfinished >  NThreads * NOperationsPerThread / 2));
-			REQUIRE((failedOpsCount > 0 && failedOpsCount < NThreads * NOperationsPerThread / 4));
-			REQUIRE(failedOpsCount + unfinished == NThreads * NOperationsPerThread );
+			// The number of completion markers in the log is approximately 1/6th of the total number of entries: there are 5 operations + the completion markers, uniformly distributed.
+			// So the total number of operations logged is 5/6 * NThreads * NOperationsPerThread, of which 1/6th are marked completed, so 4/6th remains.
+			REQUIRE((unfinished > NThreads * NOperationsPerThread * 4 / 7 && unfinished < NThreads * NOperationsPerThread * 4 / 5));
 			REQUIRE(std::all_of(begin_to_end(unfinishedOpsCount), [](auto count) { return count > 0; }));
 		}
 

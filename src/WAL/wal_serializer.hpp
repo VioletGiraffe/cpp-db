@@ -369,7 +369,7 @@ bool Serializer<Record>::deserialize(StorageIO<StorageAdapter>& io, Receiver&& r
 
 			return success;
 		}
-		// Markers are currently handled and skipped by the WAL itself
+		// Markers are currently handled by the WAL itself
 		/*case OperationCompletedMarker::markerID:
 		{
 			OperationCompletedMarker marker;

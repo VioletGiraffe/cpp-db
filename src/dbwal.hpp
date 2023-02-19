@@ -19,6 +19,9 @@ Operation basics:
   The first pass only looks for operation completion markers and stores them.
   The second pass reads operation IDs of every record, but skips all the other data for IDs that have been successful.
   This eliminates the need to store operations until their status is known, which would be highly problematic due to unknown template arguments.
+
+* During verification, operations that were pending and not marked as completed are reported to the supplied receiver function object.
+  Completed operations are skipped. Whether the operation has completed successfully or otherwise, it has been handled by the storage and no replay is required.
 */
 
 #include "dbops.hpp"
@@ -218,8 +221,11 @@ template <typename Receiver>
 	};
 
 	// Two passes are required because of the templated operation types that cannot be [easily] stored at runtime.
-	// The first pass reads and stores all completed operations.
-	// Then the seconds pass can skip over all transactions that have completed successfully and process the ones that didn't.
+	// 
+	// The first pass reads and stores all operation completion markers. Whether or not the operation completed successfully or failed, it has been handled by the storage and no replay is required.
+	// So the 1st pass only reads the IDs of completed operations and skips everything else.
+	// 
+	// Then the seconds pass can skip reading all the operations that have completed successfully and process the ones that didn't.
 
 	// Remeber: malformed last block is not an error
 	for (size_t pass = 1; pass <= 2; ++pass)
@@ -262,7 +268,7 @@ template <typename Receiver>
 				WAL::OpID operationId = 0;
 				assert_and_return_r(blockBufferIo.read(operationId) && operationId != 0, false);
 
-				// First pass: skip everything. Second pass: skip completed operations.
+				// First pass: skip everything. Second pass: skip operations that were marked as completed.
 				const bool skipEntry = pass == 1 || isCompleted(operationId);
 
 				if (pass == 1 && Serializer::isOperationCompletionMarker(blockBufferIo))
