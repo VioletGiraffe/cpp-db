@@ -95,6 +95,7 @@ TEST_CASE("DbWAL basics", "[dbwal]")
 
 	buffer.seek(4096);
 	REQUIRE(wal.updateOpStatus(*id, WAL::OpStatus::Successful));
+	const auto bufferChecksum = wheathash64(buffer.data(), buffer.size());
 	IGNORE_ASSERTION(REQUIRE(wal.updateOpStatus(*id + 1, WAL::OpStatus::Successful) == false)); // No such ID
 	unfinishedOpsCount = 0;
 	buffer.seek(0);
@@ -103,12 +104,14 @@ TEST_CASE("DbWAL basics", "[dbwal]")
 	}));
 	REQUIRE(unfinishedOpsCount == 0);
 
-	buffer.clear();
 	IGNORE_ASSERTION(REQUIRE(wal.updateOpStatus(*id, WAL::OpStatus::Successful) == false)); // No longer pending
+
+	const auto newChecksum = wheathash64(buffer.data(), buffer.size());
+	REQUIRE(newChecksum == bufferChecksum);
 
 	// Closing the log
 	REQUIRE(wal.closeLogFile());
-	REQUIRE(buffer.size() == 4096);
+	REQUIRE(buffer.size() == 8192);
 }
 
 TEST_CASE("DbWAL: registering multiple operations - single thread", "[dbwal]")

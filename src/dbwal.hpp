@@ -156,10 +156,7 @@ template<RecordType Record, class StorageAdapter>
 	std::lock_guard lock(_mtxBlock);
 
 	if (!blockIsEmpty())
-	{
 		assert_and_return_r(finalizeAndflushCurrentBlock(), false);
-		startNewBlock();
-	}
 
 	return _logFile.close();
 }
@@ -167,13 +164,9 @@ template<RecordType Record, class StorageAdapter>
 template<RecordType Record, class StorageAdapter>
 [[nodiscard]] bool DbWAL<Record, StorageAdapter>::clearLog() noexcept
 {
-	// TODO: why startNewBlock?
-	//{
-	//	std::lock_guard lock(_mtxBlock);
-	//	startNewBlock();
-	//}
-
 	std::lock_guard lock(_mtxBlock);
+
+	// Do not clear the current block! It's in progress and should not be touched here.
 
 	assert_and_return_r(_logFile.clear(), false);
 	return _logFile.flush();
@@ -346,7 +339,6 @@ DbWAL<Record, StorageAdapter>::registerOperation(OpType&& op) noexcept
 				fatalAbort("Not enough space in the block!"); // TODO: handle the case of data being larger than one block can fit
 
 			assert_and_return_r(finalizeAndflushCurrentBlock(), {});
-			startNewBlock();
 		}
 
 		firstWriter = blockIsEmpty();
@@ -400,6 +392,10 @@ bool DbWAL<Record, StorageAdapter>::updateOpStatus(const WAL::OpID opId, const W
 	{
 		std::lock_guard lock{_mtxBlock};
 
+		// Check the validity of the request before making any changes to the WAL state!
+		const auto pendingOperationIterator = std::find(begin_to_end(_pendingOperations), opId);
+		assert_and_return_message_r(pendingOperationIterator != _pendingOperations.end(), "OpId=" + std::to_string(opId) + " hasn't been registered!", false);
+
 		newOpId = ++_lastOpId;
 		assert_debug_only(newOpId > _lastBlockOpId);
 		assert_debug_only(_lastBlockOpId >= _lastFlushedOpId);
@@ -412,7 +408,6 @@ bool DbWAL<Record, StorageAdapter>::updateOpStatus(const WAL::OpID opId, const W
 				fatalAbort("Not enough space in the block!");
 
 			assert_and_return_r(finalizeAndflushCurrentBlock(), false);
-			startNewBlock();
 		}
 
 		firstWriter = blockIsEmpty();
@@ -424,8 +419,6 @@ bool DbWAL<Record, StorageAdapter>::updateOpStatus(const WAL::OpID opId, const W
 		assert_debug_only(_blockItemCount <= MaxItemCount);
 		_lastBlockOpId = newOpId;
 
-		const auto pendingOperationIterator = std::find(begin_to_end(_pendingOperations), opId);
-		assert_and_return_message_r(pendingOperationIterator != _pendingOperations.end(), "OpId=" + std::to_string(opId) + " hasn't been registered!", false);
 		_pendingOperations.erase(pendingOperationIterator);
 
 		// TODO: this requires _mtxBlock to be recursive
@@ -494,6 +487,8 @@ constexpr bool DbWAL<Record, StorageAdapter>::finalizeAndflushCurrentBlock() noe
 	if (maxFill < actualBlockSize)
 		maxFill = actualBlockSize;
 
+	startNewBlock();
+
 	return true;
 }
 
@@ -537,8 +532,6 @@ void DbWAL<Record, StorageAdapter>::waitForFlushAndHandleTimeout(WAL::OpID curre
 				TRACE("Thread %ld\ttimeout: \t\tcurrentOpId=%d, first=%d, lastFlushedOpId=%d, lastStoredOpId=%d\n", tid, currentOpId, (int)firstWriter, _lastFlushedOpId.load(), _lastBlockOpId);
 				if (!finalizeAndflushCurrentBlock()) [[unlikely]]
 					fatalAbort("WAL: flush failed!");
-
-				startNewBlock();
 			}
 
 			break;
