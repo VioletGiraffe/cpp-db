@@ -133,7 +133,7 @@ TEST_CASE("DbWAL: registering multiple operations - single thread", "[dbwal]")
 		DbWAL<RecordWithArray, decltype(walDataBuffer)> wal{ walDataBuffer };
 		REQUIRE(wal.openLogFile({}));
 
-		std::vector<WAL::OperationIdType> registeredOpIds;
+		std::vector<WAL::OpID> registeredOpIds;
 		registeredOpIds.push_back(wal.registerOperation(opInsert).value());
 		registeredOpIds.push_back(wal.registerOperation(opAppend).value());
 		registeredOpIds.push_back(wal.registerOperation(opDelete).value());
@@ -249,18 +249,18 @@ TEST_CASE("DbWAL: registering multiple operations - multiple threads", "[dbwal]"
 		DbWAL<RecordWithArray, decltype(walDataBuffer)> wal{ walDataBuffer };
 		REQUIRE(wal.openLogFile({}));
 
-		const auto registerOperationByIndex = [&](const size_t index) -> bool {
+		const auto registerOperationByIndex = [&](const size_t index) {
 			switch (index) {
 			case 0:
-				return wal.registerOperation(opInsert).has_value();
+				return wal.registerOperation(opInsert);
 			case 1:
-				return wal.registerOperation(opAppend).has_value();
+				return wal.registerOperation(opAppend);
 			case 2:
-				return wal.registerOperation(opDelete).has_value();
+				return wal.registerOperation(opDelete);
 			case 3:
-				return wal.registerOperation(opUpdate).has_value();
+				return wal.registerOperation(opUpdate);
 			case 4:
-				return wal.registerOperation(opFind).has_value();
+				return wal.registerOperation(opFind);
 			default:
 				throw std::runtime_error("!!! RNG failed !!!");
 			}
@@ -271,30 +271,62 @@ TEST_CASE("DbWAL: registering multiple operations - multiple threads", "[dbwal]"
 
 		static constexpr size_t NOperationsPerThread = 500;
 		static constexpr size_t NThreads = 12;
-		const auto threadFunction = [&registerOperationByIndex, &seed] {
-			static thread_local RandomNumberGenerator<size_t> rng{ seed++, 0, 4 };
+
+		const auto threadFunction = [&](const bool issueUpdateOpStatusCalls) {
+			std::vector<WAL::OpID> opIds;
+			opIds.reserve(NOperationsPerThread);
+			RandomNumberGenerator<size_t> rng{ seed++, 0, issueUpdateOpStatusCalls ? 5_z : 4_z };
+			RandomNumberGenerator<size_t> rngForOpId;
+
 			for (size_t i = 0; i < NOperationsPerThread; ++i)
 			{
 				const auto index = rng.rand();
-				registerOperationByIndex(index);
+				if (index < 5)
+				{
+					const auto id = registerOperationByIndex(index);
+					REQUIRE(id);
+					opIds.push_back(*id);
+				}
+				else if (!opIds.empty())
+				{
+					const auto it = opIds.begin() + rngForOpId.rand() % opIds.size();
+					const auto id = *it;
+					const auto random = wheathash64v(rdtsc());
+					const auto status = (random & 1) != 0 ? WAL::OpStatus::Successful : WAL::OpStatus::Failed;
+					REQUIRE(wal.updateOpStatus(id, status));
+					opIds.erase(it);
+				}
+				else
+				{
+					const auto id = registerOperationByIndex(1);
+					REQUIRE(id);
+					opIds.push_back(*id);
+				}
 			}
 		};
 
-		const auto startTime = timeElapsedMs();
-		std::deque<std::thread> threads;
-		// Start N threads
-		for (size_t i = 0; i < NThreads; ++i)
-			threads.emplace_back(threadFunction);
+		const auto fillWal = [&threadFunction](bool issueUpdateOpStatusCalls) {
+			const auto startTime = timeElapsedMs();
+			std::deque<std::thread> threads;
+			// Start N threads
+			for (size_t i = 0; i < NThreads; ++i)
+				threads.emplace_back(threadFunction, issueUpdateOpStatusCalls);
 
-		joinAll(threads);
+			joinAll(threads);
 
-		printf("Filling the WAL (%lu threads x %lu ops) took %F s\n", NThreads, NOperationsPerThread, (float)(timeElapsedMs() - startTime)/1000.0f);
-
-		std::array<size_t, 5> unfinishedOpsCount;
-		unfinishedOpsCount.fill(0);
+			if (issueUpdateOpStatusCalls)
+				printf("Filling the WAL with updateOpStatus() (%lu threads x %lu ops) took %F s\n", (unsigned long)NThreads, (unsigned long)NOperationsPerThread, (float)(timeElapsedMs() - startTime) / 1000.0f);
+			else
+				printf("Filling the WAL (%lu threads x %lu ops) took %F s\n", (unsigned long)NThreads, (unsigned long)NOperationsPerThread, (float)(timeElapsedMs() - startTime) / 1000.0f);
+		};
 
 		SECTION("No updateOpStatus()")
 		{
+			fillWal(false);
+
+			std::array<size_t, 5> unfinishedOpsCount;
+			unfinishedOpsCount.fill(0);
+
 			REQUIRE(wal.closeLogFile());
 			const auto size = walDataBuffer.size();
 			REQUIRE(size > 0);
@@ -333,15 +365,75 @@ TEST_CASE("DbWAL: registering multiple operations - multiple threads", "[dbwal]"
 				});
 
 			REQUIRE(verificationSuccessful);
-			REQUIRE(std::accumulate(begin_to_end(unfinishedOpsCount), 0_z) == threads.size() * NOperationsPerThread);
+			REQUIRE(std::accumulate(begin_to_end(unfinishedOpsCount), 0_z) == NThreads * NOperationsPerThread);
 			REQUIRE(std::all_of(begin_to_end(unfinishedOpsCount), [](auto count) { return count > 0; }));
 		}
+
+		SECTION("With updateOpStatus() - mixed successes and failures")
+		{
+			fillWal(true);
+
+			std::array<size_t, 5> unfinishedOpsCount;
+			unfinishedOpsCount.fill(0);
+			size_t failedOpsCount = 0;
+
+			REQUIRE(wal.closeLogFile());
+			const auto size = walDataBuffer.size();
+			REQUIRE(size > 0);
+
+			REQUIRE(wal.openLogFile({}));
+
+			const bool verificationSuccessful = wal.verifyLog(overload{
+				[&](decltype(opAppend) && op) {
+					++unfinishedOpsCount[0];
+					REQUIRE(opAppend.keyValue == op.keyValue);
+					REQUIRE(opAppend.updatedArray() == op.updatedArray());
+					REQUIRE(op.updatedArray() == r2.fieldValue<FArray>());
+					// Still crashes intellisense! VS 17.4.3
+					//REQUIRE(opAppend.insertIfNotPresent() == op.insertIfNotPresent());
+				},
+				[&](decltype(opInsert) && op) {
+					++unfinishedOpsCount[1];
+					REQUIRE(op._record == r1);
+				},
+				[&](decltype(opDelete) && op) {
+					++unfinishedOpsCount[2];
+					REQUIRE(opDelete.keyValue == op.keyValue);
+				},
+				[&](decltype(opUpdate) && op) {
+					++unfinishedOpsCount[3];
+					REQUIRE(opUpdate.keyValue == op.keyValue);
+					REQUIRE(opUpdate.record == r1);
+				},
+				[&](decltype(opFind) && op) {
+					++unfinishedOpsCount[4];
+					REQUIRE(opFind._fields == op._fields);
+				},
+				[&](WAL::OperationCompletedMarker&& marker) {
+					if (marker.status == WAL::OpStatus::Failed)
+						++failedOpsCount;
+					else
+						FAIL("This branch shouldn't be called!");
+				},
+				[&](auto&&) {
+					FAIL("This overload shouldn't be called!");
+				}
+				});
+
+			REQUIRE(verificationSuccessful);
+			const auto unfinished = std::accumulate(begin_to_end(unfinishedOpsCount), 0_z);
+			REQUIRE((unfinished < NThreads * NOperationsPerThread && unfinished >  NThreads * NOperationsPerThread / 2));
+			REQUIRE((failedOpsCount > 0 && failedOpsCount < NThreads * NOperationsPerThread / 4));
+			REQUIRE(failedOpsCount + unfinished == NThreads * NOperationsPerThread );
+			REQUIRE(std::all_of(begin_to_end(unfinishedOpsCount), [](auto count) { return count > 0; }));
+		}
+
 	}
 	catch (const std::exception& e) {
 		FAIL(e.what());
 	}
 
-	printf("Max fill: %ld, avg. fill: %ld\n", maxFill.load(), totalSizeWritten.load() / totalBlockCount.load());
+	printf("Max fill: %ld, avg. fill: %ld\n", (long)maxFill.load(), (long)totalSizeWritten.load() / (long)totalBlockCount.load());
 }
 
 /* Entry structure :

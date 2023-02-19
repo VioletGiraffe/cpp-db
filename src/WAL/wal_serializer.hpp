@@ -1,6 +1,6 @@
 #pragma once
 
-#include "operation_completion_marker.hpp"
+#include "wal_data_types.hpp"
 #include "../dbrecord.hpp"
 #include "../dbops.hpp"
 #include "../dbschema.hpp"
