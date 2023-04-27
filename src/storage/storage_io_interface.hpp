@@ -5,15 +5,16 @@
 
 #include "assert/advanced_assert.h"
 #include "utility/extra_type_traits.hpp"
+#include "utility/template_magic.hpp"
 
 #include <optional>
 #include <string>
 #include <string_view>
 
 template <typename IOAdapter>
-struct StorageIO
+struct StorageIO final
 {
-	constexpr StorageIO(IOAdapter& io) noexcept :
+	constexpr explicit StorageIO(IOAdapter& io) noexcept :
 		_io{ io }
 	{}
 
@@ -22,29 +23,32 @@ struct StorageIO
 		assert_r(close());
 	}
 
-	[[nodiscard]] constexpr bool open(std::string_view filePath, const io::OpenMode mode) noexcept;
+	StorageIO(const StorageIO&) = delete;
+	StorageIO& operator=(const StorageIO&) = delete;
+
+	[[nodiscard]] constexpr bool open(std::string_view filePath, io::OpenMode mode) noexcept;
 	[[nodiscard]] constexpr bool close() noexcept;
 
 	template<typename T, auto id, bool isArray>
-	[[nodiscard]] constexpr bool writeField(const Field<T, id, isArray>& field, const std::optional<uint64_t> position = {}) noexcept;
+	[[nodiscard]] constexpr bool writeField(const Field<T, id, isArray>& field, std::optional<uint64_t> position = {}) noexcept;
 	template<typename T, auto id, bool isArray>
-	[[nodiscard]] constexpr bool readField(Field<T, id, isArray>& field, const std::optional<uint64_t> position = {}) noexcept;
+	[[nodiscard]] constexpr bool readField(Field<T, id, isArray>& field, std::optional<uint64_t> position = {}) noexcept;
 
 	template <typename T, sfinae<!std::is_pointer_v<T>&& is_trivially_serializable_v<T>> = true>
-	[[nodiscard]] constexpr bool read(T& value, const std::optional<uint64_t> position = {}) noexcept;
+	[[nodiscard]] constexpr bool read(T& value, std::optional<uint64_t> position = {}) noexcept;
 	template <typename T, sfinae<!std::is_pointer_v<T>&& is_trivially_serializable_v<T>> = true>
-	[[nodiscard]] constexpr bool write(const T& value, const std::optional<uint64_t> position = {}) noexcept;
+	[[nodiscard]] constexpr bool write(const T& value, std::optional<uint64_t> position = {}) noexcept;
 
-	[[nodiscard]] constexpr bool read(std::string& value, const std::optional<uint64_t> position = {}) noexcept;
-	[[nodiscard]] constexpr bool write(const std::string& value, const std::optional<uint64_t> position = {}) noexcept;
+	[[nodiscard]] constexpr bool read(std::string& value, std::optional<uint64_t> position = {}) noexcept;
+	[[nodiscard]] constexpr bool write(const std::string& value, std::optional<uint64_t> position = {}) noexcept;
 
 	template <typename T>
-	[[nodiscard]] constexpr bool read(std::vector<T>& v, const std::optional<uint64_t> position = {}) noexcept;
+	[[nodiscard]] constexpr bool read(std::vector<T>& v, std::optional<uint64_t> position = {}) noexcept;
 	template <typename T>
-	[[nodiscard]] constexpr bool write(const std::vector<T>& v, const std::optional<uint64_t> position = {}) noexcept;
+	[[nodiscard]] constexpr bool write(const std::vector<T>& v, std::optional<uint64_t> position = {}) noexcept;
 
-	[[nodiscard]] constexpr bool read(void* const dataPtr, uint64_t size) noexcept;
-	[[nodiscard]] constexpr bool write(const void* const dataPtr, uint64_t size) noexcept;
+	[[nodiscard]] constexpr bool read(void* dataPtr, uint64_t size) noexcept;
+	[[nodiscard]] constexpr bool write(const void* dataPtr, uint64_t size) noexcept;
 
 	constexpr bool flush() noexcept;
 	[[nodiscard]] constexpr bool seek(uint64_t location) noexcept;
@@ -78,7 +82,7 @@ private:
 template<typename IOAdapter>
 constexpr bool StorageIO<IOAdapter>::open(std::string_view filePath, const io::OpenMode mode) noexcept
 {
-	return _io.open(std::move(filePath), mode);
+	return _io.open(filePath, mode);
 }
 
 template<typename IOAdapter>

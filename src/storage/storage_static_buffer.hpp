@@ -1,6 +1,8 @@
 #pragma once
 
-#include "storage_io_interface.hpp"
+#include "io_base_definitions.hpp"
+
+#include "assert/advanced_assert.h"
 #include "utility/static_data_buffer.hpp"
 
 #include <mutex>
@@ -107,7 +109,7 @@ private:
 class VectorAdapter
 {
 public:
-	inline VectorAdapter(const size_t reserve = 0) noexcept
+	inline explicit VectorAdapter(const size_t reserve = 0) noexcept
 	{
 		_data.reserve(reserve);
 	}
@@ -205,4 +207,4 @@ private:
 	bool _isOpen = false;
 };
 
-}
+} // namespace io

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "utility/template_magic.hpp"
 #include "dbfield_size_helpers.hpp"
 
 #include <type_traits>
@@ -16,25 +15,25 @@ struct Field {
 	using ValueType = std::conditional_t<is_array, std::vector<T>, T>;
 
 	static constexpr auto id = fieldId;
-	static consteval bool isArray() noexcept { return is_array; }
+	[[nodiscard]] static consteval bool isArray() noexcept { return is_array; }
 	///
 
 	constexpr Field() noexcept = default;
-	constexpr Field(ValueType val) noexcept : value{ std::move(val) }
+	explicit constexpr Field(ValueType val) noexcept : value{ std::move(val) }
 	{}
 
-	static consteval bool sizeKnownAtCompileTime() noexcept
+	[[nodiscard]] static consteval bool sizeKnownAtCompileTime() noexcept
 	{
 		return !isArray() && std::is_trivial_v<ValueType> && std::is_standard_layout_v<ValueType>;
 	}
 
-	static consteval size_t staticSize() noexcept
+	[[nodiscard]] static consteval size_t staticSize() noexcept
 	{
 		static_assert(sizeKnownAtCompileTime(), "This field type does not have compile-time-static size.");
 		return sizeof(ValueType);
 	}
 
-	size_t fieldSize() const noexcept
+	[[nodiscard]] size_t fieldSize() const noexcept
 	{
 		if constexpr (sizeKnownAtCompileTime())
 			return staticSize();
@@ -42,24 +41,22 @@ struct Field {
 			return ::valueSize(value);
 	}
 
-	static consteval bool isSuitableForTombstone() noexcept
+	[[nodiscard]] static consteval bool isSuitableForTombstone() noexcept
 	{
 		return std::is_trivial_v<ValueType> && sizeKnownAtCompileTime();
 	}
 
-	constexpr bool operator==(const Field& other) const noexcept
+	[[nodiscard]] constexpr auto operator<=>(const Field&) const noexcept = default;
+	[[nodiscard]] constexpr bool operator==(const Field&) const noexcept = default;
+
+	[[nodiscard]] constexpr auto operator<=>(const ValueType& otherValue) const noexcept
 	{
-		return value == other.value;
+		return value <=> otherValue;
 	}
 
-	constexpr bool operator!=(const Field& other) const noexcept
+	[[nodiscard]] constexpr bool operator==(const ValueType& otherValue) const noexcept
 	{
-		return !operator==(other);
-	}
-
-	constexpr bool operator<(const Field& other) const noexcept requires(!is_array)
-	{
-		return value < other.value;
+		return value == otherValue;
 	}
 
 public:

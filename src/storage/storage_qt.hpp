@@ -1,6 +1,8 @@
 #pragma once
 
-#include "storage_io_interface.hpp"
+#include "io_base_definitions.hpp"
+
+#include "assert/advanced_assert.h"
 
 #include <QBuffer>
 #include <QFile>
@@ -12,7 +14,7 @@ class QFileAdapter
 public:
 	[[nodiscard]] bool open(const std::string& fileName, const OpenMode mode) noexcept
 	{
-		QIODevice::OpenModeFlag qtOpenMode;
+		QIODevice::OpenModeFlag qtOpenMode {};
 		switch (mode) {
 		case OpenMode::Read:
 			qtOpenMode = QIODevice::ReadOnly;
@@ -39,12 +41,12 @@ public:
 
 	[[nodiscard]] bool read(void* targetBuffer, const size_t dataSize) noexcept
 	{
-		return _file.read(reinterpret_cast<char*>(targetBuffer), dataSize) == static_cast<qint64>(dataSize);
+		return _file.read(reinterpret_cast<char*>(targetBuffer), static_cast<qint64>(dataSize)) == static_cast<qint64>(dataSize);
 	}
 
 	[[nodiscard]] bool write(const void* const targetBuffer, const size_t dataSize) noexcept
 	{
-		return _file.write(reinterpret_cast<const char*>(targetBuffer), dataSize) == static_cast<qint64>(dataSize);
+		return _file.write(reinterpret_cast<const char*>(targetBuffer), static_cast<qint64>(dataSize)) == static_cast<qint64>(dataSize);
 	}
 
 	// Sets the absolute position from the beginning of the file
@@ -95,7 +97,7 @@ class QMemoryDeviceAdapter
 public:
 	[[nodiscard]] bool open(const std::string& /*fileName*/, const OpenMode mode) noexcept
 	{
-		QIODevice::OpenModeFlag qtOpenMode;
+		QIODevice::OpenModeFlag qtOpenMode{};
 		switch (mode) {
 		case OpenMode::Read:
 			qtOpenMode = QIODevice::ReadOnly;
@@ -122,12 +124,12 @@ public:
 
 	[[nodiscard]] bool read(void* targetBuffer, const size_t dataSize) noexcept
 	{
-		return _ioDevice.read(reinterpret_cast<char*>(targetBuffer), dataSize) == static_cast<qint64>(dataSize);
+		return _ioDevice.read(reinterpret_cast<char*>(targetBuffer), static_cast<qint64>(dataSize)) == static_cast<qint64>(dataSize);
 	}
 
 	[[nodiscard]] bool write(const void* const targetBuffer, const size_t dataSize) noexcept
 	{
-		return _ioDevice.write(reinterpret_cast<const char*>(targetBuffer), dataSize) == static_cast<qint64>(dataSize);
+		return _ioDevice.write(reinterpret_cast<const char*>(targetBuffer), static_cast<qint64>(dataSize)) == static_cast<qint64>(dataSize);
 	}
 
 	// Sets the absolute position from the beginning of the file
@@ -179,4 +181,4 @@ private:
 	QBuffer _ioDevice;
 };
 
-}
+} // namespace io

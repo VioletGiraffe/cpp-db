@@ -16,4 +16,4 @@ struct FieldToIndex<Index, id, Head, Rest...> {
 template <auto id, typename... Args>
 inline constexpr size_t indexByFieldId = FieldToIndex<0, id, Args...>::value;
 
-}
+} // namespace detail

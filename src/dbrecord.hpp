@@ -3,12 +3,8 @@
 #include "dbfield.hpp"
 #include "db_type_concepts.hpp"
 
-#include "utility/template_magic.hpp"
-#include "utility/constexpr_algorithms.hpp"
 #include "parameter_pack/parameter_pack_helpers.hpp"
-#include "tuple/tuple_helpers.hpp"
-#include "assert/advanced_assert.h"
-#include "utility/memory_cast.hpp"
+#include "utility/constexpr_algorithms.hpp"
 
 #include <tuple>
 
@@ -40,18 +36,18 @@ public:
 	}
 
 	template <typename Field>
-	constexpr const auto& fieldValue() const & noexcept
+	[[nodiscard]] constexpr const auto& fieldValue() const & noexcept
 	{
 		return std::get<pack::index_for_type_v<Field, FieldsSequence...>>(_fields).value;
 	}
 
 	template <typename Field>
-	constexpr auto& fieldValue() & noexcept
+	[[nodiscard]] constexpr auto& fieldValue() & noexcept
 	{
 		return std::get<pack::index_for_type_v<Field, FieldsSequence...>>(_fields).value;
 	}
 
-	static consteval bool allFieldsHaveStaticSize() noexcept
+	[[nodiscard]] static consteval bool allFieldsHaveStaticSize() noexcept
 	{
 		bool nonStaticSizeFieldDetected = false;
 		pack::for_type<FieldsSequence...>([&nonStaticSizeFieldDetected]<class Type>() {
@@ -62,7 +58,7 @@ public:
 		return nonStaticSizeFieldDetected == false;
 	}
 
-	static consteval size_t staticFieldsCount() noexcept
+	[[nodiscard]] static consteval size_t staticFieldsCount() noexcept
 	{
 		size_t count = 0;
 		static_for<0, sizeof...(FieldsSequence)>([&count]<auto I>() {
@@ -74,7 +70,7 @@ public:
 		return count;
 	}
 
-	static consteval size_t staticFieldsSize() noexcept
+	[[nodiscard]] static consteval size_t staticFieldsSize() noexcept
 	{
 		size_t totalSize = 0;
 		static_for<0, staticFieldsCount()>([&totalSize]<auto I>() {
@@ -87,7 +83,7 @@ public:
 		return totalSize;
 	}
 
-	size_t totalSize() const noexcept
+	[[nodiscard]] size_t totalSize() const noexcept
 	{
 		size_t totalSize = staticFieldsSize();
 		static_for<staticFieldsCount(), sizeof...(FieldsSequence)>([&totalSize, this]<auto I>() {
@@ -101,23 +97,23 @@ public:
 	}
 
 	template <int index>
-	constexpr auto& fieldAtIndex() & noexcept
+	[[nodiscard]] constexpr auto& fieldAtIndex() & noexcept
 	{
 		return std::get<index>(_fields);
 	}
 
 	template <int index>
-	constexpr const auto& fieldAtIndex() const & noexcept
+	[[nodiscard]] constexpr const auto& fieldAtIndex() const & noexcept
 	{
 		return std::get<index>(_fields);
 	}
 
-	static consteval size_t fieldCount() noexcept
+	[[nodiscard]] static consteval size_t fieldCount() noexcept
 	{
 		return sizeof...(FieldsSequence);
 	}
 
-	constexpr bool operator==(const DbRecord& other) const noexcept
+	[[nodiscard]] constexpr bool operator==(const DbRecord& other) const noexcept
 	{
 		return _fields == other._fields;
 	}
@@ -137,7 +133,7 @@ public:
 // All the junk below is for compile-time correctness validation only.
 //
 private:
-	static consteval bool checkAssertions() noexcept
+	[[nodiscard]] static consteval bool checkAssertions() noexcept
 	{
 		static_assert(sizeof...(FieldsSequence) > 0);
 		//static_assert(TombstoneField::is_valid_v == true || TombstoneField::is_valid_v == false, "The first template parameter must beither Tombstone<FieldType>, or NoTombstone.");

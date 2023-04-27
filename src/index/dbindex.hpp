@@ -1,9 +1,6 @@
 #pragma once
 
-#include "../dbfield.hpp"
 #include "../dbstorage.hpp"
-#include "utility/template_magic.hpp"
-#include "assert/advanced_assert.h"
 
 #include <map>
 #include <optional>
@@ -15,7 +12,7 @@ public:
 	using key_type = typename IndexedField::ValueType;
 	using location_type = PageNumber;
 
-	std::optional<location_type> findKey(const key_type& value) const noexcept
+	[[nodiscard]] std::optional<location_type> findKey(const key_type& value) const noexcept
 	{
 		const auto it = _index.find(value);
 		return it != _index.end() ? it->second : std::optional<location_type>{};
@@ -30,27 +27,27 @@ public:
 	}
 
 	// Removes every occurrence of 'value', returns the number of removed items
-	size_t removeKey(const key_type& value) noexcept
+	[[nodiscard]] size_t removeKey(const key_type& value) noexcept
 	{
 		return _index.erase(value);
 	}
 
-	auto begin() const noexcept
+	[[nodiscard]] auto begin() const noexcept
 	{
 		return _index.begin();
 	}
 
-	auto end() const noexcept
+	[[nodiscard]] auto end() const noexcept
 	{
 		return _index.end();
 	}
 
-	size_t size() const noexcept
+	[[nodiscard]] size_t size() const noexcept
 	{
 		return _index.size();
 	}
 
-	bool empty() const noexcept
+	[[nodiscard]] bool empty() const noexcept
 	{
 		return _index.empty();
 	}

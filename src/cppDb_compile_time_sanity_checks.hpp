@@ -57,7 +57,7 @@ inline void dbField_checks()
 	using F3 = Field<long double, 4>;
 	using Fs = Field<std::string, 42>;
 
-	constexpr F3 f3 = 3.14L;
+	constexpr F3 f3 {3.14L};
 	static_assert(f3.value == 3.14L);
 	constexpr auto f3_copy = f3;
 	static_assert(f3_copy.value == 3.14L);
@@ -202,9 +202,9 @@ inline void cppDb_compileTimeChecks()
 	storePath = Index::load<io::FopenAdapter>(fsIndex, "Z:Z:");
 
 	fsIndex.addLocationForKey("123", { 10 });
-	fsIndex.findKey("123");
-	fsIndex.removeKey("1");
-	f1Index1.removeKey(5);
+	(void)fsIndex.findKey("123");
+	(void)fsIndex.removeKey("1");
+	(void)f1Index1.removeKey(5);
 
 	dbRecord_checks();
 	dbWal_checks();

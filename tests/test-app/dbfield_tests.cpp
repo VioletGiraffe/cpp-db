@@ -11,7 +11,7 @@ TEST_CASE("DbField: basic tests", "[dbfield]") {
 		STATIC_REQUIRE(F3::sizeKnownAtCompileTime());
 		STATIC_REQUIRE(Fs::sizeKnownAtCompileTime() == false);
 
-		constexpr F3 f3 = 3.14L, f3_mod = 0.0L;
+		constexpr F3 f3{ 3.14L }, f3_mod{ 0.0L };
 		STATIC_REQUIRE(F3::isArray() == false);
 		STATIC_REQUIRE(f3.value == 3.14L);
 		constexpr auto f3_copy = f3;
@@ -51,9 +51,9 @@ TEST_CASE("DbField: arrays", "[dbfield]") {
 		const F3 f3_mod { {0.0L} };
 
 		STATIC_REQUIRE(F3::isArray() == true);
-		REQUIRE((f3.value == std::vector{ {3.14L} }));
+		REQUIRE((f3.value == std::vector{ 3.14L }));
 		const auto f3_copy = f3;
-		REQUIRE((f3_copy == std::vector{ {3.14L} }));
+		REQUIRE((f3_copy == std::vector{ 3.14L }));
 		REQUIRE(f3_copy == f3);
 		REQUIRE(f3_copy != f3_mod);
 
@@ -67,7 +67,7 @@ TEST_CASE("DbField: arrays", "[dbfield]") {
 		REQUIRE(f3_copy != f3);
 		REQUIRE(f3 == f3_mod);
 
-		Fs fs{ {std::string{"abc"}, std::string{"123"}} };
+		const Fs fs{ {std::string{"abc"}, std::string{"123"}} };
 		STATIC_REQUIRE(Fs::isArray() == true);
 		const auto copy = fs;
 

@@ -2,4 +2,4 @@
 
 namespace io {
 	enum class OpenMode { Read, Write, ReadWrite };
-}
+} // namespace io

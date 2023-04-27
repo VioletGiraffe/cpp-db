@@ -1,10 +1,9 @@
 #pragma once
 
-#include "container/std_container_helpers.hpp"
-#include "container/multi_index.hpp"
-#include "storage/storage_io_interface.hpp"
 #include "assert/advanced_assert.h"
+#include "container/multi_index.hpp"
 #include "hash/sha3_hasher.hpp"
+#include "storage/storage_io_interface.hpp"
 
 #include <assert.h>
 #include <limits>
@@ -19,7 +18,7 @@ class FileAllocationManager
 		uint64_t location;
 		uint64_t length;
 
-		constexpr uint64_t endOffset() const {
+		[[nodiscard]] constexpr uint64_t endOffset() const {
 			return location + length;
 		}
 	};

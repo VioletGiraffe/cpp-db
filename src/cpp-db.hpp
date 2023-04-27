@@ -24,20 +24,6 @@ enum class TestCollectionFields {
 template <class Index, class... Fields>
 class Collection
 {
-	static consteval size_t dynamicFieldCount()
-	{
-		size_t dynamicFieldCount = 0;
-		consteval_for_z<0, sizeof...(Fields)>([&dynamicFieldCount](auto i) {
-			using FieldType = pack::type_by_index<decltype(i)::value, Fields...>;
-			if constexpr (FieldType::sizeKnownAtCompileTime() == false)
-				++dynamicFieldCount;
-		});
-
-		return dynamicFieldCount;
-	}
-
-	static_assert(dynamicFieldCount() <= 1, "No more than one dynamic field is allowed!");
-
 public:
 	using Record = std::tuple<Fields...>;
 
@@ -56,7 +42,10 @@ public:
 		_index.store(indexStorageFolderPath());
 	}
 
-	std::string indexStorageFolderPath() const
+	Collection(const Collection&) = delete;
+	Collection& operator=(const Collection&) = delete;
+
+	[[nodiscard]] std::string indexStorageFolderPath() const
 	{
 		return _dbStoragePath + "/" + _collectionName + "_index/";
 	}
@@ -69,7 +58,7 @@ public:
 
 	// TODO: add default functor for one value (no filter)
 	template <auto queryFieldId>
-	std::vector<Record> find(const FieldValueTypeById_t<queryFieldId, Fields...>& value) {
+	[[nodiscard]] std::vector<Record> find(const FieldValueTypeById_t<queryFieldId, Fields...>& value) {
 		static_assert(Index::template hasIndex<queryFieldId>(), "Attempting to query on an un-indexed field!");
 
 		std::vector<Record> results;
@@ -80,6 +69,21 @@ public:
 
 		return results;
 	}
+
+private:
+	[[nodiscard]] static consteval size_t dynamicFieldCount()
+	{
+		size_t dynamicFieldCount = 0;
+		consteval_for_z<0, sizeof...(Fields)>([&dynamicFieldCount](auto i) {
+			using FieldType = pack::type_by_index<decltype(i)::value, Fields...>;
+			if constexpr (FieldType::sizeKnownAtCompileTime() == false)
+				++dynamicFieldCount;
+		});
+
+		return dynamicFieldCount;
+	}
+
+	static_assert(dynamicFieldCount() <= 1, "No more than one dynamic field is allowed!");
 
 private:
 	DBStorage<Fields...> _storage;

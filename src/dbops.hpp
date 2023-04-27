@@ -59,7 +59,7 @@ namespace Operation {
 		using KeyField = K;
 
 		static constexpr auto op = OpCode::UpdateFull;
-		static constexpr bool insertIfNotPresent() noexcept { return InsertIfNotPresent; };
+		static constexpr bool insertIfNotPresent() noexcept { return InsertIfNotPresent; }
 
 		explicit constexpr UpdateFull(Record r, typename KeyField::ValueType key) noexcept :
 			record{ std::move(r) },
@@ -92,7 +92,7 @@ namespace Operation {
 
 			const typename ArrayField::ValueType array;
 		};
-	}
+	} // namespace detail
 
 	template <RecordType Record, class Key, class Array, bool InsertIfNotPresent = false>
 	struct AppendToArray final : public std::conditional_t<InsertIfNotPresent, detail::RecordMember<Record>, detail::ArrayMember<Array>>
@@ -105,7 +105,7 @@ namespace Operation {
 
 		static constexpr auto op = OpCode::AppendToArray;
 
-		static consteval bool insertIfNotPresent() noexcept { return InsertIfNotPresent; };
+		static consteval bool insertIfNotPresent() noexcept { return InsertIfNotPresent; }
 
 		constexpr AppendToArray(KeyValueType k, ArrayValueType a) noexcept requires(InsertIfNotPresent == false) :
 			detail::ArrayMember<Array>{std::move(a)},
@@ -143,4 +143,4 @@ namespace Operation {
 
 		static_assert(Record::template has_field_v<KeyField>);
 	};
-}
+} // namespace Operation

@@ -35,7 +35,9 @@ Operation basics:
 
 #include "container/std_container_helpers.hpp"
 #include "hash/wheathash.hpp"
+#include "lang/utils.hpp"
 #include "system/timing.h"
+#include "utility/memory_cast.hpp"
 
 #include <atomic>
 #include <optional>
@@ -64,16 +66,19 @@ static std::atomic_uint64_t totalSizeWritten = 0;
 #endif
 
 template <RecordType Record, class StorageAdapter>
-class DbWAL
+class DbWAL final
 {
 public:
-	constexpr DbWAL(StorageAdapter& walIoDevice) noexcept :
+	constexpr explicit DbWAL(StorageAdapter& walIoDevice) noexcept :
 		_logFile{ walIoDevice }
 	{
 		checkBlockSize();
 	}
 
 	~DbWAL() noexcept;
+
+	DbWAL(const DbWAL&) = delete;
+	DbWAL& operator=(const DbWAL&) = delete;
 
 	[[nodiscard]] bool openLogFile(const std::string& filePath) noexcept;
 	[[nodiscard]] bool closeLogFile() noexcept;
@@ -118,7 +123,7 @@ private:
 	std::atomic<WAL::OpID> _lastFlushedOpId = 0;
 	// Doesn't have to be atomic - only accessed under mutex
 	WAL::OpID _lastBlockOpId = 0;
-	
+
 	io::StaticBufferAdapter<BlockSize> _block;
 	std::atomic<size_t> _blockItemCount = 0;
 
@@ -214,10 +219,10 @@ template <typename Receiver>
 	};
 
 	// Two passes are required because of the templated operation types that cannot be [easily] stored at runtime.
-	// 
+	//
 	// The first pass reads and stores all operation completion markers. Whether or not the operation completed successfully or failed, it has been handled by the storage and no replay is required.
 	// So the 1st pass only reads the IDs of completed operations and skips everything else.
-	// 
+	//
 	// Then the seconds pass can skip reading all the operations that have completed successfully and process the ones that didn't.
 
 	// Remeber: malformed last block is not an error
@@ -304,7 +309,7 @@ DbWAL<Record, StorageAdapter>::registerOperation(OpType&& op) noexcept
 	entryBuffer.seekToEnd();
 
 	StorageIO io{ entryBuffer };
-	
+
 	// !!!!!!!!!!!!!!!!!! Warning: unsafe to use 'op' after forwarding it
 	assert_and_return_r(Serializer::serialize(std::forward<OpType>(op), io), {});
 
@@ -355,7 +360,7 @@ DbWAL<Record, StorageAdapter>::registerOperation(OpType&& op) noexcept
 	}
 
 	/*//////////////////////////////////////////////////////////////////////////////////////////////////////
-	             Waiting for another thread to flush the block and handling the timeout
+				 Waiting for another thread to flush the block and handling the timeout
 	//////////////////////////////////////////////////////////////////////////////////////////////////////*/
 
 	waitForFlushAndHandleTimeout(newOpId, firstWriter, timeStamp);
@@ -371,7 +376,7 @@ bool DbWAL<Record, StorageAdapter>::updateOpStatus(const WAL::OpID opId, const W
 
 	// Reserving space for the entry size field
 	entryBuffer.reserve(sizeof(EntrySizeType));
-	
+
 	StorageIO bufferIo{ entryBuffer };
 	assert_and_return_r(bufferIo.seek(sizeof(EntrySizeType)), false);
 	assert_and_return_r(bufferIo.write(opId), false);
@@ -511,7 +516,7 @@ template<RecordType Record, class StorageAdapter>
 void DbWAL<Record, StorageAdapter>::waitForFlushAndHandleTimeout(WAL::OpID currentOpId, const bool firstWriter, const uint64_t operationStartTimeStamp) noexcept
 {
 	/*//////////////////////////////////////////////////////////////////////////////////////////////////////
-	                 Waiting for another thread to flush the block and handling the timeout
+					 Waiting for another thread to flush the block and handling the timeout
 	//////////////////////////////////////////////////////////////////////////////////////////////////////*/
 
 #ifdef ENABLE_TRACING
