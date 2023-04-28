@@ -27,7 +27,7 @@ public:
 	}
 
 	// Removes every occurrence of 'value', returns the number of removed items
-	[[nodiscard]] size_t removeKey(const key_type& value) noexcept
+	size_t removeKey(const key_type& value) noexcept
 	{
 		return _index.erase(value);
 	}

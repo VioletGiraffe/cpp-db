@@ -84,7 +84,7 @@ TEST_CASE("Adding and removing random locations", "[dbindex]") {
 		REQUIRE(N % 10 == 0);
 		for (uint64_t i = 0; i < N / 10; ++i)
 		{
-			index.removeKey(reference[i].first);
+			REQUIRE(index.removeKey(reference[i].first) == 1);
 			ContainerAlgorithms::erase_all_occurrences(originalReferenceData, reference[i]);
 		}
 
