@@ -298,7 +298,7 @@ TEST_CASE("DbWAL: registering multiple operations - multiple threads", "[dbwal]"
 				{
 					const auto it = opIds.begin() + rngForOpId.rand() % opIds.size();
 					const auto id = *it;
-					const auto random = wheathash64v(rdtsc());
+					const auto random = wheathash64v(rdtsc_fast_thread_local());
 					const auto status = (random & 1) != 0 ? WAL::OpStatus::Successful : WAL::OpStatus::Failed;
 					REQUIRE_THREAD_SAFE(wal.updateOpStatus(id, status));
 					opIds.erase(it);
